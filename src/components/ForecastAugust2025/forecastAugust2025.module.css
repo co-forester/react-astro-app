@@ -1,0 +1,31 @@
+
+.containerLight {
+  padding: 2rem;
+  background-color: #5b3c6c;
+  border-radius: 12px;
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+}
+
+.weekBlockLight {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #e8dbf7;
+  border-left: 5px solid #a974d2;
+  border-radius: 6px;
+}
+ .containerDark {
+  padding: 2rem;
+  background-color: #2f1a3b;
+  border-radius: 12px;
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+}
+
+.weekBlockDark {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #e8dbf7;
+  border-left: 5px solid #a974d2;
+  border-radius: 6px;
+}

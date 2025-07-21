@@ -1,0 +1,104 @@
+:root {
+  --bg-dark: #2d1b2f;
+  --text-dark: #ffffff;
+  --bg-light: #f8f0fb;
+  --text-light: #1a1a1a;
+
+  --accent-blue: #7ecdf1;
+  --accent-pink: #f3a6d3;
+  --accent-orange: #f9a36b;
+  --accent-green: #94d094;
+
+  --font-main: 'Segoe UI', sans-serif;
+  --font-deco: 'Georgia', cursive;
+}
+
+/* Загальні стилі */
+.NatalChartDark, .NatalChartLight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  font-family: var(--font-main);
+  transition: background-color 0.5s, color 0.5s;
+}
+
+.NatalChartLight {
+  background-color: var(--bg-light);
+  color: var(--text-light);
+}
+
+.NatalChartDark {
+   background-color: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+/* Контейнер основного контенту */
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+/* Заголовки */
+h2 {
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.NatalChartLight h2 {
+  color: var(--accent-green);
+}
+ .NatalChartDark h2 {
+  color: var(--accent-pink);
+}
+
+/* Текст */
+p {
+  line-height: 1.6;
+  margin-bottom: 1.2rem;
+}
+
+/* Зображення натальної карти */
+.chart {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.chart img {
+  max-width: 100%;
+  height: auto;
+  border: 4px solid var(--accent-pink);
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* Аспекти */
+.aspect {
+  background: #8656ab;
+  padding: 1.2rem;
+  border-radius: 0.7rem;
+  margin: 1.5rem 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .aspect {
+  background: #d1c0e0;
+}
+
+.aspect h3 {
+  margin-top: 0;
+  color: #4d264d;
+}
+
+body.light-mode .aspect h3 {
+  color: #3b1d3b;
+}
+
+
+body.light-mode footer {
+  background-color: #e1bcfb;
+  color: #444;
+}

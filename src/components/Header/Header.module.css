@@ -1,0 +1,165 @@
+.HeaderLight,
+.HeaderDark {
+  position: relative;
+  padding: 2rem 2rem 4rem;
+  color: rgb(197, 195, 195);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  transition: background 0.5s ease;
+}
+
+.HeaderLight {
+  background: linear-gradient(5deg,  #4a0723, #801d46, #b6376c);
+}
+
+.HeaderDark {
+  background: linear-gradient(5deg,  #4A001F, #790133, #b9014e
+);
+}
+
+.logo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid white;
+  transition: filter 0.5s ease;
+  cursor: pointer;
+}
+
+.logo:hover {
+  filter: hue-rotate(120deg) brightness(1.2);
+}
+
+.logo:active {
+  animation: spinLogo 0.6s ease;
+}
+
+@keyframes spinLogo {
+  0% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg) scale(1.2); }
+  100% { transform: rotate(360deg); }
+}
+
+.logoTitleWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+h1 {
+  font-family: var(--font-deco);
+  font-size: 2.4rem;
+  font-style: italic;
+  background: linear-gradient(270deg, #f3a6d3, #f9a36b, #7ecdf1);
+  background-size: 600% 600%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 8s ease infinite;
+  margin: 0;
+}
+
+@keyframes shine {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.nav {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.nav a {
+  color: var(--accent-orange);
+  text-decoration: none;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.activeLink {
+  opacity: 0.6;
+  text-decoration: underline;
+  pointer-events: none;
+}
+
+.ButtonBox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1rem;
+  min-width: 160px;
+}
+
+.button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+  transition: background 0.3s ease;
+  cursor: pointer;
+}
+
+.buttonLight {
+  background: #908bbb;
+  color: #f1f4b4;
+  box-shadow: #41419b 3px 3px 3px;
+}
+
+.buttonDark {
+  background: #585575;
+  color: #c5c6b5;
+  box-shadow: #6969c2 5px 5px 5px;
+}
+
+.buttonLight:hover,
+.buttonDark:hover {
+  background-color: #a6a5a5;
+}
+
+.buttonLight:active,
+.buttonDark:active {
+  background-color: #9c9b9b;
+}
+
+.specialLinkContainer {
+  margin-top: 5px;
+}
+
+.HeaderLight a,
+.HeaderDark a {
+  font-size: 1.25rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.HeaderLight a {
+  color: #f9e505;
+}
+
+.HeaderDark a {
+  color: #f9b005;
+}
+
+.HeaderLight a:hover,
+.HeaderDark a:hover {
+  color: #8ceff8;
+  font-size: 1.35rem;
+}
+
+.HeaderLight a:active,
+.HeaderDark a:active {
+  color: #f75050;
+}
+/* --bordeaux: #800020;
+--bordeaux-dark: #4A001F;
+--bordeaux-light: #A52A2A; */

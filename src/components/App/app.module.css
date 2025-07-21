@@ -1,0 +1,14 @@
+.AppLight{
+    background: #5b3c6c;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.AppDark{
+    background: #2f1a3b;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}

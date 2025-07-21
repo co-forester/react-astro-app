@@ -1,0 +1,60 @@
+:root {
+  --bg-dark: #2f1a3b;
+  --text-dark: #ffffff;
+  --bg-light: #9267b1;
+  --text-light: #1a1a1a;
+
+  --accent-blue: #7ecdf1;
+  --accent-pink: #f3a6d3;
+  --accent-orange: #f9a36b;
+  --accent-green: #94d094;
+
+  --font-main: 'Segoe UI', sans-serif;
+  --font-deco: 'Georgia', cursive;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-main);
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+  transition: background-color 0.5s, color 0.5s;
+}
+
+.light-mode {
+  background-color: var(--bg-light);
+  color: var(--text-light);
+}
+
+.dark-mode {
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  
+}
+
+h2 {
+  font-family: var(--font-deco);
+  font-style: italic;
+  color: var(--accent-orange);
+}
+
+p {
+  font-family: Geneva, cursive;
+  font-size: 1.7rem;
+  line-height: 1.6;
+}
+
+.highlight {
+  color: var(--accent-green);
+  font-weight: bold;
+}
+
+
+
+

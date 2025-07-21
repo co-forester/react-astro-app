@@ -1,0 +1,68 @@
+# === Node / React ===
+node_modules/
+build/
+dist/
+*.log
+.env
+.npm/
+.yarn/
+
+# === Python / Flask ===
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+*.db
+instance/
+.mypy_cache/
+.pytest_cache/
+.env
+*.sqlite3
+
+# Віртуальні середовища
+venv/
+.venv/
+ENV/
+env/
+
+# === VS Code ===
+.vscode/
+
+# === Mac OS / System ===
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# === Static files / Media ===
+*.zip
+*.tar.gz
+*.tar
+*.rar
+*.7z
+*.mp4
+*.mov
+*.avi
+*.wav
+*.mkv
+*.mp3
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+
+# === Coverage / тестування (якщо буде) ===
+coverage/
+htmlcov/
+*.cover
+*.py,cover
+.cache
+.tox/
+nosetests.xml
+test-results/
+
+# === Docker / CI (якщо не використовуєш) ===
+Dockerfile
+docker-compose.yml
+*.pid

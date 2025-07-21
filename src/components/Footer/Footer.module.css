@@ -1,0 +1,146 @@
+
+.FooterLight,
+.FooterDark {
+  margin: 0;
+  position: relative;
+  padding: 2rem 2rem 4rem;
+  color: rgb(197, 195, 195);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-direction: column;
+  transition: background 0.5s ease;
+}
+
+.FooterLight {
+  background: linear-gradient(5deg,  #4a0723, #801d46, #b6376c);
+}
+
+.FooterDark {
+  background: linear-gradient(5deg,  #4A001F, #790133, #b9014e
+);
+}
+
+h2 {
+  font-family: var(--font-deco);
+  font-size: 1.4rem;
+  font-style: italic;
+  background: linear-gradient(270deg, #f3a6d3, #f9a36b, #7ecdf1);
+  background-size: 600% 600%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shine 8s ease infinite;
+  margin: 0;
+}
+
+@keyframes shine {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.nav {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.nav a {
+  color: var(--accent-orange);
+  text-decoration: none;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+.activeLink {
+  opacity: 0.6;
+  text-decoration: underline;
+  pointer-events: none;
+}
+
+
+/* .ButtonBox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1rem;
+  min-width: 160px;
+} */
+
+.button {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+  transition: background 0.3s ease;
+  cursor: pointer;
+}
+
+.buttonLight {
+  background: #908bbb;
+  color: #f1f4b4;
+  box-shadow: #41419b 3px 3px 3px;
+}
+
+.buttonDark {
+  background: #585575;
+  color: #c5c6b5;
+  box-shadow: #6969c2 5px 5px 5px;
+}
+
+.buttonLight:hover,
+.buttonDark:hover {
+  background-color: #a6a5a5;
+}
+
+.buttonLight:active,
+.buttonDark:active {
+  background-color: #9c9b9b;
+} 
+.FooterLight a,
+.FooterDark a{
+  font-size: 1.25rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.FooterLight a {
+  color: #f9e505;
+}
+
+.FooterDark a {
+  color: #f9b005;
+}
+
+.FooterLight a:hover,
+.FooterDark a:hover {
+  color: #8ceff8;
+  font-size: 1.35rem;
+}
+
+.FooterLight a:active,
+.FooterDark a:active {
+  color: #f75050;
+}
+.contactsLight, .contactsDark { 
+  display: flex;
+  justify-content: space-between;
+}
+.contactsLight a , .contactsDark a {
+  display: block;
+  margin: 0.3rem 0;
+  color: var(--accent-blue);
+  text-decoration: none;
+}
+
+.contactsLight a {
+  color: #a3e0fc;
+}
+
+.contactsDark a {
+  color: #a3e0fc;
+} 

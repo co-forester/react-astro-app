@@ -1,0 +1,14 @@
+export * from './Footer';
+export * from './Header';
+export * from './NatalChart';
+export * from './HoroscopeJuly19';
+export * from './App';  
+export * from './Home/Home'; 
+export * from  './ForecastAugust2025';     
+// export { Footer } from './Footer/Footer';
+// export { Header } from './Header/Header';
+// export { NatalChart } from './NatalChart/NatalChart';
+// export { HoroscopeJuly19} from './HoroscopeJuly19/HoroscopeJuly19';
+// export { App } from './App/App';  
+// export { Home } from './Home/Home'; 
+// export {ForecastAugust2025} from  './ForecastAugust2025/ForecastAugust2025';     

@@ -1,0 +1,54 @@
+:root {
+  --bg-dark: #2d1b2f;
+  --text-dark: #ffffff;
+  --bg-light: #f5f0fa;
+  --text-light: #2d1b2f;
+
+  --accent-pink: #f3a6d3;
+  --accent-purple: #7e3f7e;
+
+  --font-main: 'Segoe UI', sans-serif;
+  --font-deco: 'Georgia', serif;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-main);
+  background-color: var(--bg-light);
+  color: var(--text-light);
+  transition: background-color 0.4s, color 0.4s;
+}
+
+.mainLight{
+  background-color: var(--bg-light);
+  color: var(--text-light);
+}
+
+.mainDark{
+  background-color: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+.mainLight, .mainDark {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+h2 {
+  text-align: center;
+  font-family: var(--font-deco);
+  font-style: italic;
+  color: var(--accent-purple);
+}
+
+h2 {
+  color: var(--accent-pink);
+  margin-top: 2rem;
+}
+
+p {
+  line-height: 1.6;
+  margin: 0.5rem 0 1.2rem;
+}
+
