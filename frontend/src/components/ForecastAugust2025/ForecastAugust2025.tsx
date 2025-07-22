@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppDispatch, useAppSelector } from '../../hooks/reduxHook';
+import { useAppSelector } from '../../hooks/reduxHook';
 import css from './forecastAugust2025.module.css';
 
 const ForecastAugust2025 = () => {

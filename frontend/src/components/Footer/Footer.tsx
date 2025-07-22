@@ -1,21 +1,14 @@
 import React, { useEffect } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink} from 'react-router-dom';
 
 import css from './Footer.module.css'
 import { useAppDispatch, useAppSelector } from '../../hooks/reduxHook';
 import { themeActions } from '../../redux/slices/themeSlice';
-// import { store } from '../../redux/store';
-// import { themeActions } from '../../redux/slices/themeSlice';
 
 const Footer = () => {
 
   const theme = useAppSelector(state => state.theme.theme);
     const dispatch = useAppDispatch();
-    const navigate = useNavigate();
-  
-    const switchTheme = () => {
-      dispatch(themeActions.themeChange());
-    };
   
     // Автоматичне завантаження теми з localStorage
     useEffect(() => {

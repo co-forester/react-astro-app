@@ -1,22 +1,16 @@
 
 import React, { useEffect } from 'react';
 
-import { Header } from '../Header/Header';
 import css from'./horoscopeJuly19.module.css';
 import { themeActions } from '../../redux/slices/themeSlice';
 import { useAppDispatch, useAppSelector } from '../../hooks/reduxHook';
 
  
-{/* <link rel="icon" href="favicon.ico" type="image/x-icon" /> */}
 
 const HoroscopeJuly19 = () => {
   const theme = useAppSelector(state => state.theme.theme);
     const dispatch = useAppDispatch();
-    // const navigate = useNavigate();
-  
-    const switchTheme = () => {
-      dispatch(themeActions.themeChange());
-    };
+    
   
     // Автоматичне завантаження теми з localStorage
     useEffect(() => {
