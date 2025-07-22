@@ -1,68 +1,43 @@
-# === Node / React ===
+# Node.js / React
 node_modules/
 build/
 dist/
-*.log
 .env
+.env.local
 .npm/
-.yarn/
+.cache/
+.vite/
+coverage/
+*.log
 
-# === Python / Flask ===
+# Python / Flask
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.log
-*.db
-instance/
-.mypy_cache/
-.pytest_cache/
-.env
+.Python
+env/
+venv/
+ENV/
+.venv/
 *.sqlite3
 
-# Віртуальні середовища
-venv/
-.venv/
-ENV/
-env/
-
-# === VS Code ===
-.vscode/
-
-# === Mac OS / System ===
+# OS / Editor
 .DS_Store
-Thumbs.db
-ehthumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+*.bak
+*.tmp
 
-# === Static files / Media ===
-*.zip
-*.tar.gz
-*.tar
-*.rar
-*.7z
-*.mp4
-*.mov
-*.avi
-*.wav
-*.mkv
-*.mp3
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.svg
+# Chart images (динамічно створювані)
+chart.png
+natal_chart.png
 
-# === Coverage / тестування (якщо буде) ===
-coverage/
-htmlcov/
-*.cover
-*.py,cover
-.cache
-.tox/
-nosetests.xml
-test-results/
+# Пакети та згенеровані файли
+package-lock.json
+yarn.lock
 
-# === Docker / CI (якщо не використовуєш) ===
-Dockerfile
-docker-compose.yml
-*.pid
+# Test output
+test_flatlib.py
