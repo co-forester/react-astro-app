@@ -4,7 +4,7 @@ import { Outlet } from 'react-router';
 import {Footer, Header} from "../components";
 import {App} from "../components/App/App";
 import  css from "./MainLayout.module.css";
-import { useAppSelector } from '../hooks/'; 
+import { useAppSelector } from '../hooks'; 
 
 const MainLayout = () => {
 
