@@ -13,9 +13,12 @@ import {store} from "./redux";
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
-).render(
-    <Provider store={store}>
-        <RouterProvider router={router}/>
-    </Provider>
 );
+
+root.render(
+  <Provider store={store}>
+    <RouterProvider router={router} />
+  </Provider>
+);
+
 
