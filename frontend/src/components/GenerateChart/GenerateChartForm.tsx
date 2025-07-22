@@ -17,7 +17,7 @@ const GenerateChartForm = () => {
 
     try {
       const response = await axios.post(
-        'http://127.0.0.1:5000/generate',
+        'https://albireo-daria-96.fly.dev/generate',
         form,
         { responseType: 'blob' }
       );
