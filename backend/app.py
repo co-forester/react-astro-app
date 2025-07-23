@@ -2,7 +2,8 @@ import os
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flatlib.chart import Chart
-from flatlib.object import DEFAULT_IDS
+from flatlib.const import SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, ASC, MC
+# from flatlib.object import DEFAULT_IDS
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
 from geopy.geocoders import Nominatim
@@ -62,8 +63,8 @@ def generate_chart():
 
         dt_flatlib = Datetime(date.replace('-', '/'), time, offset_str)
         pos = GeoPos(location.latitude, location.longitude)
-        chart = Chart(dt_flatlib, pos, IDs=DEFAULT_IDS)
-
+        objects = [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, ASC, MC]
+        chart = Chart(date, pos, IDs=objects)
         # Побудова зображення
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'polar': True})
         ax.set_theta_direction(-1)
