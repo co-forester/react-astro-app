@@ -5,3 +5,4 @@ geopy
 matplotlib
 pytz
 requests
+timezonefinder
