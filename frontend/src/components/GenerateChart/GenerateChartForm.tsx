@@ -6,13 +6,10 @@ const GenerateChartForm = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  console.log("env", import.meta.env);
-console.log("VITE_API_URL =", import.meta.env?.VITE_API_URL);
-
   // Базовий URL з .env
- const API_URL = import.meta.env?.VITE_API_URL || '';
+ const API_URL = process.env.REACT_APP_API_URL || '';
 if (!API_URL) {
-  console.warn("⚠️ VITE_API_URL is not set!");
+  console.warn("⚠️ REACT_APP_API_URL is not set!");
 }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
