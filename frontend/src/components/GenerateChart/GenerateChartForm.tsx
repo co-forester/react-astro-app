@@ -6,6 +6,15 @@ const GenerateChartForm = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  console.log("env", import.meta.env);
+console.log("VITE_API_URL =", import.meta.env?.VITE_API_URL);
+
+  // Базовий URL з .env
+ const API_URL = import.meta.env?.VITE_API_URL || '';
+if (!API_URL) {
+  console.warn("⚠️ VITE_API_URL is not set!");
+}
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -17,7 +26,7 @@ const GenerateChartForm = () => {
 
     try {
       const response = await axios.post(
-        'https://albireo-daria-96.fly.dev/generate',
+        `${API_URL}/generate`,
         form,
         { responseType: 'blob' }
       );
