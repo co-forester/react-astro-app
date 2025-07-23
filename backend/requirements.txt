@@ -1,8 +1,6 @@
-flask
-flask-cors
-flatlib
-geopy
-matplotlib
-pytz
-requests
-timezonefinder
+cffi==1.17.1
+flatbuffers==25.2.10
+h3==4.3.0
+numpy==2.3.1
+pycparser==2.22
+timezonefinder==6.6.3
