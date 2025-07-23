@@ -17,25 +17,19 @@ if (!API_URL) {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setImageUrl(null);
+  e.preventDefault();
+  setError(null);
+  setImageUrl(null);
 
-    try {
-      const response = await axios.post(
-        `${API_URL}/generate`,
-        form,
-        { responseType: 'blob' }
-      );
-
-      const blob = new Blob([response.data], { type: 'image/png' });
-      const url = URL.createObjectURL(blob);
-      setImageUrl(url);
-    } catch (err: any) {
-      const message = err?.response?.data?.error || 'Помилка запиту';
-      setError(message);
-    }
-  };
+  try {
+    const response = await axios.post(`${API_URL}/generate`, form);
+    const imageUrl = `${API_URL}${response.data.chart_image_url}`;
+    setImageUrl(imageUrl);
+  } catch (err: any) {
+    const message = err?.response?.data?.error || 'Помилка запиту';
+    setError(message);
+  }
+};
 
   return (
     <div>
