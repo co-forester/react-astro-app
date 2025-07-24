@@ -59,13 +59,13 @@ const Header = () => {
             Анализ натальной карты
            </NavLink>
             <NavLink
-            to="/App/natal_chart"
+            to="/App/natal_chart_analysis"
             className={({ isActive }) => isActive ? css.activeLink : undefined}
            >
             гороскоп ребенка
            </NavLink>
            <NavLink
-            to="/App/forecast_august_2025"
+            to="/App/child_horoscope"
             className={({ isActive }) => isActive ? css.activeLink : undefined}
            >
             Прогноз на август
