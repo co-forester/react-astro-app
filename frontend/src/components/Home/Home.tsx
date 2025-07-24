@@ -9,20 +9,17 @@ const Home = () => {
    const theme = useAppSelector(state => state.theme.theme);
   return (
     
+   <div>
+  <main className={theme ? css.HomeLight : css.HomeDark}>
+    <h2>Услуги</h2>
+    <p>Предлагаю <span className="highlight">натальные карты</span>, индивидуальные прогнозы и астрологическое сопровождение.</p>
+    <p>Обращайтесь для глубокого понимания себя, выбора жизненного пути и решения важных вопросов.</p>
     <div>
-
-      <main  className={theme ? css.HomeLight : css.HomeDark}>
-
-        <h2>Послуги</h2>
-        <p>Пропоную <span className="highlight">натальні карти</span>, індивідуальні прогнози та астрологічний супровід.</p>
-        <p>Звертайтесь для глибокого розуміння себе, вибору життєвого шляху та вирішення важливих питань.</p>
-         <div>
-      <h1>Створення натальної карти</h1>
+      <h1>Создание натальной карты</h1>
       <GenerateChartForm />
     </div>
-      </main>
-
-    </div>
+  </main>
+</div>
   );
 };
 
