@@ -4,40 +4,39 @@
   margin: 0;
   position: relative;
   padding: 2rem 2rem 4rem;
-  color: rgb(197, 195, 195);
   text-align: center;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  flex-direction: column;
   transition: background 0.5s ease;
+  color: rgb(197, 195, 195);
 }
 
 .FooterLight {
-  background: linear-gradient(5deg,  #4a0723, #801d46, #b6376c);
+  background: linear-gradient(5deg, #4a0723, #801d46, #b6376c);
 }
 
 .FooterDark {
-  background: linear-gradient(5deg,  #4A001F, #790133, #b9014e
-);
+  background: linear-gradient(5deg, #4A001F, #790133, #b9014e);
 }
 
 h2 {
   font-family: var(--font-deco);
   font-size: 1.4rem;
   font-style: italic;
+  margin: 0;
   background: linear-gradient(270deg, #f3a6d3, #f9a36b, #7ecdf1);
   background-size: 600% 600%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: shine 8s ease infinite;
-  margin: 0;
 }
 
 @keyframes shine {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
 }
 
@@ -61,15 +60,6 @@ h2 {
   text-decoration: underline;
   pointer-events: none;
 }
-
-
-/* .ButtonBox {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1rem;
-  min-width: 160px;
-} */
 
 .button {
   padding: 6px 12px;
@@ -100,9 +90,11 @@ h2 {
 .buttonLight:active,
 .buttonDark:active {
   background-color: #9c9b9b;
-} 
+}
+
+/* Посилання */
 .FooterLight a,
-.FooterDark a{
+.FooterDark a {
   font-size: 1.25rem;
   text-decoration: none;
   transition: all 0.3s ease;
@@ -126,21 +118,20 @@ h2 {
 .FooterDark a:active {
   color: #f75050;
 }
-.contactsLight, .contactsDark { 
+
+/* Контакти */
+.contactsLight,
+.contactsDark {
   display: flex;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
 }
-.contactsLight a , .contactsDark a {
+
+.contactsLight a,
+.contactsDark a {
   display: block;
-  margin: 0.3rem 0;
-  color: var(--accent-blue);
+  color: #a3e0fc;
   text-decoration: none;
 }
-
-.contactsLight a {
-  color: #a3e0fc;
-}
-
-.contactsDark a {
-  color: #a3e0fc;
-} 

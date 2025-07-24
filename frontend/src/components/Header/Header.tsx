@@ -36,8 +36,8 @@ const Header = () => {
        />
 
         <div className={css.logoTitleWrapper}>
-          <h1>Дар'я Альбірео</h1>
-          <h5> астрологічні прогнози </h5>
+          <h1>Дарья Альбирео</h1>
+          <h5> астрологические прогнозы </h5>
 
           <nav className={css.nav}>
            <NavLink

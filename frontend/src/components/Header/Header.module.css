@@ -9,6 +9,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   transition: background 0.5s ease;
+  gap: 1rem;
 }
 
 .HeaderLight {
@@ -16,13 +17,12 @@
 }
 
 .HeaderDark {
-  background: linear-gradient(5deg,  #4A001F, #790133, #b9014e
-);
+  background: linear-gradient(5deg,  #4A001F, #790133, #b9014e);
 }
 
 .logo {
-  width: 120px;
-  height: 120px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid white;
@@ -54,7 +54,7 @@
 
 h1 {
   font-family: var(--font-deco);
-  font-size: 2.4rem;
+  font-size: clamp(1.6rem, 2.5vw, 2.5rem);
   font-style: italic;
   background: linear-gradient(270deg, #f3a6d3, #f9a36b, #7ecdf1);
   background-size: 600% 600%;
@@ -63,6 +63,12 @@ h1 {
   -webkit-text-fill-color: transparent;
   animation: shine 8s ease infinite;
   margin: 0;
+}
+
+h5 {
+  margin: 0;
+  font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+  color: #dcdcdc;
 }
 
 @keyframes shine {
@@ -83,6 +89,7 @@ h1 {
   color: var(--accent-orange);
   text-decoration: none;
   font-weight: bold;
+  font-size: 1rem;
   transition: all 0.3s ease;
 }
 
@@ -137,7 +144,7 @@ h1 {
 
 .HeaderLight a,
 .HeaderDark a {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   text-decoration: none;
   transition: all 0.3s ease;
 }
@@ -153,13 +160,77 @@ h1 {
 .HeaderLight a:hover,
 .HeaderDark a:hover {
   color: #8ceff8;
-  font-size: 1.35rem;
+  font-size: 1.2rem;
 }
 
 .HeaderLight a:active,
 .HeaderDark a:active {
   color: #f75050;
 }
-/* --bordeaux: #800020;
---bordeaux-dark: #4A001F;
---bordeaux-light: #A52A2A; */
+
+/* —————— 📱 Мобільні телефони —————— */
+@media (max-width: 768px) {
+  .HeaderLight,
+  .HeaderDark {
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .logo {
+    width: 90px;
+    height: 90px;
+  }
+
+  .nav {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .ButtonBox {
+    align-items: center;
+    margin-top: 1rem;
+    width: 100%;
+  }
+
+  .button {
+    width: 80%;
+    max-width: 200px;
+  }
+
+  .logoTitleWrapper {
+    gap: 0.5rem;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  h5 {
+    font-size: 1rem;
+  }
+}
+
+/* —————— 📟 iPad або середні екрани —————— */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .HeaderLight,
+  .HeaderDark {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+
+  .ButtonBox {
+    align-items: flex-end;
+  }
+
+  .nav {
+    justify-content: center;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+}

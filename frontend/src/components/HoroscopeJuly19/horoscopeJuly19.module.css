@@ -9,6 +9,9 @@
 
   --font-main: 'Segoe UI', sans-serif;
   --font-deco: 'Georgia', serif;
+
+  --max-width: 1200px;
+  --padding: 2rem;
 }
 
 body {
@@ -19,20 +22,21 @@ body {
   transition: background-color 0.4s, color 0.4s;
 }
 
-.mainLight{
+.mainLight {
   background-color: var(--bg-light);
   color: var(--text-light);
 }
 
-.mainDark{
+.mainDark {
   background-color: var(--bg-dark);
   color: var(--text-dark);
 }
 
-.mainLight, .mainDark {
-  max-width: 800px;
+.mainLight,
+.mainDark {
+  max-width: var(--max-width);
   margin: 0 auto;
-  padding: 2rem;
+  padding: var(--padding);
 }
 
 h2 {
@@ -40,15 +44,58 @@ h2 {
   font-family: var(--font-deco);
   font-style: italic;
   color: var(--accent-purple);
+  font-size: 2rem;
 }
-
-/* h2 {
-  color: var(--accent-pink);
-  margin-top: 2rem;
-} */
 
 p {
   line-height: 1.6;
   margin: 0.5rem 0 1.2rem;
+  font-size: 1rem;
 }
 
+/* Планшети (до 1024px) */
+@media (max-width: 1024px) {
+  .mainLight,
+  .mainDark {
+    padding: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+  }
+
+  p {
+    font-size: 0.95rem;
+  }
+}
+
+/* Смартфони (до 768px) */
+@media (max-width: 768px) {
+  :root {
+    --padding: 1rem;
+  }
+
+  .mainLight,
+  .mainDark {
+    padding: var(--padding);
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  p {
+    font-size: 0.9rem;
+  }
+}
+
+/* Дуже малі екрани (до 480px) */
+@media (max-width: 480px) {
+  h2 {
+    font-size: 1.3rem;
+  }
+
+  p {
+    font-size: 0.85rem;
+  }
+}
