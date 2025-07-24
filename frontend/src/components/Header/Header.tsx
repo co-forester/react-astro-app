@@ -62,12 +62,12 @@ const Header = () => {
         </div>
 
       <div className={css.ButtonBox}>
-        <button
+        {/* <button
           className={theme ? css.buttonLight : css.buttonDark}
           onClick={switchTheme}
         >
           {theme ? 'Theme dark' : 'Theme light'}
-        </button>
+        </button> */}
 
         <div className={css.specialLinkContainer}>
           <NavLink

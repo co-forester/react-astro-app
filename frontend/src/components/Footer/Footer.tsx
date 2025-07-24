@@ -48,7 +48,7 @@ const Footer = () => {
           </NavLink>
         </nav>
 
-         <h2>Контакти</h2>
+         <h2>Контакты</h2>
         <div className={theme ? css.contactsLight : css.contactsLightDark}>
           <a href="mailto:bluemystickfantasy@gmail.com">📧 Email</a>
           <a href="https://t.me/dar_albireo">📨 Telegram</a>
@@ -59,6 +59,8 @@ const Footer = () => {
         </div>
       
          <p>© 2025 Daria Albireo — Астрологические Прогнозы</p>
+
+
 
       </footer>
     
