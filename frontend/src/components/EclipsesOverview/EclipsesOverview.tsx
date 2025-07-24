@@ -1,54 +1,36 @@
-import React from "react";
-import css from "./EclipsesOverview.module.css";
+import React from 'react';
+import css from './EclipsesOverview.module.css';
 
-const eclipses2025_2026 = [
-  {
-    date: "29 березня 2025",
-    type: "Повне сонячне затемнення",
-    visibility: "Західна Азія, Індія, частково Україна",
-  },
-  {
-    date: "14 березня 2025",
-    type: "Часткове місячне затемнення",
-    visibility: "Європа, Азія, Африка",
-  },
-  {
-    date: "21 вересня 2025",
-    type: "Повне місячне затемнення",
-    visibility: "Південна Америка, Європа, Африка",
-  },
-  {
-    date: "7 жовтня 2025",
-    type: "Кільцеподібне сонячне затемнення",
-    visibility: "Америка, Атлантика, Африка",
-  },
-  {
-    date: "3 березня 2026",
-    type: "Повне сонячне затемнення",
-    visibility: "Північна Америка, частково Європа",
-  },
-  {
-    date: "17 серпня 2026",
-    type: "Повне місячне затемнення",
-    visibility: "Європа, Азія, Австралія",
-  },
+interface Eclipse {
+  date: string;
+  type: string;
+  visibility: string;
+}
+
+const eclipses: Eclipse[] = [
+  { date: '2025-03-14', type: 'Часткове Сонячне 🌒', visibility: 'Північна Європа, Азія' },
+  { date: '2025-03-29', type: 'Повне Місячне 🌕', visibility: 'Азія, Австралія, Америка' },
+  { date: '2025-09-07', type: 'Повне Сонячне 🌞', visibility: 'Африка, Атлантика' },
+  { date: '2025-09-21', type: 'Часткове Місячне 🌓', visibility: 'Європа, Азія' },
+  { date: '2026-02-17', type: 'Повне Місячне 🌕', visibility: 'Америка, Африка, Європа' },
+  { date: '2026-03-03', type: 'Повне Сонячне 🌞', visibility: 'Південна Америка, Атлантика' },
+  { date: '2026-08-12', type: 'Часткове Місячне 🌓', visibility: 'Європа, Азія, Австралія' },
+  { date: '2026-08-26', type: 'Повне Сонячне 🌞', visibility: 'Гренландія, Ісландія, Європа' }
 ];
 
-const EclipsesOverview = () => {
+export const EclipsesOverview = () => {
   return (
-    <section className={css.eclipsesSection}>
-      <h2 className={css.title}>🌒 Затемнення 2025–2026</h2>
-      <div className={css.cardContainer}>
-        {eclipses2025_2026.map((eclipse, index) => (
-          <div key={index} className={css.card}>
-            <h3>{eclipse.date}</h3>
-            <p><strong>{eclipse.type}</strong></p>
-            <p>🔭 Видимість: {eclipse.visibility}</p>
-          </div>
+    <div className={css.eclipsesBlock}>
+      <h3 className={css.title}>Затемнення 2025–2026</h3>
+      <ul className={css.list}>
+        {eclipses.map((eclipse, index) => (
+          <li key={index} className={css.item}>
+            <span className={css.date}>{eclipse.date}</span>
+            <span className={css.type}>{eclipse.type}</span>
+            <span className={css.visibility}>({eclipse.visibility})</span>
+          </li>
         ))}
-      </div>
-    </section>
+      </ul>
+    </div>
   );
 };
-
-export { EclipsesOverview };

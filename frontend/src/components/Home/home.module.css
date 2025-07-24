@@ -1,104 +1,51 @@
-:root {
-  --bg-dark: #2f1a3b;
-  --text-dark: #ffffff;
-  --bg-light: #9267b1;
-  --text-light: #1a1a1a;
-
-  --accent-blue: #7ecdf1;
-  --accent-pink: #f3a6d3;
-  --accent-orange: #f9a36b;
-  --accent-green: #94d094;
-
-  --font-main: 'Segoe UI', sans-serif;
-  --font-deco: 'Georgia', cursive;
+.wrapperLight,
+.wrapperDark {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  padding: 1rem 2rem;
+  flex-wrap: wrap;
 }
 
-body {
-  margin: 0;
-  font-family: var(--font-main);
-  background-color: var(--bg-dark);
-  color: var(--text-dark);
-  transition: background-color 0.5s, color 0.5s;
-}
-
-.light-mode {
+.wrapperLight {
   background-color: var(--bg-light);
   color: var(--text-light);
 }
 
-.dark-mode {
+.wrapperDark {
   background-color: var(--bg-dark);
   color: var(--text-dark);
 }
 
-main {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
+.eclipsesBlock {
+  flex: 0 0 260px;
+  max-width: 300px;
+  padding: 1rem;
+  border-radius: 16px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  background: var(--accent-pink);
+  color: var(--text-light);
 }
 
-h2 {
-  font-family: var(--font-deco);
-  font-style: italic;
-  color: var(--accent-orange);
-  font-size: 2rem;
-  text-align: center;
-  margin: 2rem 0 1rem;
+/* Для темної теми */
+.wrapperDark .eclipsesBlock {
+  background: #3e2c44;
+  color: var(--text-dark);
 }
 
-p {
-  font-family: Geneva, cursive;
-  font-size: 1.7rem;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-}
-
-.highlight {
-  color: var(--accent-green);
-  font-weight: bold;
-}
-
-/* Планшети: до 1024px */
+/* Для планшетів і смартфонів: блок затемнень над контентом */
 @media (max-width: 1024px) {
-  main {
-    padding: 1.5rem 1rem;
+  .wrapperLight,
+  .wrapperDark {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem;
   }
 
-  h2 {
-    font-size: 1.75rem;
-  }
-
-  p {
-    font-size: 1.5rem;
-  }
-}
-
-/* Смартфони: до 768px */
-@media (max-width: 768px) {
-  main {
-    padding: 1.2rem 1rem;
-  }
-
-  h2 {
-    font-size: 1.5rem;
-  }
-
-  p {
-    font-size: 1.25rem;
-  }
-}
-
-/* Дуже малі екрани: до 480px */
-@media (max-width: 480px) {
-  h2 {
-    font-size: 1.3rem;
-  }
-
-  p {
-    font-size: 1.1rem;
-  }
-
-  main {
-    padding: 1rem 0.8rem;
+  .eclipsesBlock {
+    max-width: 100%;
+    margin-bottom: 1rem;
   }
 }
