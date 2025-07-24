@@ -32,19 +32,19 @@ const Footer = () => {
             to="/App/home"
             className={({ isActive }) => isActive ? css.activeLink : undefined}
           >
-            Головна
+            Услуги
           </NavLink>
           <NavLink
             to="/App/natal_chart"
             className={({ isActive }) => isActive ? css.activeLink : undefined}
           >
-            Натальна карта
+            Натальная карта
           </NavLink>
           <NavLink
             to="/App/forecast_august_2025"
             className={({ isActive }) => isActive ? css.activeLink : undefined}
           >
-            Прогноз на серпень
+            Прогноз на август
           </NavLink>
         </nav>
 
@@ -58,7 +58,7 @@ const Footer = () => {
           <a href="https://signal.group/#midgart">🔐 Signal</a>
         </div>
       
-         <p>© 2025 Albireo — Астрологічні Прогнози</p>
+         <p>© 2025 Daria Albireo — Астрологические Прогнозы</p>
 
       </footer>
     
