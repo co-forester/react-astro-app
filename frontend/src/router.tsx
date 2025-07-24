@@ -8,7 +8,7 @@ import { NatalChart } from "./components/NatalChart/NatalChart";
 import { ForecastAugust2025 } from "./components/ForecastAugust2025/ForecastAugust2025";
 import { HoroscopeJuly19 } from "./components/HoroscopeJuly19/HoroscopeJuly19";
 import { NatalChartAnalysis } from "./components/NatalChartAnalysis/NatalChartAnalysis";
-// import { ChildHoroscope } from "./components/ChildHoroscope/ChildHoroscope";
+import { ChildHoroscope } from "./components/ChildHoroscope/ChildHoroscope";
 
 const router = createBrowserRouter([
   {
@@ -21,8 +21,8 @@ const router = createBrowserRouter([
           { path: "natal_chart", element: <NatalChart/> },
           { path: "forecast_august_2025", element: <ForecastAugust2025/> },
           { path: "horoscope_july19", element: <HoroscopeJuly19/>}, 
-          { path: "natal_chart_analysis", element: <Navigate to={"NatalChartAnalysis"}/> },
-          // { path: "child_horoscope", element: <Navigate to={"ChildHoroscope"}/> },      
+          { path: "natal_chart_analysis", element: <NatalChartAnalysis/> },
+          { path: "child_horoscope", element: <ChildHoroscope/> },      
          ]
       }
     ]

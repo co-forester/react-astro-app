@@ -40,37 +40,13 @@ const Header = () => {
           <h5> астрологические прогнозы </h5>
 
           <nav className={css.nav}>
-           <NavLink
-            to="/App/home"
-            className={({ isActive }) => isActive ? css.activeLink : undefined}
-           >
-            Услуги
-           </NavLink>
-           <NavLink
-            to="/App/natal_chart"
-            className={({ isActive }) => isActive ? css.activeLink : undefined}
-           >
-            Натальная карта
-           </NavLink>
-           <NavLink
-            to="/App/forecast_august_2025"
-            className={({ isActive }) => isActive ? css.activeLink : undefined}
-           >
-            Анализ натальной карты
-           </NavLink>
-            <NavLink
-            to="/App/natal_chart_analysis"
-            className={({ isActive }) => isActive ? css.activeLink : undefined}
-           >
-            гороскоп ребенка
-           </NavLink>
-           <NavLink
-            to="/App/child_horoscope"
-            className={({ isActive }) => isActive ? css.activeLink : undefined}
-           >
-            Прогноз на август
-           </NavLink>
+           <NavLink to="/App/home" className={({ isActive }) => isActive ? css.activeLink : undefined}>Услуги</NavLink>
+           <NavLink to="/App/natal_chart" className={({ isActive }) => isActive ? css.activeLink : undefined}>Натальная карта</NavLink>
+           <NavLink to="/App/forecast_august_2025" className={({ isActive }) => isActive ? css.activeLink : undefined}>Прогноз на август</NavLink>
+           <NavLink to="/App/natal_chart_analysis" className={({ isActive }) => isActive ? css.activeLink : undefined}>Анализ натальной карты</NavLink>
+           <NavLink to="/App/child_horoscope" className={({ isActive }) => isActive ? css.activeLink : undefined}>гороскоп ребенка</NavLink>
           </nav>
+
         </div>
 
       <div className={css.ButtonBox}>

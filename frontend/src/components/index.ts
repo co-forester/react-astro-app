@@ -4,7 +4,10 @@ export * from './NatalChart';
 export * from './HoroscopeJuly19';
 export * from './App';  
 export * from './Home/Home'; 
-export * from  './ForecastAugust2025';     
+export * from  './ForecastAugust2025'; 
+export * from './ChildHoroscope';
+export * from './NatalChartAnalysis';
+
 // export { Footer } from './Footer/Footer';
 // export { Header } from './Header/Header';
 // export { NatalChart } from './NatalChart/NatalChart';

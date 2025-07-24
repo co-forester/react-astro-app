@@ -1,25 +1,25 @@
 
 .container {
   padding: 2rem;
-  background: linear-gradient(180deg, #ffe5f1 0%, #ffffff 100%);
+  font-family: 'Montserrat', sans-serif;
+  color: #fff;
+  background: linear-gradient(to bottom, #b086d5, #301a4b);
   border-radius: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  color: #42293b;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+  margin: 2rem auto;
   max-width: 900px;
-  margin: 0 auto;
-  font-family: 'Arial Rounded MT Bold', sans-serif;
 }
 
 .title {
   font-size: 2.5rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
-  color: #b6416d;
+  margin-bottom: 1.5rem;
   text-align: center;
+  color: #ffe8ff;
 }
 
 .description {
   font-size: 1.2rem;
-  line-height: 1.6;
-  text-align: center;
+  line-height: 1.7;
+  color: #e6d5f7;
+  text-align: justify;
 }

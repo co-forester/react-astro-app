@@ -1,24 +1,24 @@
-.container {
+
+.wrapper {
   padding: 2rem;
-  background: linear-gradient(180deg, #f6f1ff 0%, #ffffff 100%);
+  background: linear-gradient(to top, #4b2e63, #8e6bbd);
   border-radius: 2rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  color: #2b2a4c;
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
   max-width: 900px;
-  margin: 0 auto;
-  font-family: 'Georgia', serif;
+  margin: 2rem auto;
 }
 
-.title {
+.heading {
   font-size: 2.5rem;
-  font-weight: bold;
-  margin-bottom: 1rem;
-  color: #6d4ca9;
   text-align: center;
+  margin-bottom: 1.2rem;
+  color: #fff5f8;
 }
 
-.description {
+.text {
   font-size: 1.2rem;
-  line-height: 1.6;
-  text-align: center;
+  color: #f3dff9;
+  line-height: 1.7;
+  text-align: justify;
 }
