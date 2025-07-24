@@ -24,7 +24,7 @@ const ForecastAugust2025 = () => {
           ініціатив у кар’єрі та особистих стосунках.
         </p>
 
-        <div className={css.weekBlock}>
+        <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
           <h2>1–7 серпня</h2>
           <p>
             Період напружений, але продуктивний. Можливі конфлікти на роботі, якщо не проявите
@@ -33,7 +33,7 @@ const ForecastAugust2025 = () => {
           </p>
         </div>
 
-        <div className={css.weekBlock}>
+        <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
           <h2>8–14 серпня</h2>
           <p>
             Ваші ідеї можуть знайти підтримку. Спілкування з новими людьми надихне на зміни.
@@ -41,7 +41,7 @@ const ForecastAugust2025 = () => {
           </p>
         </div>
 
-        <div className={css.weekBlock}>
+        <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
           <h2>15–21 серпня</h2>
           <p>
             Час для любові та романтики. Стосунки можуть перейти на новий рівень. Але важливо не
@@ -49,7 +49,7 @@ const ForecastAugust2025 = () => {
           </p>
         </div>
 
-        <div className={css.weekBlock}>
+        <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
           <h2>22–31 серпня</h2>
           <p>
             Завершення справ, наведення порядку. Варто проаналізувати досягнуте за місяць. Ймовірні

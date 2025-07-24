@@ -1,31 +1,34 @@
 
+.containerLight, .containerDark {
+  padding: 2rem;
+  border-radius: 12px;
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+}
+
 .containerLight {
   padding: 2rem;
   background-color: #5b3c6c;
-  border-radius: 12px;
-  font-family: Arial, sans-serif;
-  line-height: 1.6;
+}
+ .containerDark {
+  background-color: #2f1a3b;
 }
 
 .weekBlockLight {
-  margin: 1.5rem 0;
-  padding: 1rem;
+  color: #2f1a3b;
   background: #e8dbf7;
-  border-left: 5px solid #a974d2;
-  border-radius: 6px;
-}
- .containerDark {
-  padding: 2rem;
-  background-color: #2f1a3b;
-  border-radius: 12px;
-  font-family: Arial, sans-serif;
-  line-height: 1.6;
+  /* border-left: 5px solid #a974d2; */
 }
 
 .weekBlockDark {
-  margin: 1.5rem 0;
-  padding: 1rem;
-  background: #e8dbf7;
-  border-left: 5px solid #a974d2;
-  border-radius: 6px;
+  background: #4c4256;
+  /* border-left: 5px solid #a974d2;
+  border-bottom: 5px solid #a974d2; */
+}
+.weekBlockLight, .weekBlockDark {
+  margin: 1.5rem ;
+  padding: 1.3rem;
+  border-radius: 11px;
+  border-right: 5px solid #a974d2;
+  border-bottom: 5px solid #a974d2;
 }
