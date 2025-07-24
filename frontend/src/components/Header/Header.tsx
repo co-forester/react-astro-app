@@ -44,19 +44,19 @@ const Header = () => {
             to="/App/home"
             className={({ isActive }) => isActive ? css.activeLink : undefined}
            >
-            Головна
+            Услуги
            </NavLink>
            <NavLink
             to="/App/natal_chart"
             className={({ isActive }) => isActive ? css.activeLink : undefined}
            >
-            Натальна карта
+            Натальная карта
            </NavLink>
            <NavLink
             to="/App/forecast_august_2025"
             className={({ isActive }) => isActive ? css.activeLink : undefined}
            >
-            Прогноз на серпень
+            Прогноз на август
            </NavLink>
           </nav>
         </div>
@@ -74,7 +74,7 @@ const Header = () => {
             to="/App/horoscope_july19"
             className={({ isActive }) => isActive ? css.activeLink : undefined}
           >
-            🟢 Прогноз на 19 липня
+            🟢 Прогноз на 28 августа
           </NavLink>
         </div>
       </div>
