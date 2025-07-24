@@ -9,6 +9,10 @@ const Footer = () => {
 
   const theme = useAppSelector(state => state.theme.theme);
     const dispatch = useAppDispatch();
+
+    const switchTheme = () => {
+        dispatch(themeActions.themeChange());
+      };
   
     // Автоматичне завантаження теми з localStorage
     useEffect(() => {
@@ -60,7 +64,12 @@ const Footer = () => {
       
          <p>© 2025 Daria Albireo — Астрологические Прогнозы</p>
 
-
+        <button
+          className={theme ? css.buttonLight : css.buttonDark}
+          onClick={switchTheme}
+        >
+          {theme ? 'Theme dark' : 'Theme light'}
+        </button>
 
       </footer>
     

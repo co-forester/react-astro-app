@@ -21,10 +21,15 @@ const HoroscopeJuly19 = () => {
     }, [dispatch]);
   
     // Збереження теми у localStorage
-    useEffect(() => {
-      localStorage.setItem('theme', theme ? 'light' : 'dark');
-    }, [theme]);
-    
+   useEffect(() => {
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light' || savedTheme === 'dark') {
+    dispatch(themeActions.setTheme(savedTheme === 'light'));
+  } else {
+    dispatch(themeActions.setTheme(true)); // світла за замовчуванням
+  }
+}, [dispatch]);
+
 return (
   <div>
   
