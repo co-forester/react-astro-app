@@ -56,6 +56,18 @@ const Header = () => {
             to="/App/forecast_august_2025"
             className={({ isActive }) => isActive ? css.activeLink : undefined}
            >
+            Анализ натальной карты
+           </NavLink>
+            <NavLink
+            to="/App/natal_chart"
+            className={({ isActive }) => isActive ? css.activeLink : undefined}
+           >
+            гороскоп ребенка
+           </NavLink>
+           <NavLink
+            to="/App/forecast_august_2025"
+            className={({ isActive }) => isActive ? css.activeLink : undefined}
+           >
             Прогноз на август
            </NavLink>
           </nav>
