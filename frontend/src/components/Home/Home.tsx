@@ -3,6 +3,7 @@ import React from 'react';
 import css from './home.module.css';
 import { useAppSelector } from '../../hooks/reduxHook';
 import GenerateChartForm from '../GenerateChart/GenerateChartForm';
+import { EclipsesOverview } from "../EclipsesOverview/EclipsesOverview";
 
 
 const Home = () => {
@@ -10,6 +11,7 @@ const Home = () => {
   return (
     
    <div>
+    <EclipsesOverview />
   <main className={theme ? css.HomeLight : css.HomeDark}>
     <h2>Услуги</h2>
     <p>Предлагаю <span className="highlight">натальные карты</span>, гороскоп ребенка, аналіз натальной карти, индивидуальные прогнозы и астрологическое сопровождение.</p>

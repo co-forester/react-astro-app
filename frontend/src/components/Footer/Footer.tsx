@@ -55,7 +55,7 @@ const Footer = () => {
           className={theme ? css.buttonLight : css.buttonDark}
           onClick={switchTheme}
         >
-          {theme ? 'Theme dark' : 'Theme light'}
+          {theme ? 'темная тема' : 'светлая тема'}
         </button>
 
       </footer>
