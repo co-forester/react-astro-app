@@ -32,25 +32,12 @@ const Footer = () => {
       <footer className={theme ? css.FooterLight : css.FooterDark}>
         
         <nav className={css.nav}>
-          <NavLink
-            to="/App/home"
-            className={({ isActive }) => isActive ? css.activeLink : undefined}
-          >
-            Услуги
-          </NavLink>
-          <NavLink
-            to="/App/natal_chart"
-            className={({ isActive }) => isActive ? css.activeLink : undefined}
-          >
-            Натальная карта
-          </NavLink>
-          <NavLink
-            to="/App/forecast_august_2025"
-            className={({ isActive }) => isActive ? css.activeLink : undefined}
-          >
-            Прогноз на август
-          </NavLink>
-        </nav>
+           <NavLink to="/App/home" className={({ isActive }) => isActive ? css.activeLink : undefined}>Услуги</NavLink>
+           <NavLink to="/App/natal_chart" className={({ isActive }) => isActive ? css.activeLink : undefined}>Натальная карта</NavLink>
+           <NavLink to="/App/forecast_august_2025" className={({ isActive }) => isActive ? css.activeLink : undefined}>Прогноз на август</NavLink>
+           <NavLink to="/App/natal_chart_analysis" className={({ isActive }) => isActive ? css.activeLink : undefined}>Анализ натальной карты</NavLink>
+           <NavLink to="/App/child_horoscope" className={({ isActive }) => isActive ? css.activeLink : undefined}>гороскоп ребенка</NavLink>
+          </nav>
 
          <h2>Контакты</h2>
         <div className={theme ? css.contactsLight : css.contactsLightDark}>
