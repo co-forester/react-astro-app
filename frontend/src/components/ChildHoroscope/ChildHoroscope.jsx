@@ -3,8 +3,6 @@ import React from 'react';
 import { useAppDispatch, useAppSelector } from '../../hooks/reduxHook';
 import css from './ChildHoroscope.module.css';
 
-
-
 const ChildHoroscope = () => {
 
   const theme = useAppSelector((state) => state.theme.theme);
