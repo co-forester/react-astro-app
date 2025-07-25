@@ -1,101 +1,29 @@
-:root {
-  --bg-dark: #2d1b2f;
-  --text-dark: #ffffff;
-  --bg-light: #f5f0fa;
-  --text-light: #2d1b2f;
-
-  --accent-pink: #f3a6d3;
-  --accent-purple: #7e3f7e;
-
-  --font-main: 'Segoe UI', sans-serif;
-  --font-deco: 'Georgia', serif;
-
-  --max-width: 1200px;
-  --padding: 2rem;
-}
-
-body {
-  margin: 0;
+.horoscopeBlockLight,
+.horoscopeBlockDark {
+  flex: 0 0 260px;
+  max-width: 300px;
+  padding: 1rem;
+  border-radius: 16px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+  font-size: 0.9rem;
+  line-height: 1.4;
   font-family: var(--font-main);
-  background-color: var(--bg-light);
-  color: var(--text-light);
-  transition: background-color 0.4s, color 0.4s;
 }
 
-.mainLight {
-  background-color: var(--bg-light);
+.horoscopeBlockLight {
+  background: var(--accent-pink);
   color: var(--text-light);
 }
 
-.mainDark {
-  background-color: var(--bg-dark);
+.horoscopeBlockDark {
+  background: #3e2c44;
   color: var(--text-dark);
 }
 
-.mainLight,
-.mainDark {
-  max-width: var(--max-width);
-  margin: 0 auto;
-  padding: var(--padding);
-}
-
-h2 {
-  text-align: center;
-  font-family: var(--font-deco);
-  font-style: italic;
-  color: var(--accent-purple);
-  font-size: 2rem;
-}
-
-p {
-  line-height: 1.6;
-  margin: 0.5rem 0 1.2rem;
-  font-size: 1rem;
-}
-
-/* Планшети (до 1024px) */
 @media (max-width: 1024px) {
-  .mainLight,
-  .mainDark {
-    padding: 1.5rem;
+  .horoscopeBlockLight,
+  .horoscopeBlockDark {
+    max-width: 100%;
+    margin-bottom: 1rem;
   }
-
-  h2 {
-    font-size: 1.75rem;
-  }
-
-  p {
-    font-size: 0.95rem;
-  }
-}
-
-/* Смартфони (до 768px) */
-@media (max-width: 768px) {
-  :root {
-    --padding: 1rem;
-  }
-
-  .mainLight,
-  .mainDark {
-    padding: var(--padding);
-  }
-
-  h2 {
-    font-size: 1.5rem;
-  }
-
-  p {
-    font-size: 0.9rem;
-  }
-}
-
-/* Дуже малі екрани (до 480px) */
-@media (max-width: 480px) {
-  h2 {
-    font-size: 1.3rem;
-  }
-
-  p {
-    font-size: 0.85rem;
-  }
-}
+} 

@@ -4,29 +4,30 @@ import css from './home.module.css';
 import { useAppSelector } from '../../hooks/reduxHook';
 import GenerateChartForm from '../GenerateChart/GenerateChartForm';
 import { EclipsesOverview } from '../EclipsesOverview/EclipsesOverview';
+import { HoroscopeJuly19 } from '../HoroscopeJuly19/HoroscopeJuly19';
+import { ChildHoroscope } from '../ChildHoroscope/ChildHoroscope';
+import { NatalChartAnalysis } from '../NatalChartAnalysis/NatalChartAnalysis';
 
 const Home = () => {
-  const theme = useAppSelector(state => state.theme.theme);
+  const theme = useAppSelector((state) => state.theme.theme);
 
   return (
-    <div className={theme ? css.wrapperLight : css.wrapperDark}>
-      <aside className={css.eclipsesBlock}>
-        <EclipsesOverview />
-      </aside>
+    <div className={theme ? css.mainLight : css.mainDark}>
+      <div className={css.gridContainer}>
+        <aside className={css.leftBlock}>
+          <EclipsesOverview />
+        </aside>
 
-      <main className={theme ? css.HomeLight : css.HomeDark}>
-        <h2>Услуги</h2>
-        <p>
-          Предлагаю <span className="highlight">натальные карты</span>, гороскоп ребенка, аналіз натальной карти, индивидуальные прогнозы и астрологическое сопровождение.
-        </p>
-        <p>
-          Обращайтесь для глубокого понимания себя, выбора жизненного пути и решения важных вопросов.
-        </p>
-        <div>
-          <h1>Создание натальной карты</h1>
+        <main className={css.content}>
           <GenerateChartForm />
-        </div>
-      </main>
+          <NatalChartAnalysis />
+          <ChildHoroscope />
+        </main>
+
+        <aside className={css.sidebar}>
+          <HoroscopeJuly19 />
+        </aside>
+      </div>
     </div>
   );
 };

@@ -1,51 +1,88 @@
-.wrapperLight,
-.wrapperDark {
-  display: flex;
-  align-items: flex-start;
-  gap: 2rem;
-  padding: 1rem 2rem;
-  flex-wrap: wrap;
+/* home.module.css */
+
+.mainLight,
+.mainDark {
+  width: 100%;
+  padding: var(--padding);
+  transition: background-color 0.4s, color 0.4s;
 }
 
-.wrapperLight {
+.mainLight {
   background-color: var(--bg-light);
   color: var(--text-light);
 }
 
-.wrapperDark {
+.mainDark {
   background-color: var(--bg-dark);
   color: var(--text-dark);
 }
 
-.eclipsesBlock {
-  flex: 0 0 260px;
-  max-width: 300px;
-  padding: 1rem;
-  border-radius: 16px;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
-  font-size: 0.9rem;
-  line-height: 1.4;
-  background: var(--accent-pink);
-  color: var(--text-light);
+.gridContainer {
+  display: grid;
+  grid-template-columns: 1fr 2.5fr 1fr;
+  gap: 2rem;
+  max-width: var(--max-width);
+  margin: 0 auto;
 }
 
-/* Для темної теми */
-.wrapperDark .eclipsesBlock {
-  background: #3e2c44;
-  color: var(--text-dark);
+.leftBlock {
+  background: linear-gradient(180deg, rgba(150, 100, 200, 0.2), rgba(100, 50, 150, 0.05));
+  border-radius: 1rem;
+  padding: 1.5rem;
+  font-family: var(--font-deco);
+  font-style: italic;
+  font-size: 0.95rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Для планшетів і смартфонів: блок затемнень над контентом */
+.content {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(4px);
+}
+
+.sidebar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+  border-radius: 1rem;
+  padding: 1.5rem;
+  font-family: var(--font-deco);
+  font-style: italic;
+  font-size: 0.95rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+}
+
+/* Планшети (до 1024px) */
 @media (max-width: 1024px) {
-  .wrapperLight,
-  .wrapperDark {
-    flex-direction: column;
-    align-items: stretch;
+  .gridContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .leftBlock,
+  .sidebar {
+    margin-top: 2rem;
+  }
+
+  .content {
+    order: -1;
+  }
+}
+
+/* Смартфони (до 768px) */
+@media (max-width: 768px) {
+  .mainLight,
+  .mainDark {
     padding: 1rem;
   }
 
-  .eclipsesBlock {
-    max-width: 100%;
-    margin-bottom: 1rem;
+  .leftBlock,
+  .sidebar {
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .content {
+    padding: 1.25rem;
   }
 }
