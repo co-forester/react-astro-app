@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import css from './EclipsesOverview.module.css';
+import { themeActions } from '../../redux/slices/themeSlice';
+import { useAppDispatch, useAppSelector } from '../../hooks/reduxHook';
 
 interface Eclipse {
   date: string;
@@ -19,8 +21,22 @@ const eclipses: Eclipse[] = [
 ];
 
 export const EclipsesOverview = () => {
+
+const theme = useAppSelector(state => state.theme.theme);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      dispatch(themeActions.setTheme(savedTheme === 'light'));
+    } else {
+      dispatch(themeActions.setTheme(true));
+    }
+  }, [dispatch]);
+
+
   return (
-    <div className={css.eclipsesBlock}>
+    <div className={theme ? css.containerBlockLight : css.containerBlockDark}>
       <h3 className={css.title}>Затемнення 2025–2026</h3>
       <ul className={css.list}>
         {eclipses.map((eclipse, index) => (

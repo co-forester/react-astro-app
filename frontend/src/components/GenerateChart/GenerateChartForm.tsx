@@ -1,11 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState , useEffect} from 'react';
 import axios from 'axios';
+
 import css from './GenerateChartForm.module.css';
+import { themeActions } from '../../redux/slices/themeSlice';
+import { useAppDispatch, useAppSelector } from '../../hooks/reduxHook';
+
 
 const GenerateChartForm = () => {
+  const theme = useAppSelector((state) => state.theme.theme);
   const [form, setForm] = useState({ date: '', time: '', place: '' });
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  
+    useEffect(() => {
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        dispatch(themeActions.setTheme(savedTheme === 'light'));
+      } else {
+        dispatch(themeActions.setTheme(true));
+      }
+    }, [dispatch]);
+  
 
   const API_URL = process.env.REACT_APP_API_URL || '';
   if (!API_URL) {
@@ -62,7 +78,7 @@ const GenerateChartForm = () => {
           required
           className={css.input}
         />
-        <button type="submit" className={css.button}>
+        <button type="submit" className={theme ? css.buttonLight : css.buttonDark}>
           Згенерувати карту
         </button>
       </form>

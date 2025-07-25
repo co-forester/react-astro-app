@@ -1,12 +1,12 @@
 .AppLight{
-    background: #5b3c6c;
+    background: #4e4247;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
 }
 .AppDark{
-    background: #2f1a3b;
+     background: #110007;
     display: flex;
     flex-direction: column;
     justify-content: center;

@@ -11,12 +11,12 @@
 }
 
 .horoscopeBlockLight {
-  background: var(--accent-pink);
+  background: rgb(145, 144, 144);
   color: var(--text-light);
 }
 
 .horoscopeBlockDark {
-  background: #3e2c44;
+  background: #4A001F;
   color: var(--text-dark);
 }
 

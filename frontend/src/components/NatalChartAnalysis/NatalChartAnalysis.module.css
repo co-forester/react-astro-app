@@ -1,7 +1,6 @@
 
-.wrapper {
+.wrapperLight, .wrapperDark {
   padding: 2rem;
-  background: linear-gradient(to top, #4b2e63, #8e6bbd);
   border-radius: 2rem;
   color: #ffffff;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
@@ -21,4 +20,14 @@
   color: #f3dff9;
   line-height: 1.7;
   text-align: justify;
+}
+
+.wrapperLight {
+  background: linear-gradient(to bottom, #801d46, #4a0723);
+  /* background: linear-gradient(5deg, #4a0723, #801d46, #b6376c); */
+}
+
+.wrapperDark {
+  background: linear-gradient(to bottom, #4A001F, #790133);
+  /* background: linear-gradient(5deg, #4A001F, #790133, #b9014e); */
 }

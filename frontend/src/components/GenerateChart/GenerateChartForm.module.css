@@ -23,7 +23,7 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 0.8rem;
   /* background-color: rgba(255, 255, 255, 0.07); */
-background: linear-gradient(180deg, rgba(150, 100, 200, 0.2), rgba(100, 50, 150, 0.05));
+background: linear-gradient(180deg, rgba(68, 68, 68, 0.2), rgba(100, 50, 150, 0.05));
   color: var(--text-dark);
   font-family: var(--font-main);
   font-size: 1rem;
@@ -31,19 +31,26 @@ background: linear-gradient(180deg, rgba(150, 100, 200, 0.2), rgba(100, 50, 150,
 }
 
 .input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(78, 78, 78, 0.5);
 }
 
-.button {
+.buttonLight, .buttonDark {
   padding: 0.75rem 1.5rem;
   border: none;
-  background-color: var(--accent-pink);
   color: white;
   border-radius: 1rem;
   font-family: var(--font-main);
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.3s ease;
+}
+
+.buttonDark {
+background-color:  #4A001F;
+}
+
+.buttonLight{
+background-color:   #801d46;
 }
 
 .button:hover {

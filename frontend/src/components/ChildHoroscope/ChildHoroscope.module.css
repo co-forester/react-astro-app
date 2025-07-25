@@ -1,8 +1,8 @@
 
-.container {
+.containerLight, .containerDark {
   padding: 2rem;
   font-family: 'Montserrat', sans-serif;
-  color: #fff;
+  color: rgb(197, 195, 195);
   background: linear-gradient(to bottom, #b086d5, #301a4b);
   border-radius: 2rem;
   box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
@@ -22,4 +22,14 @@
   line-height: 1.7;
   color: #e6d5f7;
   text-align: justify;
+}
+
+.containerLight {
+  background: linear-gradient(to bottom, #801d46, #4a0723);
+  /* background: linear-gradient(5deg, #4a0723, #801d46, #b6376c); */
+}
+
+.containerDark {
+  background: linear-gradient(to bottom, #4A001F, #790133);
+  /* background: linear-gradient(5deg, #4A001F, #790133, #b9014e); */
 }

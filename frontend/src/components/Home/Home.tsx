@@ -9,6 +9,7 @@ import { ChildHoroscope } from '../ChildHoroscope/ChildHoroscope';
 import { NatalChartAnalysis } from '../NatalChartAnalysis/NatalChartAnalysis';
 
 const Home = () => {
+  
   const theme = useAppSelector((state) => state.theme.theme);
 
   return (

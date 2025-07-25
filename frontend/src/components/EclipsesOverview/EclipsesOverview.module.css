@@ -1,10 +1,11 @@
 
 
-.containerLight {
+.containerBlockLight {
   margin: 2rem auto;
   padding: 1.5rem 1rem;
   border-radius: 2rem;
-  background: linear-gradient(145deg, #fefbff, #e6d8fa);
+  background: rgb(145, 144, 144);
+  /* background: linear-gradient(145deg, #fefbff, #e6d8fa); */
   box-shadow: 0 0 20px rgba(110, 60, 150, 0.15);
   max-width: 340px;
   text-align: left;
@@ -15,11 +16,12 @@
   color: #3a2a4c;
 }
 
-.containerDark {
+.containerBlockDark {
   margin: 2rem auto;
   padding: 1.5rem 1rem;
   border-radius: 2rem;
-  background: linear-gradient(145deg, #121212, #222);
+  background: #4A001F;
+  /* background: linear-gradient(145deg, #121212, #222); */
   box-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
   max-width: 340px;
   text-align: left;

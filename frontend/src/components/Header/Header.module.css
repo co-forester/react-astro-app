@@ -8,8 +8,8 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  transition: background 0.5s ease;
   gap: 1rem;
+   transition: background 0.5s ease;
 }
 
 .HeaderLight {
