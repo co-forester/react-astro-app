@@ -1,7 +1,7 @@
 :root {
-  --bg-dark: #2d1b2f;
+  --bg-dark: rgb(74, 73, 73);
   --text-dark: #ffffff;
-  --bg-light: #f8f0fb;
+  --bg-light: rgb(145, 144, 144);
   --text-light: #1a1a1a;
 
   --accent-blue: #7ecdf1;
@@ -83,7 +83,7 @@ p {
 
 /* Аспекти */
 .aspect {
-  background: #8656ab;
+  background: linear-gradient(to bottom, #801d46, #4a0723);
   padding: 1.5rem;
   border-radius: 0.8rem;
   margin: 1.5rem 0;

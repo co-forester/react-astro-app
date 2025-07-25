@@ -3,24 +3,25 @@
   padding: 2rem;
   border-radius: 12px;
   font-family: Arial, sans-serif;
+  color: aliceblue;
   line-height: 1.6;
 }
 
 .containerLight {
-  background-color: #5b3c6c;
+  background-color: rgb(87, 87, 87);
 }
  .containerDark {
-  background-color: #2f1a3b;
+  background-color: rgb(41, 41, 41);
 }
 
 .weekBlockLight {
-  color: #2f1a3b;
-  background: #e8dbf7;
+  color: #414141;
+  background: #868686;
   /* border-left: 5px solid #a974d2; */
 }
 
 .weekBlockDark {
-  background: #533365;
+  background: rgb(93, 93, 93);
   /* border-left: 5px solid #a974d2;
   border-bottom: 5px solid #a974d2; */
 }
