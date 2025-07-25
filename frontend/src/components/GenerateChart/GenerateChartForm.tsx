@@ -33,6 +33,9 @@ const GenerateChartForm = () => {
 
   return (
     <div className={css.wrapper}>
+     
+      <h1>Создание натальной карты</h1>
+      
       <form onSubmit={handleSubmit} className={css.form}>
         <input
           name="date"

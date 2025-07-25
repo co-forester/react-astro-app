@@ -19,6 +19,11 @@ const Home = () => {
         </aside>
 
         <main className={css.content}>
+          <div>
+            <h2>Услуги</h2>
+            <p>Предлагаю <span className="highlight">натальные карты</span>, гороскоп ребенка, аналіз натальной карти, индивидуальные прогнозы и астрологическое сопровождение.</p>
+            <p>Обращайтесь для глубокого понимания себя, выбора жизненного пути и решения важных вопросов.</p>
+          </div>
           <GenerateChartForm />
           <NatalChartAnalysis />
           <ChildHoroscope />
@@ -33,3 +38,6 @@ const Home = () => {
 };
 
 export { Home };
+  
+
+    
