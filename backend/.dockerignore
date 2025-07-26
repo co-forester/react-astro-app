@@ -11,3 +11,7 @@ __pycache__/
 *.db
 .venv/
 .env
+*.log
+*.egg-info
+instance/
+.DS_Store

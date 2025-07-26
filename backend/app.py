@@ -19,7 +19,7 @@ CORS(app, origins=[
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://192.168.50.16:3000",
-    "https://your-prod-domain.com"
+    "https://react-astro-app.vercel.app"
 ])
 
 # Буфер для збереження зображення
@@ -124,7 +124,7 @@ def get_chart_image():
     else:
         return jsonify({'error': 'Карта ще не створена'}), 404
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
     
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+#     port = int(os.environ.get("PORT", 8080))
+#     app.run(host='0.0.0.0', port=port)
