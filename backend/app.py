@@ -1,18 +1,18 @@
 import os
+import io
+import math
+from datetime import datetime as dt
+
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flatlib.chart import Chart
 from flatlib.const import SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, ASC, MC
-# from flatlib.object import DEFAULT_IDS
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
 from geopy.geocoders import Nominatim
-import matplotlib.pyplot as plt
-import io
-import math
-from datetime import datetime as dt
-import pytz
 from timezonefinder import TimezoneFinder
+import matplotlib.pyplot as plt
+import pytz
 
 app = Flask(__name__)
 CORS(app, origins=[
@@ -22,7 +22,6 @@ CORS(app, origins=[
     "https://react-astro-app.vercel.app"
 ])
 
-# Буфер для збереження зображення
 chart_image_buffer = io.BytesIO()
 
 @app.route('/generate', methods=['POST'])
@@ -64,7 +63,9 @@ def generate_chart():
         dt_flatlib = Datetime(date.replace('-', '/'), time, offset_str)
         pos = GeoPos(location.latitude, location.longitude)
         objects = [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, ASC, MC]
-        chart = Chart(date, pos, IDs=objects)
+
+        chart = Chart(dt_flatlib, pos, IDs=objects)
+
         # Побудова зображення
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'polar': True})
         ax.set_theta_direction(-1)
@@ -124,7 +125,6 @@ def get_chart_image():
     else:
         return jsonify({'error': 'Карта ще не створена'}), 404
 
-# if __name__ == '__main__':
-    
-#     port = int(os.environ.get("PORT", 8080))
-#     app.run(host='0.0.0.0', port=port)
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
