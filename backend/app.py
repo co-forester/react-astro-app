@@ -1,6 +1,7 @@
 import os
 import io
 import math
+import traceback
 from datetime import datetime as dt
 
 from flask import Flask, request, jsonify, send_file
@@ -29,6 +30,8 @@ def generate_chart():
     global chart_image_buffer
 
     data = request.json
+    print(f"[DEBUG] Request JSON: {data}")
+
     date = data.get('date')
     time = data.get('time')
     place = data.get('place')
@@ -114,6 +117,7 @@ def generate_chart():
 
     except Exception as e:
         print(f"[ERROR] {str(e)}")
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/chart.png')
