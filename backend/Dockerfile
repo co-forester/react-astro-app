@@ -1,6 +1,5 @@
-FROM python:3.10.18-slim
+FROM python:3.11-slim
 
-# Встановлюємо системні залежності
 RUN apt-get update && apt-get install -y \
     build-essential \
     libgeos-dev \
@@ -14,8 +13,12 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY requirements.txt ./
+
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
+
+# Якщо маєш файли ефемерид, скопіюй їх у потрібну папку, наприклад /usr/share/ephe
+# COPY ephe /usr/share/ephe
 
 CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
