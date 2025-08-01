@@ -9,7 +9,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 1rem;
-   transition: background 0.5s ease;
+  transition: background 0.5s ease;
 }
 
 .HeaderLight {
@@ -63,6 +63,8 @@ h1 {
   -webkit-text-fill-color: transparent;
   animation: shine 8s ease infinite;
   margin: 0;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 h5 {
@@ -168,7 +170,6 @@ h5 {
   color: #f75050;
 }
 
-/* —————— 📱 Мобільні телефони —————— */
 @media (max-width: 768px) {
   .HeaderLight,
   .HeaderDark {
@@ -212,7 +213,6 @@ h5 {
   }
 }
 
-/* —————— 📟 iPad або середні екрани —————— */
 @media (min-width: 769px) and (max-width: 1024px) {
   .HeaderLight,
   .HeaderDark {
