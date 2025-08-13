@@ -1,50 +1,20 @@
-.containerLight,
-.containerDark {
+.containerLight, .containerDark {
   padding: 2rem;
   border-radius: 12px;
   font-family: Arial, sans-serif;
+  color: aliceblue;
   line-height: 1.6;
-  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.containerLight { background-color: rgb(87, 87, 87); color: aliceblue; }
-.containerDark { background-color: rgb(41, 41, 41); color: aliceblue; }
+.containerLight { background-color: rgb(87, 87, 87); }
+.containerDark { background-color: rgb(41, 41, 41); }
 
-.weekBlockLight,
-.weekBlockDark {
-  margin: 1.5rem 0;
+.weekBlockLight { color: #414141; background: #868686; }
+.weekBlockDark { background: rgb(93, 93, 93); }
+.weekBlockLight, .weekBlockDark {
+  margin: 1.5rem;
   padding: 1rem;
   border-radius: 11px;
   border-right: 5px solid #790133;
   border-bottom: 5px solid #790133;
-  transition: transform 0.2s ease, background-color 0.3s ease;
-}
-
-.weekBlockLight { background: #868686; color: #414141; }
-.weekBlockDark { background: rgb(93, 93, 93); color: aliceblue; }
-
-.weekBlockLight:hover,
-.weekBlockDark:hover {
-  transform: scale(1.02);
-  cursor: pointer;
-}
-
-.weekContent {
-  margin-top: 0.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  padding-top: 0.5rem;
-  animation: fadeInUp 0.3s ease forwards;
-}
-
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(15px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@media (max-width: 768px) {
-  .containerLight,
-  .containerDark { padding: 1.5rem; }
-
-  .weekBlockLight,
-  .weekBlockDark { margin: 1rem 0; padding: 0.8rem; }
 }

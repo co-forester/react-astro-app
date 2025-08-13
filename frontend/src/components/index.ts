@@ -8,6 +8,7 @@ export * from  './ForecastAugust2025';
 export * from './ChildHoroscope';
 export * from './NatalChartAnalysis';
 export * from './EclipsesOverview/EclipsesOverview';
+export * from './ForecastWeek';
 // export { Footer } from './Footer/Footer';
 // export { Header } from './Header/Header';
 // export { NatalChart } from './NatalChart/NatalChart';

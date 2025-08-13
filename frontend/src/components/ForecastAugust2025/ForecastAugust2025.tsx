@@ -1,7 +1,6 @@
-import React from 'react';
 import { useAppSelector } from '../../hooks/reduxHook';
 import css from './forecastAugust2025.module.css';
-import { ForecastWeek } from './ForecastWeek';
+import { ForecastWeek } from '../ForecastWeek/ForecastWeek';
 
 const ForecastAugust2025 = () => {
   const theme = useAppSelector(state => state.theme.theme);
