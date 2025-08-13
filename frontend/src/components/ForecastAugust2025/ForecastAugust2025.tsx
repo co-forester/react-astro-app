@@ -3,6 +3,7 @@ import axios from 'axios';
 import css from './forecastAugust2025.module.css';
 import { useAppSelector, useAppDispatch } from '../../hooks/reduxHook';
 import { themeActions } from '../../redux/slices/themeSlice';
+import { ForecastWeek } from '../ForecastWeek';
 
 const ForecastAugust2025 = () => {
   const theme = useAppSelector((state) => state.theme.theme);
@@ -95,41 +96,26 @@ const ForecastAugust2025 = () => {
         </div>
       )}
 
-      <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
-        <h2>Общая тенденция месяца</h2>
-        <p>
-          Август для Рыб стане часом переоцінки цілей і зміцнення внутрішньої стійкості. 
-          Завершуйте старі справи, щоб звільнити місце для нового. Довіряйте інтуїції.
-        </p>
-      </div>
+      <ForecastWeek title="Загальна тенденція місяця" theme={theme}>
+        Серпень стане часом переоцінки цілей і зміцнення внутрішньої стійкості.
+        Завершуйте старі справи, щоб звільнити місце для нового. Довіряйте інтуїції.
+      </ForecastWeek>
 
-      <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
-        <h2>1–7 серпня</h2>
-        <p>
-          Перша неділя подарує відчуття оновлення. Ідеї, що давно чекали реалізації, можуть з’явитися.
-        </p>
-      </div>
+      <ForecastWeek title="1–7 серпня" theme={theme}>
+        Перша неділя подарує відчуття оновлення. Ідеї, що давно чекали реалізації, можуть з’явитися.
+      </ForecastWeek>
 
-      <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
-        <h2>8–14 серпня</h2>
-        <p>
-          Увага до фінансів та побутових питань. Можливі несподівані витрати, але для покращення життя.
-        </p>
-      </div>
+      <ForecastWeek title="8–14 серпня" theme={theme}>
+        Увага до фінансів та побутових питань. Можливі несподівані витрати, але для покращення життя.
+      </ForecastWeek>
 
-      <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
-        <h2>15–21 серпня</h2>
-        <p>
-          Час емоційної чутливості. Важливо зберігати гармонію у відносинах та уникати драми.
-        </p>
-      </div>
+      <ForecastWeek title="15–21 серпня" theme={theme}>
+        Час емоційної чутливості. Важливо зберігати гармонію у відносинах та уникати драми.
+      </ForecastWeek>
 
-      <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
-        <h2>22–31 серпня</h2>
-        <p>
-          Кінець місяця відкриє нові горизонти. Можливі пропозиції щодо поїздок або навчання.
-        </p>
-      </div>
+      <ForecastWeek title="22–31 серпня" theme={theme}>
+        Кінець місяця відкриє нові горизонти. Можливі пропозиції щодо поїздок або навчання.
+      </ForecastWeek>
     </div>
   );
 };

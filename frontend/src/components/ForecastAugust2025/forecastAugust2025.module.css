@@ -1,36 +1,30 @@
-/* Контейнери для темної та світлої теми */
 .containerLight, .containerDark {
   padding: 2rem;
   border-radius: 12px;
   font-family: Arial, sans-serif;
   color: aliceblue;
   line-height: 1.6;
+  transition: all 0.3s ease;
 }
 
-.containerLight {
-  background-color: rgb(87, 87, 87);
-}
+.containerLight { background-color: rgb(87, 87, 87); }
+.containerDark { background-color: rgb(41, 41, 41); }
 
-.containerDark {
-  background-color: rgb(41, 41, 41);
-}
-
-/* Блоки тижневого прогнозу */
 .weekBlockLight, .weekBlockDark {
   margin: 1.5rem 0;
   padding: 1rem;
   border-radius: 11px;
   border-right: 5px solid #790133;
   border-bottom: 5px solid #790133;
+  transition: all 0.3s ease;
 }
 
-.weekBlockLight {
-  color: #414141;
-  background: #868686;
-}
+.weekBlockLight { color: #414141; background: #868686; }
+.weekBlockDark { background: rgb(93, 93, 93); color: #ddd; }
 
-.weekBlockDark {
-  background: rgb(93, 93, 93);
+.weekBlockLight:hover, .weekBlockDark:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
 /* Форма генерації карти */
@@ -56,12 +50,8 @@
   width: 200px;
 }
 
-.input:focus {
-  outline: none;
-  border-color: #790133;
-}
+.input:focus { outline: none; border-color: #790133; }
 
-/* Кнопки */
 .buttonLight, .buttonDark {
   padding: 0.7rem 1.5rem;
   border-radius: 10px;
@@ -72,46 +62,21 @@
   transition: background 0.3s ease;
 }
 
-.buttonLight {
-  background-color: #a974d2;
-  color: #fff;
-}
+.buttonLight { background-color: #a974d2; color: #fff; }
+.buttonLight:hover { background-color: #8b3eb2; }
 
-.buttonLight:hover {
-  background-color: #8b3eb2;
-}
+.buttonDark { background-color: #790133; color: #fff; }
+.buttonDark:hover { background-color: #5c0a2c; }
 
-.buttonDark {
-  background-color: #790133;
-  color: #fff;
-}
+.result { margin-top: 2rem; text-align: center; }
+.image { max-width: 100%; height: auto; border: 3px solid #790133; border-radius: 12px; }
 
-.buttonDark:hover {
-  background-color: #5c0a2c;
-}
+.error { color: #ff5050; font-weight: bold; text-align: center; margin-top: 1rem; }
 
-/* Результат натальної карти */
-.result {
-  margin-top: 2rem;
-  text-align: center;
-}
-
-.result .title {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-}
-
-.image {
-  max-width: 100%;
-  height: auto;
-  border: 3px solid #790133;
-  border-radius: 12px;
-}
-
-/* Повідомлення про помилку */
-.error {
-  color: #ff5050;
-  font-weight: bold;
-  text-align: center;
-  margin-top: 1rem;
+/* Адаптивність */
+@media (max-width: 768px) {
+  .containerLight, .containerDark { padding: 1rem; }
+  .weekBlockLight, .weekBlockDark { padding: 0.75rem; }
+  .formBlock { padding: 1rem; }
+  .input { width: 100%; }
 }
