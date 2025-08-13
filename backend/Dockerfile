@@ -1,6 +1,7 @@
+# Використовуємо Python 3.10 для сумісності зі swisseph
 FROM python:3.10-slim
 
-# Системні пакети
+# Встановлюємо необхідні системні пакети
 RUN apt-get update && apt-get install -y \
     build-essential \
     libgeos-dev \
@@ -9,21 +10,18 @@ RUN apt-get update && apt-get install -y \
     libsm6 \
     libxrender1 \
     libxext6 \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean
 
 WORKDIR /app
 
 # Копіюємо залежності
 COPY requirements.txt ./
 
-# Встановлюємо Python пакети
-RUN python -m pip install --upgrade pip \
-    && python -m pip install --no-cache-dir -r requirements.txt \
-    && rm -rf /root/.cache/pip
+# Встановлюємо залежності Python
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Копіюємо весь код
+# Копіюємо весь проект
 COPY . .
 
-# Запуск бекенду через Gunicorn
+# Запускаємо Flask через Gunicorn
 CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
