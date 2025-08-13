@@ -1,61 +1,135 @@
-import { useAppSelector } from '../../hooks/reduxHook';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import css from './forecastAugust2025.module.css';
-import { ForecastWeek } from '../ForecastWeek/ForecastWeek';
-import { useState } from 'react';
+import { useAppSelector, useAppDispatch } from '../../hooks/reduxHook';
+import { themeActions } from '../../redux/slices/themeSlice';
 
 const ForecastAugust2025 = () => {
-  const theme = useAppSelector(state => state.theme.theme);
+  const theme = useAppSelector((state) => state.theme.theme);
+  const dispatch = useAppDispatch();
 
-  // Динамічна дата і знак
-  const [birthDate, setBirthDate] = useState('1974-03-05');
-  const [sign, setSign] = useState('Рыбы');
+  const [form, setForm] = useState({ date: '', time: '', place: '' });
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      dispatch(themeActions.setTheme(savedTheme === 'light'));
+    } else {
+      dispatch(themeActions.setTheme(true));
+    }
+  }, [dispatch]);
+
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setImageUrl(null);
+
+    if (!form.date || !form.time || !form.place) {
+      setError('Заповніть усі поля!');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API_URL}/generate`, form);
+      if (response.data.status === 'success') {
+        setImageUrl(`${API_URL}${response.data.chart_image_url}`);
+      } else {
+        setError('Не вдалося згенерувати карту');
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.error || 'Сталася помилка при запиті');
+    }
+  };
 
   return (
     <div className={theme ? css.containerLight : css.containerDark}>
-      <h1>Прогноз на август 2025</h1>
+      <h1>Прогноз на серпень 2025</h1>
 
-      <div style={{ marginBottom: '1rem' }}>
-        <label>
-          Введите дату рождения: 
+      <div className={css.formBlock}>
+        <h2>Введіть ваші дані для натальної карти</h2>
+        <form onSubmit={handleSubmit} className={css.form}>
           <input
             type="date"
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            style={{ marginLeft: '0.5rem' }}
+            name="date"
+            value={form.date}
+            onChange={handleChange}
+            required
+            className={css.input}
           />
-        </label>
-        {/* Тут можна додати логіку автоматичного визначення знака */}
+          <input
+            type="time"
+            name="time"
+            value={form.time}
+            onChange={handleChange}
+            required
+            className={css.input}
+          />
+          <input
+            type="text"
+            name="place"
+            value={form.place}
+            onChange={handleChange}
+            placeholder="Київ"
+            required
+            className={css.input}
+          />
+          <button type="submit" className={theme ? css.buttonLight : css.buttonDark}>
+            Згенерувати карту
+          </button>
+        </form>
+        {error && <p className={css.error}>{error}</p>}
       </div>
 
-      <h2>Индивидуальный прогноз на август 2025</h2>
-      <p style={{ textAlign: 'center' }}>
-        Дата рождения: <strong>{birthDate}</strong> | Знак: <strong>{sign}</strong>
-      </p>
+      {imageUrl && (
+        <div className={css.result}>
+          <h2>Ваша натальна карта</h2>
+          <img src={imageUrl} alt="Натальна карта" className={css.image} />
+        </div>
+      )}
 
-      <h2>Общая тенденция месяца</h2>
-      <p>
-        Август станет временем переоценки целей и укрепления внутренней устойчивости. 
-        Завершайте старые дела и доверяйте интуиции.
-      </p>
+      <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
+        <h2>Общая тенденция месяца</h2>
+        <p>
+          Август для Рыб стане часом переоцінки цілей і зміцнення внутрішньої стійкості. 
+          Завершуйте старі справи, щоб звільнити місце для нового. Довіряйте інтуїції.
+        </p>
+      </div>
 
-      <ForecastWeek title="1–7 августа" theme={theme}>
-        Первая неделя месяца подарит ощущение обновления...
-      </ForecastWeek>
+      <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
+        <h2>1–7 серпня</h2>
+        <p>
+          Перша неділя подарує відчуття оновлення. Ідеї, що давно чекали реалізації, можуть з’явитися.
+        </p>
+      </div>
 
-      <ForecastWeek title="8–14 августа" theme={theme}>
-        Внимание к финансам и бытовым вопросам...
-      </ForecastWeek>
+      <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
+        <h2>8–14 серпня</h2>
+        <p>
+          Увага до фінансів та побутових питань. Можливі несподівані витрати, але для покращення життя.
+        </p>
+      </div>
 
-      <ForecastWeek title="15–21 августа" theme={theme}>
-        Эмоциональная чувствительность, гармония с близкими...
-      </ForecastWeek>
+      <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
+        <h2>15–21 серпня</h2>
+        <p>
+          Час емоційної чутливості. Важливо зберігати гармонію у відносинах та уникати драми.
+        </p>
+      </div>
 
-      <ForecastWeek title="22–31 августа" theme={theme}>
-        Новые горизонты: поездки, обучение, творчество...
-      </ForecastWeek>
-
-      <h2>Совет месяца</h2>
-      <p>Слушайте интуицию и отпускайте то, что тянет назад.</p>
+      <div className={theme ? css.weekBlockLight : css.weekBlockDark}>
+        <h2>22–31 серпня</h2>
+        <p>
+          Кінець місяця відкриє нові горизонти. Можливі пропозиції щодо поїздок або навчання.
+        </p>
+      </div>
     </div>
   );
 };
