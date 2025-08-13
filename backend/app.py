@@ -39,9 +39,9 @@ def generate_chart():
     data = request.json
     print(f"[DEBUG] Request JSON: {data}")
 
-    date = data.get('date')
-    time = data.get('time')
-    place = data.get('place')
+    date = data.get('date')  # формат 'YYYY-MM-DD'
+    time = data.get('time')  # формат 'HH:MM'
+    place = data.get('place')  # наприклад, 'Kyiv, Ukraine'
 
     if not (date and time and place):
         return jsonify({'error': 'Неповні дані'}), 400
@@ -80,7 +80,7 @@ def generate_chart():
                            localized_dt.hour + localized_dt.minute / 60.0)
         print(f"[DEBUG] Юліанська дата UT: {jd_ut}")
 
-        # Побудова карти (ВИПРАВЛЕНО `ids`)
+        # Побудова карти
         chart = Chart(dt_flatlib, pos, ids=objects)
 
         # Побудова картинки
