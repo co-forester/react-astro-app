@@ -1,12 +1,10 @@
-# fly.toml — конфігурація Fly.io
 app = "albireo-daria-96"
 
-# Регион розміщення
-primary_region = "ams"
+kill_signal = "SIGINT"
+kill_timeout = 5
 
 [build]
-  # Використовуємо Dockerfile у корені проекту
-  dockerfile = "./Dockerfile"
+  image = "albireo-daria-96:latest"
 
 [env]
   PORT = "8080"
@@ -21,10 +19,11 @@ primary_region = "ams"
 
   [[services.ports]]
     port = 443
-    handlers = ["http"]
+    handlers = ["tls", "http"]
 
   [[services.tcp_checks]]
     interval = 10000
     timeout = 2000
     grace_period = "5s"
     restart_limit = 0
+    port = 8080
