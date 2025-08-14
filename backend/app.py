@@ -16,6 +16,7 @@ from timezonefinder import TimezoneFinder
 import pytz
 import matplotlib.pyplot as plt
 import swisseph as swe
+# import pyswisseph as swe
 import subprocess
 
 # --- Шлях до локальних ефемерид ---

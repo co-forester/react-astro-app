@@ -29,6 +29,11 @@ COPY . .
 # Створюємо папку для ефемерид
 RUN mkdir -p /app/ephe
 
+# Завантаження ефемерид, якщо папка пуста
+RUN test -n "$(ls -A /app/ephe)" || git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph \
+    && cp /tmp/swisseph/ephe/* /app/ephe/ \
+    && rm -rf /tmp/swisseph
+
 # Порт
 EXPOSE 8080
 
