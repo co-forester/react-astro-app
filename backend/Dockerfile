@@ -1,30 +1,33 @@
-# Базовий образ
+# --- Базовий образ ---
 FROM python:3.10-slim
 
-# Робоча директорія
+# --- Робоча директорія ---
 WORKDIR /app
 
-# Копіюємо requirements
+# --- Системні пакети для збірки pyswisseph ---
+RUN apt-get update && apt-get install -y \
+    git build-essential wget curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Копіюємо файл залежностей ---
 COPY requirements.txt ./
 
-# Встановлюємо системні залежності та pip-залежності
-RUN apt-get update && apt-get install -y git build-essential wget && \
-    pip install --no-cache-dir -r requirements.txt && \
-    apt-get remove -y git build-essential && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+# --- Встановлюємо Python-залежності ---
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Додаємо каталог для ефемерид
+# --- Додаємо каталог для ефемерид ---
 RUN mkdir -p /data/ephe
 
-# Завантаження ефемерид swisseph
+# --- Завантажуємо ефемериди swisseph ---
 RUN git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph && \
     cp -r /tmp/swisseph/ephe/* /data/ephe/ && \
     rm -rf /tmp/swisseph
 
-# Копіюємо весь код додатку
+# --- Копіюємо весь код проєкту ---
 COPY . .
 
-# Встановлюємо порт
+# --- Задаємо порт ---
 ENV PORT=8080
 
-# Команда запуску
+# --- Команда запуску ---
 CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
