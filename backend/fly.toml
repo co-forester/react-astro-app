@@ -1,24 +1,37 @@
+# fly.toml - конфігурація Fly.io для Flask + Gunicorn
 app = "albireo-daria-96"
-primary_region = "waw"
 
-[env]
-PORT = "8080"
-FLASK_APP = "app.py"
-FLASK_RUN_HOST = "0.0.0.0"
-FLASK_RUN_PORT = "8080"
+# Дефолтний регіон можна змінити під свої потреби, наприклад "ams" або "fra"
+primary_region = "ams"
 
 [build]
-# Використовуємо Dockerfile для побудови образу
-dockerfile = "Dockerfile"
+  image = "albireo-daria-96:latest"
 
-[http_service]
-internal_port = 8080
-force_https = true
-auto_start_machines = true
-auto_stop_machines = "stop"
-min_machines_running = 0
+[env]
+  PORT = "8080"
+  # Можна додати інші змінні середовища, якщо потрібно
+  # EXAMPLE_KEY = "value"
 
-[mounts]
-# Зовнішній том для ефемерид
-source = "ephe_data"
-destination = "/data/ephe"
+[deploy]
+  release_command = ""  # Залишаємо пустим, якщо немає міграцій
+
+[experimental]
+  allowed_public_ports = [8080]
+  auto_rollback = true
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [[services.tcp_checks]]
+    interval = 10000   # 10 секунд
+    timeout = 2000     # 2 секунди
+    restart_limit = 6

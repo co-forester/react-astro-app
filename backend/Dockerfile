@@ -1,46 +1,26 @@
-# Використовуємо Python 3.10 slim
-FROM python:3.10-slim
+FROM python:3.11-slim
 
-# Встановлюємо системні пакети
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    gcc \
-    libglib2.0-0 \
-    libsm6 \
-    libxrender1 \
-    libxext6 \
-    git \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Робоча директорія
 WORKDIR /app
 
-# Копіюємо requirements і встановлюємо залежності
+# Копіюємо файл залежностей та встановлюємо
 COPY requirements.txt ./
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Копіюємо весь backend
+# Додаємо каталог для ефемерид
+RUN mkdir -p /data/ephe
+
+# Завантажуємо ефемериди
+RUN apt-get update && apt-get install -y git && \
+    git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph && \
+    cp -r /tmp/swisseph/ephe/* /data/ephe/ && \
+    rm -rf /tmp/swisseph && \
+    apt-get remove -y git && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+
+# Копіюємо весь проєкт
 COPY . .
 
-# Місце для ефемерид (зовнішній том Fly.io монтується сюди)
-VOLUME /data/ephe
-ENV EPHE_PATH=/data/ephe
-ENV SWISSEPH_EPHE_PATH=$EPHE_PATH
+# Порт, на якому запускаємо Flask через Gunicorn
+ENV PORT=8080
 
-# Завантажуємо ефемериди, якщо каталог порожній
-RUN bash -c '\
-    if [ ! -d "/data/ephe" ] || [ -z "$(ls -A /data/ephe)" ]; then \
-        echo "Завантажуємо ефемериди..."; \
-        git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph && \
-        mkdir -p /data/ephe && \
-        cp -r /tmp/swisseph/ephe/. /data/ephe/ && \
-        rm -rf /tmp/swisseph; \
-    fi'
-
-# Порт
-EXPOSE 8080
-
-# Запуск
-CMD ["python", "app.py"]
+# Запуск через Gunicorn
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
