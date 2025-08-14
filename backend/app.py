@@ -29,7 +29,7 @@ else:
 
 # --- Налаштування swisseph для flatlib ---
 swe.set_ephe_path(EPHE_PATH)
-flatlib.core.set_ephemeris('pyswisseph')
+flatlib.core.set_ephemeris('swisseph')  # тепер Flatlib використовує swisseph
 
 # --- Flask ---
 app = Flask(__name__)
@@ -87,8 +87,6 @@ def generate_chart():
         ax.set_rlim(0, 1.5)
         ax.grid(True)
         ax.set_axis_off()
-        circle = plt.Circle((0, 0), 1, transform=ax.transData._b, fill=False, color='black')
-        ax.add_artist(circle)
 
         object_data = []
         for obj in chart.objects:

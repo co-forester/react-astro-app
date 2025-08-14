@@ -7,23 +7,23 @@ WORKDIR /app
 # Копіюємо requirements
 COPY requirements.txt ./
 
-# Встановлюємо залежності
-RUN pip install --no-cache-dir -r requirements.txt
+# Встановлюємо системні залежності та pip-залежності
+RUN apt-get update && apt-get install -y git build-essential wget && \
+    pip install --no-cache-dir -r requirements.txt && \
+    apt-get remove -y git build-essential && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 # Додаємо каталог для ефемерид
 RUN mkdir -p /data/ephe
 
-# Завантаження ефемерид
-RUN apt-get update && apt-get install -y git && \
-    git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph && \
+# Завантаження ефемерид swisseph
+RUN git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph && \
     cp -r /tmp/swisseph/ephe/* /data/ephe/ && \
-    rm -rf /tmp/swisseph && \
-    apt-get remove -y git && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+    rm -rf /tmp/swisseph
 
-# Копіюємо весь код
+# Копіюємо весь код додатку
 COPY . .
 
-# Порт
+# Встановлюємо порт
 ENV PORT=8080
 
 # Команда запуску
