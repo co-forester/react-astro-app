@@ -28,13 +28,17 @@ COPY . .
 # Скрипт для завантаження ephe при старті
 RUN mkdir -p /usr/share/ephe
 RUN echo '#!/bin/sh\n\
+echo "=== Start /start.sh ==="\n\
 if [ ! "$(ls -A /usr/share/ephe)" ]; then\n\
   echo "Завантажуємо ефемериди..."\n\
   git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph\n\
   cp /tmp/swisseph/ephe/* /usr/share/ephe/\n\
   rm -rf /tmp/swisseph\n\
+  echo "Ефемериди завантажено."\n\
 fi\n\
-exec "$@"' > /start.sh
+echo "Запускаємо команду: $@"\n\
+exec "$@"\n\
+' > /start.sh
 RUN chmod +x /start.sh
 
 EXPOSE 8080
