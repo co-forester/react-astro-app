@@ -3,7 +3,6 @@ import io
 import math
 import traceback
 from datetime import datetime as dt
-
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flatlib.chart import Chart
@@ -17,6 +16,11 @@ import pytz
 import pyswisseph as swe
 import flatlib.core
 import uuid
+
+# Використовуємо локальні ефемеріди в папці backend/ephe
+ephe_path = os.path.join(os.path.dirname(__file__), 'ephe')
+swe.set_ephe_path(ephe_path)
+flatlib.core.set_ephemeris('pyswisseph')
 
 # Використання pyswisseph
 flatlib.core.set_ephemeris('pyswisseph')
