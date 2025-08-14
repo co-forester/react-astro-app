@@ -1,23 +1,22 @@
-app = "albireo-daria-96"
+# Назва додатку на Fly.io
+app = "astro-backend"
 
+# Інструкції збірки
 [build]
   dockerfile = "Dockerfile"
 
-[env]
-  PORT = "8080"
-
+# Сервіси для Fly.io
 [[services]]
+  # Порт, на якому Flask слухає всередині контейнера
   internal_port = 8080
   protocol = "tcp"
 
+  # Відкритий порт для користувачів
   [[services.ports]]
     port = 80
     handlers = ["http"]
 
-  [[services.ports]]
-    port = 443
-    handlers = ["tls", "http"]
-
-  [[services.tcp_checks]]
-    interval = 10000
-    timeout = 2000
+  # Автоматичне масштабування (за потреби)
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20

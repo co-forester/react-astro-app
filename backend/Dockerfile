@@ -1,43 +1,34 @@
-# --- Повний стабільний образ Python 3.10 на Debian Buster ---
-FROM python:3.10-buster
+# --- базовий образ з Python 3.9 ---
+FROM python:3.9-slim
 
-# --- Робоча директорія ---
-WORKDIR /app
-
-# --- Оновлення системи та мінімальні пакети для pyswisseph та matplotlib ---
+# --- встановлюємо системні залежності ---
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
     build-essential \
     wget \
     curl \
+    git \
     libatlas-base-dev \
     gfortran \
     pkg-config \
     ca-certificates \
     locales \
     python3-dev \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
-# --- Копіюємо файл залежностей ---
-COPY requirements.txt ./
+# --- робоча директорія ---
+WORKDIR /app
 
-# --- Встановлюємо Python-залежності ---
-RUN pip install --no-cache-dir -r requirements.txt
-
-# --- Створюємо каталог для ефемерид ---
-RUN mkdir -p /data/ephe
-
-# --- Завантажуємо ефемериди swisseph ---
-RUN git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph && \
-    cp -r /tmp/swisseph/ephe/* /data/ephe/ && \
-    rm -rf /tmp/swisseph
-
-# --- Копіюємо весь код проєкту ---
+# --- копіюємо файли ---
+COPY requirements.txt .
 COPY . .
 
-# --- Задаємо порт ---
-ENV PORT=8080
+# --- оновлюємо pip і встановлюємо залежності ---
+RUN pip install --upgrade pip setuptools wheel \
+ && pip install -r requirements.txt
 
-# --- Команда запуску ---
+# --- expose порт для Fly.io ---
+EXPOSE 8080
+
+# --- команда запуску додатку ---
 CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
