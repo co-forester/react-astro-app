@@ -17,6 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Створюємо робочу директорію
 WORKDIR /app
 
+# Створюємо директорію для даних ephe (volume)
+RUN mkdir -p /data/ephe
+
 # Копіюємо файли проєкту
 COPY . /app
 

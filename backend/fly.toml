@@ -5,6 +5,11 @@ app = "albireo-daria-96"
 [build]
   dockerfile = "Dockerfile"
 
+# Volume для зберігання даних ephe
+[mounts]
+  source = "ephe_data"
+  destination = "/data/ephe"
+
 # Сервіси для Fly.io
 [[services]]
   # Порт, на якому Flask слухає всередині контейнера
