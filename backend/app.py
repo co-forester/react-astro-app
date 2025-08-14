@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import swisseph as swe
 
 # --- Шлях до ефемерид на зовнішньому томі Fly.io ---
-EPHE_PATH = "/data/ephe"
+EPHE_PATH = os.environ.get("SWISSEPH_EPHE_PATH", "/data/ephe")
 os.makedirs(EPHE_PATH, exist_ok=True)
 
 # --- Перевірка, чи є ефемериди ---
@@ -115,7 +115,11 @@ def generate_chart():
 
     except Exception as e:
         traceback.print_exc()
-        return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
+        return jsonify({
+            'error': "Сталася помилка при запиті",
+            'details': str(e),
+            'trace': traceback.format_exc()
+        }), 500
 
 
 @app.route('/chart/<filename>')
