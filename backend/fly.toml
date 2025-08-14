@@ -11,10 +11,14 @@ FLASK_RUN_PORT = "8080"
 # Використовуємо Dockerfile для побудови образу
 dockerfile = "Dockerfile"
 
-
 [http_service]
 internal_port = 8080
 force_https = true
 auto_start_machines = true
 auto_stop_machines = "stop"
 min_machines_running = 0
+
+[mounts]
+# Зовнішній том для ефемерид
+source = "ephe-data"
+destination = "/data/ephe"

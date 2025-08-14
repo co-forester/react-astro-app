@@ -16,26 +16,14 @@ from timezonefinder import TimezoneFinder
 import pytz
 import matplotlib.pyplot as plt
 import swisseph as swe
-# import pyswisseph as swe
-import subprocess
 
-# --- Шлях до локальних ефемерид ---
-EPHE_PATH = os.path.join(os.path.dirname(__file__), 'ephe')
+# --- Шлях до ефемерид на зовнішньому томі Fly.io ---
+EPHE_PATH = "/data/ephe"
 os.makedirs(EPHE_PATH, exist_ok=True)
 
-# --- Завантаження ефемерид, якщо папка порожня ---
+# --- Перевірка, чи є ефемериди ---
 if not os.listdir(EPHE_PATH):
-    print("Завантажуємо ефемериди swisseph...")
-    tmp_dir = "/tmp/swisseph"
-    subprocess.run([
-        "git", "clone", "--depth", "1",
-        "https://github.com/aloistr/swisseph.git", tmp_dir
-    ], check=True)
-    ephe_src = os.path.join(tmp_dir, "ephe")
-    for file in os.listdir(ephe_src):
-        subprocess.run(["cp", os.path.join(ephe_src, file), EPHE_PATH], check=True)
-    subprocess.run(["rm", "-rf", tmp_dir], check=True)
-    print("Ефемериди завантажено.")
+    print("Ефемериди не знайдено у /data/ephe. Будь ласка, завантажте їх на зовнішній том.")
 
 # --- Налаштування swisseph для flatlib ---
 swe.set_ephe_path(EPHE_PATH)

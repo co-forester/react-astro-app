@@ -1,4 +1,4 @@
-# Використовуємо Python 3.10
+# Використовуємо Python 3.10 slim
 FROM python:3.10-slim
 
 # Встановлюємо системні пакети
@@ -9,8 +9,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libsm6 \
     libxrender1 \
     libxext6 \
-    wget \
-    unzip \
     git \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
@@ -18,21 +16,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Робоча директорія
 WORKDIR /app
 
-# Копіюємо та встановлюємо залежності Python
+# Копіюємо requirements і встановлюємо залежності
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Копіюємо весь проект
+# Копіюємо весь backend
 COPY . .
 
-# Створюємо папку для ефемерид
-RUN mkdir -p /app/ephe
-
-# Завантаження ефемерид, якщо папка пуста
-RUN test -n "$(ls -A /app/ephe)" || git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph \
-    && cp /tmp/swisseph/ephe/* /app/ephe/ \
-    && rm -rf /tmp/swisseph
+# --- Місце для ефемерид (зовнішній том Fly.io монтується сюди) ---
+VOLUME /data/ephe
+ENV EPHE_PATH=/data/ephe
+ENV SWISSEPH_EPHE_PATH=$EPHE_PATH
 
 # Порт
 EXPOSE 8080
