@@ -18,12 +18,14 @@ import matplotlib.pyplot as plt
 import swisseph as swe
 
 # --- Шлях до ефемерид на зовнішньому томі Fly.io ---
-EPHE_PATH = os.environ.get("SWISSEPH_EPHE_PATH", "/data/ephe")
+EPHE_PATH = "/data/ephe"
 os.makedirs(EPHE_PATH, exist_ok=True)
 
-# --- Перевірка, чи є ефемериди ---
-if not os.listdir(EPHE_PATH):
-    print("Ефемериди не знайдено у /data/ephe. Будь ласка, завантажте їх на зовнішній том.")
+# --- Перевірка ефемерид ---
+if os.listdir(EPHE_PATH):
+    print(f"Ефемериди знайдено у {EPHE_PATH}")
+else:
+    print(f"Увага: ефемериди не знайдено у {EPHE_PATH}. Натальні карти не будуть створюватися.")
 
 # --- Налаштування swisseph для flatlib ---
 swe.set_ephe_path(EPHE_PATH)
@@ -39,6 +41,9 @@ CORS(app, origins=[
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
+    if not os.listdir(EPHE_PATH):
+        return jsonify({'error': 'Ефемериди відсутні на сервері'}), 500
+
     data = request.json
     date = data.get('date')
     time = data.get('time')
@@ -115,11 +120,7 @@ def generate_chart():
 
     except Exception as e:
         traceback.print_exc()
-        return jsonify({
-            'error': "Сталася помилка при запиті",
-            'details': str(e),
-            'trace': traceback.format_exc()
-        }), 500
+        return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
 
 
 @app.route('/chart/<filename>')

@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     git \
     ca-certificates \
+    wget \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 
 # Робоча директорія
@@ -24,10 +26,21 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Копіюємо весь backend
 COPY . .
 
-# --- Місце для ефемерид (зовнішній том Fly.io монтується сюди) ---
+# Місце для ефемерид (зовнішній том Fly.io монтується сюди)
 VOLUME /data/ephe
 ENV EPHE_PATH=/data/ephe
 ENV SWISSEPH_EPHE_PATH=$EPHE_PATH
+
+# Створюємо папку на випадок, якщо її ще немає
+RUN mkdir -p /data/ephe
+
+# Скрипт для ініціалізації ефемерид, якщо том порожній
+RUN bash -c 'if [ -z "$(ls -A /data/ephe)" ]; then \
+    echo "Завантажуємо ефемериди..."; \
+    git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph && \
+    cp /tmp/swisseph/ephe/* /data/ephe/ && \
+    rm -rf /tmp/swisseph; \
+    fi'
 
 # Порт
 EXPOSE 8080
