@@ -18,11 +18,11 @@ import matplotlib.pyplot as plt
 import swisseph as swe
 import subprocess
 
-# Шлях до локальних ефемерид
+# --- Шлях до локальних ефемерид ---
 EPHE_PATH = os.path.join(os.path.dirname(__file__), 'ephe')
 os.makedirs(EPHE_PATH, exist_ok=True)
 
-# Якщо ефемериди відсутні — завантажуємо з GitHub
+# --- Завантаження ефемерид, якщо папка порожня ---
 if not os.listdir(EPHE_PATH):
     print("Завантажуємо ефемериди swisseph...")
     tmp_dir = "/tmp/swisseph"
@@ -36,11 +36,11 @@ if not os.listdir(EPHE_PATH):
     subprocess.run(["rm", "-rf", tmp_dir], check=True)
     print("Ефемериди завантажено.")
 
-# Налаштування swisseph для flatlib
+# --- Налаштування swisseph для flatlib ---
 swe.set_ephe_path(EPHE_PATH)
 flatlib.core.set_ephemeris('pyswisseph')
 
-# Flask
+# --- Flask ---
 app = Flask(__name__)
 CORS(app, origins=[
     "http://localhost:3000",
@@ -59,7 +59,7 @@ def generate_chart():
         return jsonify({'error': 'Неповні дані'}), 400
 
     try:
-        # Геолокація
+        # --- Геолокація ---
         geolocator = Nominatim(user_agent="astrology-app")
         location = geolocator.geocode(place, timeout=10)
         if not location:
@@ -73,6 +73,7 @@ def generate_chart():
             if not timezone_str:
                 timezone_str = 'Europe/Kyiv'
 
+        # --- Локалізований час ---
         local_tz = pytz.timezone(timezone_str)
         naive_dt = dt.strptime(f'{date} {time}', '%Y-%m-%d %H:%M')
         localized_dt = local_tz.localize(naive_dt)
@@ -85,6 +86,7 @@ def generate_chart():
 
         chart = Chart(dt_flatlib, pos, ids=objects)
 
+        # --- Побудова картинки ---
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'polar': True})
         ax.set_theta_direction(-1)
         ax.set_theta_zero_location('N')
@@ -137,6 +139,5 @@ def get_chart_image(filename):
 
 
 if __name__ == '__main__':
-    # Для локального запуску, якщо треба
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)

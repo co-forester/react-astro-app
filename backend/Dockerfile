@@ -1,6 +1,7 @@
+# Використовуємо Python 3.10
 FROM python:3.10-slim
 
-# Встановлення системних пакетів
+# Встановлюємо системні пакети
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
@@ -14,18 +15,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Робоча директорія
 WORKDIR /app
 
-# Копіювання requirements і встановлення залежностей
+# Копіюємо та встановлюємо залежності Python
 COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt
 
-# Копіювання проекту
+# Копіюємо весь проект
 COPY . .
+
+# Створюємо папку для ефемерид
+RUN mkdir -p /app/ephe
 
 # Порт
 EXPOSE 8080
 
-# Запуск через Gunicorn (4 воркери, 2 потоки, таймаут 120с)
-CMD ["gunicorn", "--workers=4", "--threads=2", "--timeout=120", "-b", "0.0.0.0:8080", "app:app"]
+# Запуск Flask
+CMD ["python", "app.py"]
