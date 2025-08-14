@@ -1,30 +1,38 @@
-# --- Базовий образ ---
-FROM python:3.10-slim
+# Базовий образ
+FROM python:3.10
 
-# --- Робоча директорія ---
+# Робоча директорія
 WORKDIR /app
 
-# --- Копіюємо dependencies ---
+# Копіюємо requirements
 COPY requirements.txt ./
 
-# --- Встановлюємо залежності ---
+# Встановлюємо системні пакети для компіляції деяких бібліотек
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    libffi-dev \
+    libssl-dev \
+    libjpeg-dev \
+    zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Встановлюємо залежності
 RUN pip install --no-cache-dir -r requirements.txt
 
-# --- Створюємо каталог для ефемерид ---
+# Додаємо каталог для ефемерид
 RUN mkdir -p /data/ephe
 
-# --- Завантаження ефемерид ---
-RUN apt-get update && apt-get install -y git && \
-    git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph && \
+# Завантаження ефемерид
+RUN git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph && \
     cp -r /tmp/swisseph/ephe/* /data/ephe/ && \
-    rm -rf /tmp/swisseph && \
-    apt-get remove -y git && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+    rm -rf /tmp/swisseph
 
-# --- Копіюємо код додатку ---
+# Копіюємо весь код
 COPY . .
 
-# --- Порт додатку ---
+# Порт
 ENV PORT=8080
 
-# --- Команда запуску через Gunicorn ---
+# Команда запуску
 CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
