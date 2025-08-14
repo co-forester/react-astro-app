@@ -11,8 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     git \
     ca-certificates \
-    wget \
-    unzip \
+    bash \
     && rm -rf /var/lib/apt/lists/*
 
 # Робоча директорія
@@ -31,16 +30,13 @@ VOLUME /data/ephe
 ENV EPHE_PATH=/data/ephe
 ENV SWISSEPH_EPHE_PATH=$EPHE_PATH
 
-# Створюємо папку на випадок, якщо її ще немає
-RUN mkdir -p /data/ephe
-
-# Скрипт для ініціалізації ефемерид, якщо том порожній
+# Якщо том порожній — завантажуємо ефемериди
 RUN bash -c 'if [ -z "$(ls -A /data/ephe)" ]; then \
     echo "Завантажуємо ефемериди..."; \
     git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph && \
-    cp /tmp/swisseph/ephe/* /data/ephe/ && \
+    cp -r /tmp/swisseph/ephe/* /data/ephe/ && \
     rm -rf /tmp/swisseph; \
-    fi'
+fi'
 
 # Порт
 EXPOSE 8080

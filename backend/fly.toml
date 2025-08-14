@@ -6,7 +6,7 @@ PORT = "8080"
 FLASK_APP = "app.py"
 FLASK_RUN_HOST = "0.0.0.0"
 FLASK_RUN_PORT = "8080"
-EPHE_PATH = "/data/ephe"  # змінна для шляху до ефемерид
+EPHE_PATH = "/data/ephe"
 
 [build]
 # Використовуємо Dockerfile для побудови образу
