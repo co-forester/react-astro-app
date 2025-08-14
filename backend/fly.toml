@@ -14,3 +14,6 @@ force_https = true
 auto_start_machines = true
 auto_stop_machines = "stop"
 min_machines_running = 0
+
+[build]
+builder = "paketobuildpacks/builder:base"

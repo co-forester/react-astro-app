@@ -16,10 +16,12 @@ import matplotlib.pyplot as plt
 import pytz
 import pyswisseph as swe
 import flatlib.core
+import uuid
 
 # Використання pyswisseph
 flatlib.core.set_ephemeris('pyswisseph')
-swe.set_ephe_path('/usr/share/ephe')  # Зміни шлях, якщо потрібно
+# Якщо у контейнері немає ефемерид, можна скопіювати у /app/ephe
+swe.set_ephe_path('/app/ephe')
 
 app = Flask(__name__)
 CORS(app, origins=[
@@ -29,16 +31,10 @@ CORS(app, origins=[
     "https://react-astro-app.vercel.app"
 ])
 
-chart_image_buffer = io.BytesIO()
-
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
-    global chart_image_buffer
-
     data = request.json
-    print(f"[DEBUG] Request JSON: {data}")
-
     date = data.get('date')  # формат 'YYYY-MM-DD'
     time = data.get('time')  # формат 'HH:MM'
     place = data.get('place')  # наприклад, 'Kyiv, Ukraine'
@@ -49,10 +45,10 @@ def generate_chart():
     try:
         # Геолокація
         geolocator = Nominatim(user_agent="astrology-app")
-        location = geolocator.geocode(place)
+        location = geolocator.geocode(place, timeout=10)
 
         if not location:
-            print(f"[WARN] Місце '{place}' не знайдено. Використовується Київ.")
+            # fallback
             location = type("Geo", (), {})()
             location.latitude = 50.4501
             location.longitude = 30.5234
@@ -68,17 +64,16 @@ def generate_chart():
         naive_dt = dt.strptime(f'{date} {time}', '%Y-%m-%d %H:%M')
         localized_dt = local_tz.localize(naive_dt)
         offset_hours = localized_dt.utcoffset().total_seconds() / 3600
-        offset_str = f"{int(offset_hours)}:00"
+        offset_str = f"{int(offset_hours)}:{int((offset_hours % 1) * 60):02d}"
 
-        # Формат для flatlib
+        # Flatlib datetime
         dt_flatlib = Datetime(date.replace('-', '/'), time, offset_str)
         pos = GeoPos(location.latitude, location.longitude)
         objects = [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, ASC, MC]
 
-        # Юліанська дата
+        # Юліанська дата (для debug)
         jd_ut = swe.julday(localized_dt.year, localized_dt.month, localized_dt.day,
                            localized_dt.hour + localized_dt.minute / 60.0)
-        print(f"[DEBUG] Юліанська дата UT: {jd_ut}")
 
         # Побудова карти
         chart = Chart(dt_flatlib, pos, ids=objects)
@@ -86,11 +81,10 @@ def generate_chart():
         # Побудова картинки
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'polar': True})
         ax.set_theta_direction(-1)
-        ax.set_theta_zero_location('S')
+        ax.set_theta_zero_location('N')  # нуль зверху
         ax.set_rlim(0, 1.5)
         ax.grid(True)
         ax.set_axis_off()
-
         circle = plt.Circle((0, 0), 1, transform=ax.transData._b, fill=False, color='black')
         ax.add_artist(circle)
 
@@ -108,12 +102,10 @@ def generate_chart():
                 'speed': round(obj.speed, 2)
             })
 
-        chart_image_buffer = io.BytesIO()
-        plt.savefig(chart_image_buffer, format='png', bbox_inches='tight', transparent=True)
-        chart_image_buffer.seek(0)
+        # Збереження тимчасової картинки
+        tmp_filename = f"/tmp/chart_{uuid.uuid4().hex}.png"
+        plt.savefig(tmp_filename, format='png', bbox_inches='tight', transparent=True)
         plt.close()
-
-        print("[INFO] Карту збережено у буфер памʼяті.")
 
         return jsonify({
             'status': 'success',
@@ -123,21 +115,19 @@ def generate_chart():
             'timezone': timezone_str,
             'utc_offset': offset_str,
             'objects': object_data,
-            'chart_image_url': '/chart.png'
+            'chart_image_url': f'/chart/{os.path.basename(tmp_filename)}'
         })
 
     except Exception as e:
-        print(f"[ERROR] {str(e)}")
         traceback.print_exc()
         return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
 
 
-@app.route('/chart.png')
-def get_chart_image():
-    global chart_image_buffer
-    if chart_image_buffer:
-        chart_image_buffer.seek(0)
-        return send_file(chart_image_buffer, mimetype='image/png')
+@app.route('/chart/<filename>')
+def get_chart_image(filename):
+    filepath = f"/tmp/{filename}"
+    if os.path.exists(filepath):
+        return send_file(filepath, mimetype='image/png')
     else:
         return jsonify({'error': 'Карта ще не створена'}), 404
 
