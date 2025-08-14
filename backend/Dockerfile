@@ -5,9 +5,23 @@ FROM python:3.10-slim
 WORKDIR /app
 
 # --- Системні пакети для збірки pyswisseph та matplotlib ---
-RUN apt-get update && apt-get install -y \
-    git build-essential wget curl libatlas-base-dev gfortran pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        git \
+        build-essential \
+        wget \
+        curl \
+        libatlas-base-dev \
+        gfortran \
+        pkg-config \
+        ca-certificates \
+        locales && \
+    rm -rf /var/lib/apt/lists/*
+
+# Встановлюємо локаль для matplotlib
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 
 # --- Копіюємо файл залежностей ---
 COPY requirements.txt ./
