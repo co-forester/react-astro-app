@@ -1,42 +1,52 @@
-# Повний образ Python 3.10
-FROM python:3.10-slim
+# --- Базовий образ Python 3.10 ---
+FROM python:3.10
 
-# Робоча директорія
+# --- Робоча директорія ---
 WORKDIR /app
 
-# Оновлення системи і встановлення мінімальних пакетів для побудови залежностей
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    build-essential \
-    wget \
-    curl \
-    libatlas-base-dev \
-    gfortran \
-    pkg-config \
-    ca-certificates \
-    locales \
-    python3-dev \
- && rm -rf /var/lib/apt/lists/*
+# --- Повідомлення перед початком ---
+RUN echo "🚀 Підготовка космічного корабля…"
 
-# Копіюємо файл залежностей
+# --- Оновлення системи та встановлення необхідних пакетів ---
+RUN apt-get update --fix-missing \
+    && apt-get install -y --no-install-recommends \
+        git \
+        build-essential \
+        wget \
+        curl \
+        libatlas-base-dev \
+        gfortran \
+        pkg-config \
+        ca-certificates \
+        locales \
+        python3-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Повідомлення про ефемериди ---
+RUN echo "🔭 Завантажую ефемериди…"
+
+# --- Завантаження ефемерид swisseph ---
+RUN mkdir -p /data/ephe \
+    && git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph \
+    && cp -r /tmp/swisseph/ephe/* /data/ephe/ \
+    && rm -rf /tmp/swisseph \
+    && echo "🪐 Ефемериди готові!"
+
+# --- Копіюємо файл залежностей ---
 COPY requirements.txt ./
 
-# Встановлюємо Python-залежності
+# --- Встановлюємо Python-залежності ---
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Створюємо каталог для ефемерид
-RUN mkdir -p /data/ephe
-
-# Завантаження ефемерид swisseph
-RUN git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph \
- && cp -r /tmp/swisseph/ephe/* /data/ephe/ \
- && rm -rf /tmp/swisseph
-
-# Копіюємо код проєкту
+# --- Копіюємо весь код проєкту ---
 COPY . .
 
-# Задаємо порт
+# --- Порт додатку ---
 ENV PORT=8080
 
-# Команда запуску
+# --- Стартове повідомлення ---
+RUN echo "✨ Готово! Астрологічний сервер стартує…"
+
+# --- Команда запуску ---
 CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
