@@ -4,7 +4,7 @@ FROM python:3.10
 # --- Робоча директорія ---
 WORKDIR /app
 
-# --- Системні пакети для збірки pyswisseph і matplotlib ---
+# --- Системні пакети для збірки pyswisseph та matplotlib ---
 RUN apt-get update && apt-get install -y \
     git build-essential wget curl libatlas-base-dev gfortran pkg-config \
     ca-certificates locales python3-dev && \
