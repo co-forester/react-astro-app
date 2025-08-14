@@ -5,11 +5,17 @@ import { useAppSelector, useAppDispatch } from '../../hooks/reduxHook';
 import { themeActions } from '../../redux/slices/themeSlice';
 import { ForecastWeek } from '../ForecastWeek';
 
-const ForecastAugust2025 = () => {
+interface FormState {
+  date: string;
+  time: string;
+  place: string;
+}
+
+const ForecastAugust2025: React.FC = () => {
   const theme = useAppSelector((state) => state.theme.theme);
   const dispatch = useAppDispatch();
 
-  const [form, setForm] = useState({ date: '', time: '', place: '' });
+  const [form, setForm] = useState<FormState>({ date: '', time: '', place: '' });
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,10 +31,11 @@ const ForecastAugust2025 = () => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setImageUrl(null);
