@@ -12,18 +12,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     locales \
     python3-dev \
+    libc-dev \
+    libgfortran5 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Створюємо робочу директорію
+# Робоча директорія
 WORKDIR /app
 
-# Створюємо директорію для даних ephe (volume)
+# Директорія для volume Fly.io
 RUN mkdir -p /data/ephe
 
-# Копіюємо файли проєкту
-COPY . /app
+# Копіюємо лише requirements.txt для кешування шару
+COPY requirements.txt /app/
 
-# Створюємо та активуємо virtualenv
+# Створюємо virtualenv
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
@@ -31,8 +33,11 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Виставляємо порт для Flask
+# Копіюємо решту проєкту
+COPY . /app
+
+# Виставляємо порт Flask
 EXPOSE 5000
 
-# Команда для запуску
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
+# Запуск Gunicorn із virtualenv
+CMD ["/opt/venv/bin/gunicorn", "-b", "0.0.0.0:5000", "app:app"]
