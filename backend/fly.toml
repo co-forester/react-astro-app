@@ -20,5 +20,5 @@ min_machines_running = 0
 
 [mounts]
 # Зовнішній том для ефемерид
-source = "ephe-data"
+source = "ephe_data"
 destination = "/data/ephe"
