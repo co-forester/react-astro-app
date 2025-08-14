@@ -5,16 +5,15 @@ app = "albireo-daria-96"
 [build]
   dockerfile = "Dockerfile"
 
-# Змінні середовища
+# Змінні оточення
 [env]
   PORT = "8080"
 
-# Налаштування сервісів
+# Налаштування мережі та портів
 [[services]]
   internal_port = 8080
   protocol = "tcp"
 
-  # Порти для HTTP та HTTPS
   [[services.ports]]
     port = 80
     handlers = ["http"]
@@ -23,7 +22,7 @@ app = "albireo-daria-96"
     port = 443
     handlers = ["tls", "http"]
 
-  # TCP перевірка стану
+  # Перевірка доступності сервісу
   [[services.tcp_checks]]
     interval = 10000
     timeout = 2000

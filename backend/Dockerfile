@@ -1,11 +1,11 @@
-# --- Базовий образ ---
-FROM python:3.10-slim
+# --- Базовий образ з повним Debian ---
+FROM python:3.10-bullseye
 
 # --- Робоча директорія ---
 WORKDIR /app
 
 # --- Системні пакети для збірки pyswisseph та matplotlib ---
-RUN apt-get update && \
+RUN apt-get update --allow-releaseinfo-change && \
     apt-get install -y --no-install-recommends \
         git \
         build-essential \
@@ -18,7 +18,7 @@ RUN apt-get update && \
         locales && \
     rm -rf /var/lib/apt/lists/*
 
-# Встановлюємо локаль для matplotlib
+# --- Встановлюємо локаль для matplotlib ---
 RUN locale-gen en_US.UTF-8
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
@@ -27,8 +27,7 @@ ENV LC_ALL=en_US.UTF-8
 COPY requirements.txt ./
 
 # --- Встановлюємо Python-залежності ---
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # --- Додаємо каталог для ефемерид ---
 RUN mkdir -p /data/ephe
