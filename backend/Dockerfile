@@ -1,10 +1,11 @@
 # Повний образ Python 3.10
 FROM python:3.10
 
+# Робоча директорія
 WORKDIR /app
 
-# Оновлення системи та базові пакети
-RUN apt-get update && apt-get install -y \
+# --- Системні пакети для Flatlib, matplotlib і pyswisseph ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     build-essential \
     wget \
@@ -15,9 +16,9 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     locales \
     python3-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Копіюємо requirements
+# Копіюємо файл залежностей
 COPY requirements.txt ./
 
 # Встановлюємо Python-залежності
@@ -34,6 +35,8 @@ RUN git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph &&
 # Копіюємо код проєкту
 COPY . .
 
+# Порт
 ENV PORT=8080
 
+# Команда запуску
 CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]

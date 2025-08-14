@@ -1,4 +1,3 @@
-# fly.toml для додатку react-astro-app
 app = "albireo-daria-96"
 
 [build]
