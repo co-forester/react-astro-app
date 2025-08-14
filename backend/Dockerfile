@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
     git \
-    libatlas3-base \
+    libatlas3-base-dev \
     gfortran \
     pkg-config \
     ca-certificates \
