@@ -5,7 +5,7 @@ app = "albireo-daria-96"
 primary_region = "ams"
 
 [build]
-  image = "albireo-daria-96:latest"
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "8080"
