@@ -1,5 +1,5 @@
 # fly.toml для додатку react-astro-app
-app = "react-astro-app"
+app = "albireo-daria-96"
 
 # Вказуємо будувати локальний Dockerfile (не використовуємо готовий образ)
 [build]
