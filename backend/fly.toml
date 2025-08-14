@@ -1,3 +1,4 @@
+# fly.toml для додатку react-astro-app
 app = "albireo-daria-96"
 
 [build]
@@ -6,27 +7,18 @@ app = "albireo-daria-96"
 [env]
   PORT = "8080"
 
-[experimental]
-  auto_stop_machines = true
-  auto_start_machines = true
-
-[http_service]
+[[services]]
   internal_port = 8080
-  force_https = true
+  protocol = "tcp"
 
-  [http_service.concurrency]
-    type = "requests"
-    soft_limit = 20
-    hard_limit = 40
-
-  [[http_service.ports]]
+  [[services.ports]]
     port = 80
     handlers = ["http"]
 
-  [[http_service.ports]]
+  [[services.ports]]
     port = 443
     handlers = ["tls", "http"]
 
-  [[http_service.tcp_checks]]
-    interval = "10s"
-    timeout = "2s"
+  [[services.tcp_checks]]
+    interval = 10000
+    timeout = 2000
