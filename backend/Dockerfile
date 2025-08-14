@@ -1,7 +1,7 @@
-# Базовий образ Python 3.9
+# Базовий образ з Python 3.9
 FROM python:3.9-slim
 
-# Системні залежності для numpy, pyswisseph, flatlib
+# Оновлення та встановлення необхідних системних пакетів
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     wget \
@@ -12,30 +12,28 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     locales \
     python3-dev \
-    libffi-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Робоча директорія
 WORKDIR /app
 
-# Директорія для ephe (volume)
+# Створюємо директорію для даних ephe (volume)
 RUN mkdir -p /data/ephe
 
-# Копіюємо requirements.txt і кешуємо шар
+# Копіюємо лише requirements.txt для кешування шарів
 COPY requirements.txt /app/
 
-# Virtualenv
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Pip і залежності
+# Оновлюємо pip і встановлюємо залежності **без venv**
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Перевіримо, що flatlib встановився
+RUN pip show flatlib
 
 # Копіюємо решту проєкту
 COPY . /app
 
-# Порт Flask
+# Виставляємо порт для Flask
 EXPOSE 5000
 
 # Команда запуску
