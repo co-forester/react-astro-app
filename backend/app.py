@@ -137,5 +137,6 @@ def get_chart_image(filename):
 
 
 if __name__ == '__main__':
+    # Для локального запуску, якщо треба
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
