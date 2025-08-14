@@ -1,3 +1,4 @@
+# --- Fly.io конфіг для react-astro-app ---
 app = "react-astro-app"
 
 [build]

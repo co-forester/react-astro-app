@@ -1,31 +1,22 @@
 # --- Базовий образ ---
-FROM python:3.10-slim
+FROM python:3.10
 
 # --- Робоча директорія ---
 WORKDIR /app
 
-# --- Системні пакети для компіляції Python-бібліотек ---
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
-    build-essential \
-    wget \
-    curl \
-    libatlas-base-dev \
-    gfortran \
-    pkg-config \
-    ca-certificates \
-    locales \
-    python3-dev \
-    && rm -rf /var/lib/apt/lists/*
+# --- Системні пакети для збірки pyswisseph і matplotlib ---
+RUN apt-get update && apt-get install -y \
+    git build-essential wget curl libatlas-base-dev gfortran pkg-config \
+    ca-certificates locales python3-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # --- Копіюємо файл залежностей ---
 COPY requirements.txt ./
 
-# --- Оновлюємо pip і встановлюємо залежності ---
-RUN pip install --upgrade pip
+# --- Встановлюємо Python-залежності ---
 RUN pip install --no-cache-dir -r requirements.txt
 
-# --- Каталог для ефемерид ---
+# --- Додаємо каталог для ефемерид ---
 RUN mkdir -p /data/ephe
 
 # --- Завантажуємо ефемериди swisseph ---
@@ -36,7 +27,7 @@ RUN git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph &&
 # --- Копіюємо весь код проєкту ---
 COPY . .
 
-# --- Порт ---
+# --- Задаємо порт ---
 ENV PORT=8080
 
 # --- Команда запуску ---
