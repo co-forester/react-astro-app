@@ -1,34 +1,35 @@
-# --- базовий образ з Python 3.9 ---
+# Базовий образ з Python 3.9
 FROM python:3.9-slim
 
-# --- встановлюємо системні залежності ---
+# Оновлення та встановлення необхідних системних пакетів
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     wget \
     curl \
     git \
-    libatlas3-base-dev \
     gfortran \
     pkg-config \
     ca-certificates \
     locales \
     python3-dev \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# --- робоча директорія ---
+# Створюємо робочу директорію
 WORKDIR /app
 
-# --- копіюємо файли ---
-COPY requirements.txt .
-COPY . .
+# Копіюємо файли проєкту
+COPY . /app
 
-# --- оновлюємо pip і встановлюємо залежності ---
-RUN pip install --upgrade pip setuptools wheel \
- && pip install -r requirements.txt
+# Створюємо та активуємо virtualenv
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# --- expose порт для Fly.io ---
-EXPOSE 8080
+# Оновлюємо pip і встановлюємо залежності
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
 
-# --- команда запуску додатку ---
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
+# Виставляємо порт для Flask
+EXPOSE 5000
+
+# Команда для запуску
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
