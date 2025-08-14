@@ -4,16 +4,17 @@ FROM python:3.10-slim
 # --- Робоча директорія ---
 WORKDIR /app
 
-# --- Системні пакети для збірки pyswisseph ---
+# --- Системні пакети для збірки pyswisseph та matplotlib ---
 RUN apt-get update && apt-get install -y \
-    git build-essential wget curl \
+    git build-essential wget curl libatlas-base-dev gfortran pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # --- Копіюємо файл залежностей ---
 COPY requirements.txt ./
 
 # --- Встановлюємо Python-залежності ---
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # --- Додаємо каталог для ефемерид ---
 RUN mkdir -p /data/ephe

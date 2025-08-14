@@ -1,19 +1,20 @@
 # fly.toml для додатку react-astro-app
 app = "albireo-daria-96"
 
-# Вказуємо будувати локальний Dockerfile (не використовуємо готовий образ)
+# Використовуємо локальний Dockerfile
 [build]
   dockerfile = "Dockerfile"
 
-# Порт, який слухає додаток
+# Змінні середовища
 [env]
   PORT = "8080"
 
-# Мережеві налаштування
+# Налаштування сервісів
 [[services]]
   internal_port = 8080
   protocol = "tcp"
 
+  # Порти для HTTP та HTTPS
   [[services.ports]]
     port = 80
     handlers = ["http"]
@@ -22,6 +23,7 @@ app = "albireo-daria-96"
     port = 443
     handlers = ["tls", "http"]
 
+  # TCP перевірка стану
   [[services.tcp_checks]]
     interval = 10000
     timeout = 2000
