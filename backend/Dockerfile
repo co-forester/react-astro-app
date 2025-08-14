@@ -1,10 +1,10 @@
 # Повний образ Python 3.10
-FROM python:3.10
+FROM python:3.10-slim
 
 # Робоча директорія
 WORKDIR /app
 
-# Оновлення системи і встановлення необхідних пакетів
+# Оновлення системи і встановлення мінімальних пакетів для побудови залежностей
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     build-essential \
@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     locales \
     python3-dev \
-    && rm -rf /var/lib/apt/lists/*
+ && rm -rf /var/lib/apt/lists/*
 
 # Копіюємо файл залежностей
 COPY requirements.txt ./
@@ -28,9 +28,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p /data/ephe
 
 # Завантаження ефемерид swisseph
-RUN git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph && \
-    cp -r /tmp/swisseph/ephe/* /data/ephe/ && \
-    rm -rf /tmp/swisseph
+RUN git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph \
+ && cp -r /tmp/swisseph/ephe/* /data/ephe/ \
+ && rm -rf /tmp/swisseph
 
 # Копіюємо код проєкту
 COPY . .
