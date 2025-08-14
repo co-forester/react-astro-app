@@ -1,39 +1,28 @@
-# Базовий образ з Python 3.9
+# Базовий образ Python
 FROM python:3.9-slim
 
-# Оновлення та встановлення необхідних системних пакетів
+# Встановлюємо потрібні системні пакети для flatlib/pyswisseph
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    wget \
-    curl \
-    git \
-    gfortran \
-    pkg-config \
-    ca-certificates \
-    locales \
-    python3-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    build-essential gfortran python3-dev && \
+    rm -rf /var/lib/apt/lists/*
 
-# Робоча директорія
+# Робоча папка
 WORKDIR /app
 
-# Створюємо директорію для даних ephe (volume)
-RUN mkdir -p /data/ephe
-
-# Копіюємо лише requirements.txt для кешування шарів
+# Копіюємо файл з залежностями
 COPY requirements.txt /app/
 
-# Оновлюємо pip і встановлюємо залежності **без venv**
+# Створюємо віртуальне оточення та встановлюємо пакети
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Перевіримо, що flatlib встановився
-RUN pip show flatlib
-
-# Копіюємо решту проєкту
+# Копіюємо код аплікації
 COPY . /app
 
-# Виставляємо порт для Flask
+# Порт на якому слухає Flask через Gunicorn
 EXPOSE 5000
 
 # Команда запуску
