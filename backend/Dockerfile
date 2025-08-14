@@ -1,35 +1,31 @@
-# --- Базовий образ з повним Debian ---
-FROM python:3.10-bullseye
+# --- Базовий образ ---
+FROM python:3.10-slim
 
 # --- Робоча директорія ---
 WORKDIR /app
 
-# --- Системні пакети для збірки pyswisseph та matplotlib ---
-RUN apt-get update --allow-releaseinfo-change && \
-    apt-get install -y --no-install-recommends \
-        git \
-        build-essential \
-        wget \
-        curl \
-        libatlas-base-dev \
-        gfortran \
-        pkg-config \
-        ca-certificates \
-        locales && \
-    rm -rf /var/lib/apt/lists/*
-
-# --- Встановлюємо локаль для matplotlib ---
-RUN locale-gen en_US.UTF-8
-ENV LANG=en_US.UTF-8
-ENV LC_ALL=en_US.UTF-8
+# --- Системні пакети для компіляції Python-бібліотек ---
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    build-essential \
+    wget \
+    curl \
+    libatlas-base-dev \
+    gfortran \
+    pkg-config \
+    ca-certificates \
+    locales \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 # --- Копіюємо файл залежностей ---
 COPY requirements.txt ./
 
-# --- Встановлюємо Python-залежності ---
+# --- Оновлюємо pip і встановлюємо залежності ---
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# --- Додаємо каталог для ефемерид ---
+# --- Каталог для ефемерид ---
 RUN mkdir -p /data/ephe
 
 # --- Завантажуємо ефемериди swisseph ---
@@ -40,7 +36,7 @@ RUN git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph &&
 # --- Копіюємо весь код проєкту ---
 COPY . .
 
-# --- Задаємо порт ---
+# --- Порт ---
 ENV PORT=8080
 
 # --- Команда запуску ---
