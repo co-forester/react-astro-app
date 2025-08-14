@@ -1,7 +1,7 @@
-# Базовий образ з Python 3.9
+# Базовий образ Python 3.9
 FROM python:3.9-slim
 
-# Оновлення та встановлення необхідних системних пакетів
+# Системні залежності для numpy, pyswisseph, flatlib
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     wget \
@@ -12,32 +12,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     locales \
     python3-dev \
-    libc-dev \
-    libgfortran5 \
+    libffi-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Робоча директорія
 WORKDIR /app
 
-# Директорія для volume Fly.io
+# Директорія для ephe (volume)
 RUN mkdir -p /data/ephe
 
-# Копіюємо лише requirements.txt для кешування шару
+# Копіюємо requirements.txt і кешуємо шар
 COPY requirements.txt /app/
 
-# Створюємо virtualenv
+# Virtualenv
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Оновлюємо pip і встановлюємо залежності
+# Pip і залежності
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Копіюємо решту проєкту
 COPY . /app
 
-# Виставляємо порт Flask
+# Порт Flask
 EXPOSE 5000
 
-# Запуск Gunicorn із virtualenv
-CMD ["/opt/venv/bin/gunicorn", "-b", "0.0.0.0:5000", "app:app"]
+# Команда запуску
+CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
