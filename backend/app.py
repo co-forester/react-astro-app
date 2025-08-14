@@ -2,6 +2,7 @@ import os
 import io
 import math
 import traceback
+import uuid
 from datetime import datetime as dt
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
@@ -9,39 +10,50 @@ from flatlib.chart import Chart
 from flatlib.const import SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, ASC, MC
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
+import flatlib.core
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
-import matplotlib.pyplot as plt
 import pytz
-import pyswisseph as swe
-import flatlib.core
-import uuid
+import matplotlib.pyplot as plt
+import swisseph as swe
+import subprocess
 
-# Використовуємо локальні ефемеріди в папці backend/ephe
-ephe_path = os.path.join(os.path.dirname(__file__), 'ephe')
-swe.set_ephe_path(ephe_path)
+# Шлях до локальних ефемерид
+EPHE_PATH = os.path.join(os.path.dirname(__file__), 'ephe')
+os.makedirs(EPHE_PATH, exist_ok=True)
+
+# Якщо ефемериди відсутні — завантажуємо з GitHub
+if not os.listdir(EPHE_PATH):
+    print("Завантажуємо ефемериди swisseph...")
+    tmp_dir = "/tmp/swisseph"
+    subprocess.run([
+        "git", "clone", "--depth", "1",
+        "https://github.com/aloistr/swisseph.git", tmp_dir
+    ], check=True)
+    ephe_src = os.path.join(tmp_dir, "ephe")
+    for file in os.listdir(ephe_src):
+        subprocess.run(["cp", os.path.join(ephe_src, file), EPHE_PATH], check=True)
+    subprocess.run(["rm", "-rf", tmp_dir], check=True)
+    print("Ефемериди завантажено.")
+
+# Налаштування swisseph для flatlib
+swe.set_ephe_path(EPHE_PATH)
 flatlib.core.set_ephemeris('pyswisseph')
 
-# Використання pyswisseph
-flatlib.core.set_ephemeris('pyswisseph')
-# Якщо у контейнері немає ефемерид, можна скопіювати у /app/ephe
-swe.set_ephe_path('/app/ephe')
-
+# Flask
 app = Flask(__name__)
 CORS(app, origins=[
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://192.168.50.16:3000",
     "https://react-astro-app.vercel.app"
 ])
-
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
     data = request.json
-    date = data.get('date')  # формат 'YYYY-MM-DD'
-    time = data.get('time')  # формат 'HH:MM'
-    place = data.get('place')  # наприклад, 'Kyiv, Ukraine'
+    date = data.get('date')
+    time = data.get('time')
+    place = data.get('place')
 
     if not (date and time and place):
         return jsonify({'error': 'Неповні дані'}), 400
@@ -50,9 +62,7 @@ def generate_chart():
         # Геолокація
         geolocator = Nominatim(user_agent="astrology-app")
         location = geolocator.geocode(place, timeout=10)
-
         if not location:
-            # fallback
             location = type("Geo", (), {})()
             location.latitude = 50.4501
             location.longitude = 30.5234
@@ -63,29 +73,21 @@ def generate_chart():
             if not timezone_str:
                 timezone_str = 'Europe/Kyiv'
 
-        # Локалізований час
         local_tz = pytz.timezone(timezone_str)
         naive_dt = dt.strptime(f'{date} {time}', '%Y-%m-%d %H:%M')
         localized_dt = local_tz.localize(naive_dt)
         offset_hours = localized_dt.utcoffset().total_seconds() / 3600
         offset_str = f"{int(offset_hours)}:{int((offset_hours % 1) * 60):02d}"
 
-        # Flatlib datetime
         dt_flatlib = Datetime(date.replace('-', '/'), time, offset_str)
         pos = GeoPos(location.latitude, location.longitude)
         objects = [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, ASC, MC]
 
-        # Юліанська дата (для debug)
-        jd_ut = swe.julday(localized_dt.year, localized_dt.month, localized_dt.day,
-                           localized_dt.hour + localized_dt.minute / 60.0)
-
-        # Побудова карти
         chart = Chart(dt_flatlib, pos, ids=objects)
 
-        # Побудова картинки
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'polar': True})
         ax.set_theta_direction(-1)
-        ax.set_theta_zero_location('N')  # нуль зверху
+        ax.set_theta_zero_location('N')
         ax.set_rlim(0, 1.5)
         ax.grid(True)
         ax.set_axis_off()
@@ -97,7 +99,6 @@ def generate_chart():
             theta = math.radians(obj.lon)
             ax.plot(theta, 1, 'o', color='blue')
             ax.text(theta, 1.1, obj.id, ha='center', va='center', fontsize=8)
-
             object_data.append({
                 'id': obj.id,
                 'sign': obj.sign,
@@ -106,7 +107,6 @@ def generate_chart():
                 'speed': round(obj.speed, 2)
             })
 
-        # Збереження тимчасової картинки
         tmp_filename = f"/tmp/chart_{uuid.uuid4().hex}.png"
         plt.savefig(tmp_filename, format='png', bbox_inches='tight', transparent=True)
         plt.close()
