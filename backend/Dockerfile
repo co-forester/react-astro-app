@@ -1,10 +1,11 @@
 # Повний образ Python 3.10
 FROM python:3.10
 
+# Робоча директорія
 WORKDIR /app
 
 # Оновлення системи і встановлення необхідних пакетів
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     build-essential \
     wget \
@@ -17,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Копіюємо залежності
+# Копіюємо файл залежностей
 COPY requirements.txt ./
 
 # Встановлюємо Python-залежності
@@ -34,6 +35,8 @@ RUN git clone --depth 1 https://github.com/aloistr/swisseph.git /tmp/swisseph &&
 # Копіюємо код проєкту
 COPY . .
 
+# Задаємо порт
 ENV PORT=8080
 
+# Команда запуску
 CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
