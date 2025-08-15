@@ -23,6 +23,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копіюємо весь код аплікації
 COPY . /app
 
+# Створюємо директорію для ефемерид (Fly.io mount)
+VOLUME ["/data/ephe"]
+ENV EPHE_PATH="/data/ephe"
+
 # Порт на якому слухає Flask через Gunicorn
 EXPOSE 8080
 
