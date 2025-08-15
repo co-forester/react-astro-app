@@ -1,9 +1,9 @@
 # Базовий образ Python
-FROM python:3.9-slim
+FROM python:3.10-slim
 
-# Встановлюємо потрібні системні пакети для flatlib/pyswisseph
+# Встановлюємо системні пакети для збірки flatlib/pyswisseph
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential gfortran python3-dev && \
+    build-essential gfortran python3-dev libc6-dev gcc g++ && \
     rm -rf /var/lib/apt/lists/*
 
 # Робоча папка
@@ -12,18 +12,19 @@ WORKDIR /app
 # Копіюємо файл з залежностями
 COPY requirements.txt /app/
 
-# Створюємо віртуальне оточення та встановлюємо пакети
+# Створюємо віртуальне оточення та додаємо його в PATH
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+# Оновлюємо pip і встановлюємо залежності
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копіюємо код аплікації
+# Копіюємо весь код аплікації
 COPY . /app
 
 # Порт на якому слухає Flask через Gunicorn
-EXPOSE 5000
+EXPOSE 8080
 
-# Команда запуску
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
+# Команда запуску через Gunicorn
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]

@@ -10,7 +10,6 @@ from flatlib.chart import Chart
 from flatlib.const import SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, ASC, MC
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
-import flatlib.core
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
@@ -27,9 +26,9 @@ if os.listdir(EPHE_PATH):
 else:
     print(f"Увага: ефемериди не знайдено у {EPHE_PATH}. Натальні карти не будуть створюватися.")
 
-# --- Налаштування swisseph для flatlib ---
+# --- Налаштування swisseph ---
 swe.set_ephe_path(EPHE_PATH)
-flatlib.core.set_ephemeris('swisseph')  # тепер Flatlib використовує swisseph
+# flatlib.core.set_ephemeris('swisseph')  # Тепер не потрібне для Flatlib 0.2.3
 
 # --- Flask ---
 app = Flask(__name__)
