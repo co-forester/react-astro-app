@@ -5,14 +5,13 @@ app = "albireo-daria-96"
 [build]
   dockerfile = "Dockerfile"
 
-# Volume для зберігання даних ephe
+# Том для зберігання ефемерид
 [mounts]
   source = "ephe_data"
   destination = "/data/ephe"
 
-# Сервіси для Fly.io
+# Налаштування сервісу
 [[services]]
-  # Порт, на якому Flask слухає всередині контейнера
   internal_port = 8080
   protocol = "tcp"
 
@@ -21,7 +20,7 @@ app = "albireo-daria-96"
     port = 80
     handlers = ["http"]
 
-  # Автоматичне масштабування (за потреби)
+  # Автоматичне масштабування
   [services.concurrency]
     hard_limit = 25
     soft_limit = 20

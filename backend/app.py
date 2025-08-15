@@ -16,7 +16,7 @@ import pytz
 import matplotlib.pyplot as plt
 import swisseph as swe
 
-# --- Шлях до ефемерид на зовнішньому томі Fly.io ---
+# --- Шлях до ефемерид на Fly.io ---
 EPHE_PATH = "/data/ephe"
 os.makedirs(EPHE_PATH, exist_ok=True)
 
@@ -28,14 +28,14 @@ else:
 
 # --- Налаштування swisseph ---
 swe.set_ephe_path(EPHE_PATH)
-# flatlib.core.set_ephemeris('swisseph')  # Тепер не потрібне для Flatlib 0.2.3
 
 # --- Flask ---
 app = Flask(__name__)
 CORS(app, origins=[
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://react-astro-app.vercel.app"
+    "https://react-astro-app.vercel.app",
+    "https://albireo-daria-96.fly.dev"
 ])
 
 @app.route('/generate', methods=['POST'])
