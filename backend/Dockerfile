@@ -23,6 +23,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копіюємо код аплікації
 COPY . /app
 
+# Запаковуємо ephe/ в архів
+RUN tar -czf /app/ephe.tar.gz -C backend ephe
+
 # Порт, на якому слухає Flask через Gunicorn
 EXPOSE 8080
 

@@ -42,7 +42,8 @@ yarn.lock
 # Test output
 test_flatlib.pybackend/ephe.tar.gz
 
-# Temporary files
-backend/ephe.tar.gzbackend/ephe.tar.gz
+# Ігноруємо архів
 backend/ephe.tar.gz
-backend/ephe
+
+# Ігноруємо всю папку з ефемеридами
+backend/ephe/
