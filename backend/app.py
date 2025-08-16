@@ -1,8 +1,9 @@
 import os
 import io
 import math
-import traceback
 import uuid
+import traceback
+import tempfile
 from datetime import datetime as dt
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
@@ -100,7 +101,9 @@ def generate_chart():
                 'speed': round(obj.speed, 2)
             })
 
-        tmp_filename = f"/tmp/chart_{uuid.uuid4().hex}.png"
+        # --- Тимчасовий файл для картинки ---
+        tmp_dir = tempfile.gettempdir()
+        tmp_filename = os.path.join(tmp_dir, f"chart_{uuid.uuid4().hex}.png")
         plt.savefig(tmp_filename, format='png', bbox_inches='tight', transparent=True)
         plt.close()
 
@@ -122,7 +125,8 @@ def generate_chart():
 
 @app.route('/chart/<filename>')
 def get_chart_image(filename):
-    filepath = f"/tmp/{filename}"
+    tmp_dir = tempfile.gettempdir()
+    filepath = os.path.join(tmp_dir, filename)
     if os.path.exists(filepath):
         return send_file(filepath, mimetype='image/png')
     else:
