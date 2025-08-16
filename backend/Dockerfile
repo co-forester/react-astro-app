@@ -24,6 +24,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ephe.tar.gz /app/ephe.tar.gz
 RUN mkdir -p /data/ephe && tar -xzf /app/ephe.tar.gz -C /data/ephe
 
+RUN ls -l /data/ephe
+
 # Копіюємо код аплікації
 COPY . /app
 
