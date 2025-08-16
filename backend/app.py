@@ -21,13 +21,11 @@ import swisseph as swe
 EPHE_PATH = "/data/ephe"
 os.makedirs(EPHE_PATH, exist_ok=True)
 
-# --- Перевірка ефемерид ---
 if os.listdir(EPHE_PATH):
     print(f"Ефемериди знайдено у {EPHE_PATH}")
 else:
     print(f"Увага: ефемериди не знайдено у {EPHE_PATH}. Натальні карти не будуть створюватися.")
 
-# --- Налаштування swisseph ---
 swe.set_ephe_path(EPHE_PATH)
 
 # --- Flask ---
