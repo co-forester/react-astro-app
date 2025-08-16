@@ -41,3 +41,6 @@ yarn.lock
 
 # Test output
 test_flatlib.pybackend/ephe.tar.gz
+
+# Temporary files
+backend/ephe.tar.gz
