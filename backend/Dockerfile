@@ -20,11 +20,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Копіюємо архів ефемерид і розпаковуємо його у персистентний том
+COPY ephe.tar.gz /app/ephe.tar.gz
+RUN mkdir -p /data/ephe && tar -xzf /app/ephe.tar.gz -C /data/ephe
+
 # Копіюємо код аплікації
 COPY . /app
-
-# Запаковуємо ephe/ в архів
-RUN tar -czf /app/ephe.tar.gz -C backend ephe
 
 # Порт, на якому слухає Flask через Gunicorn
 EXPOSE 8080
