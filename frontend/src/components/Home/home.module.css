@@ -1,121 +1,29 @@
-/* home.module.css */
-
-/* Основні стилі для головного контейнера */
-.mainLight,
-.mainDark {
-  width: 100%;
-  padding: 2rem;
-  transition: background-color 0.4s, color 0.4s, padding 0.3s;
+/* Анімація появи */
+.fadeIn {
+  animation: fadeIn 0.8s ease forwards;
 }
 
-.mainLight {
-  background-color: rgb(145, 144, 144);
-  color: var(--text-light);
+.fadeInUp {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.8s ease forwards;
 }
 
-.mainDark {
-  background-color: rgb(74, 73, 73);
-  color: var(--text-dark);
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
 }
 
-/* Сітка контенту */
-.gridContainer {
-  display: grid;
-  grid-template-columns: 1fr 2.5fr 1fr;
-  gap: 0.5rem;
-  max-width: var(--max-width);
-  margin: 0 auto;
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
-/* Лівий блок */
-.leftBlock {
-  background: linear-gradient(180deg, #706c6e, rgba(100, 50, 150, 0.05));
-  border-radius: 1rem;
-  padding: 1.5rem;
-  font-family: var(--font-deco);
-  font-style: italic;
-  font-size: 0.95rem;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+/* Hover ефекти для блоків */
+.leftBlock:hover,
+.content:hover,
+.sidebar:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
-}
-
-/* Основний контент */
-.content {
-  background: #706c6e;
-  border-radius: 1.5rem;
-  padding: 2rem;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(4px);
-  transition: all 0.3s ease;
-}
-
-/* Бокова панель */
-.sidebar {
-  background: linear-gradient(180deg, #706c6e, rgba(255, 255, 255, 0.02));
-  border-radius: 1rem;
-  padding: 1.5rem;
-  font-family: var(--font-deco);
-  font-style: italic;
-  font-size: 0.95rem;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
-}
-
-/* Планшети (до 1024px) */
-@media (max-width: 1024px) {
-  .gridContainer {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .leftBlock,
-  .sidebar {
-    margin-top: 1.5rem;
-    padding: 1rem;
-  }
-
-  .content {
-    order: -1;
-    padding: 1.5rem;
-  }
-
-  .leftBlock,
-  .sidebar {
-    font-size: 0.9rem;
-  }
-}
-
-/* Смартфони (до 768px) */
-@media (max-width: 768px) {
-  .mainLight,
-  .mainDark {
-    padding: 1rem;
-  }
-
-  .leftBlock,
-  .sidebar {
-    padding: 0.75rem;
-    font-size: 0.85rem;
-  }
-
-  .content {
-    padding: 1rem;
-  }
-}
-
-/* Дуже маленькі екрани (до 480px) */
-@media (max-width: 480px) {
-  .leftBlock,
-  .sidebar {
-    padding: 0.5rem;
-    font-size: 0.8rem;
-  }
-
-  .content {
-    padding: 0.75rem;
-  }
-
-  .gridContainer {
-    gap: 0.5rem;
-  }
 }

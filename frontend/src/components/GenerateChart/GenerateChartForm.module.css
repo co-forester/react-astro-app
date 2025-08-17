@@ -4,7 +4,7 @@
   background-color: rgba(255, 255, 255, 0.04);
   border-radius: 1.5rem;
   padding: 2rem;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   margin-bottom: 2rem;
   transition: all 0.4s ease;
 }
@@ -19,22 +19,28 @@
 .input {
   flex: 1 1 30%;
   min-width: 150px;
-  padding: 0.7rem 1rem;
+  padding: 0.75rem 1rem;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 0.8rem;
-  /* background-color: rgba(255, 255, 255, 0.07); */
-background: linear-gradient(180deg, rgba(68, 68, 68, 0.2), rgba(100, 50, 150, 0.05));
+  background: linear-gradient(180deg, rgba(68, 68, 68, 0.2), rgba(100, 50, 150, 0.05));
   color: var(--text-dark);
   font-family: var(--font-main);
   font-size: 1rem;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, border 0.3s ease;
 }
 
 .input::placeholder {
   color: rgba(78, 78, 78, 0.5);
 }
 
-.buttonLight, .buttonDark {
+.input:focus {
+  border: 1px solid #801d46;
+  background-color: rgba(68, 68, 68, 0.3);
+  outline: none;
+}
+
+.buttonLight,
+.buttonDark {
   padding: 0.75rem 1.5rem;
   border: none;
   color: white;
@@ -42,25 +48,30 @@ background: linear-gradient(180deg, rgba(68, 68, 68, 0.2), rgba(100, 50, 150, 0.
   font-family: var(--font-main);
   font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .buttonDark {
-background-color:  #4A001F;
+  background-color: #4a001f;
 }
 
-.buttonLight{
-background-color:   #801d46;
+.buttonLight {
+  background-color: #801d46;
 }
 
-.button:hover {
-  background-color: var(--accent-orange);
+.buttonLight:hover {
+  background-color: #aa2a63;
+}
+
+.buttonDark:hover {
+  background-color: #6b0033;
 }
 
 .error {
   color: #ff6b6b;
   font-weight: 500;
   margin-top: 1rem;
+  text-align: center;
 }
 
 .result {

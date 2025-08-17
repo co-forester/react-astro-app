@@ -18,6 +18,7 @@ const ForecastAugust2025: React.FC = () => {
   const [form, setForm] = useState<FormState>({ date: '', time: '', place: '' });
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -45,6 +46,7 @@ const ForecastAugust2025: React.FC = () => {
       return;
     }
 
+    setLoading(true);
     try {
       const response = await axios.post(`${API_URL}/generate`, form);
       if (response.data.status === 'success') {
@@ -54,6 +56,8 @@ const ForecastAugust2025: React.FC = () => {
       }
     } catch (err: any) {
       setError(err?.response?.data?.error || 'Сталася помилка при запиті');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,8 +93,8 @@ const ForecastAugust2025: React.FC = () => {
             required
             className={css.input}
           />
-          <button type="submit" className={theme ? css.buttonLight : css.buttonDark}>
-            Згенерувати карту
+          <button type="submit" className={theme ? css.buttonLight : css.buttonDark} disabled={loading}>
+            {loading ? 'Завантаження...' : 'Згенерувати карту'}
           </button>
         </form>
         {error && <p className={css.error}>{error}</p>}
