@@ -1,35 +1,39 @@
-# Базовий образ Python 3.10
-FROM python:3.10-slim
+# Базовий образ
+FROM python:3.11-slim
 
-# Встановлюємо системні пакети
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential gfortran python3-dev && \
-    rm -rf /var/lib/apt/lists/*
-
-# Робоча папка
+# Робоча папка всередині контейнера
 WORKDIR /app
 
+# Системні пакети
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    libgeos-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Копіюємо requirements
-COPY backend/requirements.txt .
+COPY requirements.txt .
 
 # Віртуальне оточення
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Встановлюємо залежності
-RUN pip install --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Копіюємо код і архів ефемерид
-COPY backend/ /app/
-COPY backend/ephe.tar.gz /app/
+# Копіюємо весь бекенд
+COPY . /app
 
-# Копіюємо entrypoint
-COPY backend/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Створюємо директорію для ефемерид
+RUN mkdir -p /data/ephe && \
+    tar -xzf /app/ephe.tar.gz -C /data/ephe
 
-# Порт для Gunicorn
+# Копіюємо і робимо виконуваним entrypoint
+RUN chmod +x /app/entrypoint.sh
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# Відкритий порт
 EXPOSE 8080
 
-ENTRYPOINT ["/entrypoint.sh"]
+# Запуск Gunicorn
 CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
