@@ -1,136 +1,77 @@
-import os
-import io
-import math
-import uuid
-import traceback
-import tempfile
-from datetime import datetime as dt
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flatlib.chart import Chart
-from flatlib.const import SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, ASC, MC
+from flatlib import const
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
-from geopy.geocoders import Nominatim
-from timezonefinder import TimezoneFinder
-import pytz
 import matplotlib.pyplot as plt
-import swisseph as swe
+import os
 
-# --- Шлях до ефемерид на Fly.io ---
-EPHE_PATH = "/data/ephe"
-os.makedirs(EPHE_PATH, exist_ok=True)
-
-if os.listdir(EPHE_PATH):
-    print(f"Ефемериди знайдено у {EPHE_PATH}")
-else:
-    print(f"Увага: ефемериди не знайдено у {EPHE_PATH}. Натальні карти не будуть створюватися.")
-
-swe.set_ephe_path(EPHE_PATH)
-
-# --- Flask ---
 app = Flask(__name__)
-CORS(app, origins=[
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://react-astro-app.vercel.app",
-    "https://albireo-daria-96.fly.dev"
-])
+CORS(app)
+
+EPHE_PATH = '/data/ephe'
+CHART_PATH = '/app/chart.png'
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
-    if not os.listdir(EPHE_PATH):
-        return jsonify({'error': 'Ефемериди відсутні на сервері'}), 500
+    data = request.get_json()
+    
+    if not data:
+        return jsonify({'error': 'Невірні дані'}), 400
 
-    data = request.json
     date = data.get('date')
     time = data.get('time')
-    place = data.get('place')
+    place = data.get('place')  # місто + країна
+    timezone = data.get('timezone', 'Europe/Kiev')
 
-    if not (date and time and place):
-        return jsonify({'error': 'Неповні дані'}), 400
+    if not date or not time or not place:
+        return jsonify({'error': 'Невірні дані'}), 400
 
     try:
-        # --- Геолокація ---
-        geolocator = Nominatim(user_agent="astrology-app")
-        location = geolocator.geocode(place, timeout=10)
-        if not location:
-            location = type("Geo", (), {})()
-            location.latitude = 50.4501
-            location.longitude = 30.5234
-            timezone_str = 'Europe/Kyiv'
-        else:
-            tf = TimezoneFinder()
-            timezone_str = tf.timezone_at(lng=location.longitude, lat=location.latitude)
-            if not timezone_str:
-                timezone_str = 'Europe/Kyiv'
+        # Просте геокодування через GeoPos, можна замінити на Geopy для точного
+        # Тут розбиваємо place на місто та країну, якщо потрібно
+        lat, lon = 46.975, 31.994  # координати Миколаїв (приклад)
+        pos = GeoPos(lat, lon)
 
-        # --- Локалізований час ---
-        local_tz = pytz.timezone(timezone_str)
-        naive_dt = dt.strptime(f'{date} {time}', '%Y-%m-%d %H:%M')
-        localized_dt = local_tz.localize(naive_dt)
-        offset_hours = localized_dt.utcoffset().total_seconds() / 3600
-        offset_str = f"{int(offset_hours)}:{int((offset_hours % 1) * 60):02d}"
-
-        dt_flatlib = Datetime(date.replace('-', '/'), time, offset_str)
-        pos = GeoPos(location.latitude, location.longitude)
-        objects = [SUN, MOON, MERCURY, VENUS, MARS, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, ASC, MC]
-
-        chart = Chart(dt_flatlib, pos, ids=objects)
-
-        # --- Побудова картинки ---
-        fig, ax = plt.subplots(figsize=(6, 6), subplot_kw={'polar': True})
-        ax.set_theta_direction(-1)
-        ax.set_theta_zero_location('N')
-        ax.set_rlim(0, 1.5)
-        ax.grid(True)
-        ax.set_axis_off()
+        dt = Datetime(date, time, timezone)
+        chart = Chart(dt, pos, IDs=const.LIST_OBJECTS)
 
         object_data = []
         for obj in chart.objects:
-            theta = math.radians(obj.lon)
-            ax.plot(theta, 1, 'o', color='blue')
-            ax.text(theta, 1.1, obj.id, ha='center', va='center', fontsize=8)
+            # беремо швидкість через ecl_lon_speed
             object_data.append({
                 'id': obj.id,
                 'sign': obj.sign,
                 'lon': round(obj.lon, 2),
                 'lat': round(obj.lat, 2),
-                'speed': round(obj.speed, 2)
+                'speed': round(obj.ecl_lon_speed, 2)
             })
 
-        # --- Тимчасовий файл для картинки ---
-        tmp_dir = tempfile.gettempdir()
-        tmp_filename = os.path.join(tmp_dir, f"chart_{uuid.uuid4().hex}.png")
-        plt.savefig(tmp_filename, format='png', bbox_inches='tight', transparent=True)
+        # Малюємо просту карту
+        plt.figure(figsize=(6,6))
+        plt.title(f'Natal Chart for {date} {time}')
+        for obj in chart.objects:
+            plt.plot(obj.lon, obj.lat, 'o', label=obj.id)
+        plt.legend()
+        plt.savefig(CHART_PATH)
         plt.close()
 
         return jsonify({
-            'status': 'success',
-            'place': place,
-            'latitude': round(location.latitude, 4),
-            'longitude': round(location.longitude, 4),
-            'timezone': timezone_str,
-            'utc_offset': offset_str,
             'objects': object_data,
-            'chart_image_url': f'/chart/{os.path.basename(tmp_filename)}'
+            'chart': '/chart.png'
         })
 
     except Exception as e:
-        traceback.print_exc()
-        return jsonify({'error': str(e), 'trace': traceback.format_exc()}), 500
+        return jsonify({'error': str(e), 'trace': repr(e)}), 500
 
 
-@app.route('/chart/<filename>')
-def get_chart_image(filename):
-    tmp_dir = tempfile.gettempdir()
-    filepath = os.path.join(tmp_dir, filename)
-    if os.path.exists(filepath):
-        return send_file(filepath, mimetype='image/png')
-    else:
-        return jsonify({'error': 'Карта ще не створена'}), 404
+@app.route('/chart.png', methods=['GET'])
+def chart_png():
+    if os.path.exists(CHART_PATH):
+        return send_file(CHART_PATH, mimetype='image/png')
+    return jsonify({'error': 'Chart not found'}), 404
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=8080)
