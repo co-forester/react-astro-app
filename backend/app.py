@@ -4,42 +4,60 @@ from flatlib.chart import Chart
 from flatlib import const
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
+from geopy.geocoders import Nominatim
+from timezonefinder import TimezoneFinder
 import matplotlib.pyplot as plt
 import os
+import pytz
 
 app = Flask(__name__)
 CORS(app)
 
-EPHE_PATH = '/data/ephe'
 CHART_PATH = '/app/chart.png'
+
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
     data = request.get_json()
-    
+
     if not data:
         return jsonify({'error': 'Невірні дані'}), 400
 
-    date = data.get('date')
-    time = data.get('time')
-    place = data.get('place')  # місто + країна
-    timezone = data.get('timezone', 'Europe/Kiev')
+    date = data.get('date')   # формат YYYY-MM-DD
+    time = data.get('time')   # формат HH:MM
+    place = data.get('place')
 
     if not date or not time or not place:
         return jsonify({'error': 'Невірні дані'}), 400
 
     try:
-        # Просте геокодування через GeoPos, можна замінити на Geopy для точного
-        # Тут розбиваємо place на місто та країну, якщо потрібно
-        lat, lon = 46.975, 31.994  # координати Миколаїв (приклад)
-        pos = GeoPos(lat, lon)
+        # Розбираємо дату і час
+        year, month, day = map(int, date.split('-'))
+        hour, minute = map(int, time.split(':'))
 
-        dt = Datetime(date, time, timezone)
+        # Геокодування
+        geolocator = Nominatim(user_agent="astro_app")
+        location = geolocator.geocode(place)
+        if not location:
+            return jsonify({'error': 'Місце не знайдено'}), 400
+
+        lat, lon = location.latitude, location.longitude
+
+        # Часовий пояс
+        tf = TimezoneFinder()
+        tz_name = tf.timezone_at(lat=lat, lng=lon)
+        if not tz_name:
+            tz_name = "UTC"
+
+        # Створюємо chart
+        dt = Datetime(f"{year}/{month:02d}/{day:02d}",
+                      f"{hour:02d}:{minute:02d}",
+                      tz_name)
+        pos = GeoPos(lat, lon)
         chart = Chart(dt, pos, IDs=const.LIST_OBJECTS)
 
         object_data = []
         for obj in chart.objects:
-            # беремо швидкість через ecl_lon_speed
             object_data.append({
                 'id': obj.id,
                 'sign': obj.sign,
@@ -48,9 +66,9 @@ def generate_chart():
                 'speed': round(obj.ecl_lon_speed, 2)
             })
 
-        # Малюємо просту карту
-        plt.figure(figsize=(6,6))
-        plt.title(f'Natal Chart for {date} {time}')
+        # Малюємо PNG
+        plt.figure(figsize=(6, 6))
+        plt.title(f'Natal Chart for {date} {time} ({place})')
         for obj in chart.objects:
             plt.plot(obj.lon, obj.lat, 'o', label=obj.id)
         plt.legend()
