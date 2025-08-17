@@ -5,7 +5,7 @@ app = "albireo-daria-96"
 [build]
   dockerfile = "Dockerfile"
 
-# Том для зберігання ефемерид
+# Том для зберігання ефемерид (збережеться між рестартами)
 [mounts]
   source = "ephe_data"
   destination = "/data/ephe"
