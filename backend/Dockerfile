@@ -9,7 +9,6 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     gcc \
     libgeos-dev \
-    tar \
     && rm -rf /var/lib/apt/lists/*
 
 # Копіюємо requirements
@@ -33,8 +32,8 @@ RUN mkdir -p /data/ephe && \
 RUN chmod +x /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-# Відкритий порт (за замовчуванням 8080)
+# Відкритий порт
 EXPOSE 8080
 
-# CMD залишаємо пустим, entrypoint підхопить $PORT або аргументи
-CMD []
+# Запуск Gunicorn
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
