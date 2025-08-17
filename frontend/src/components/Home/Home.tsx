@@ -58,4 +58,4 @@ const Home: FC = () => {
   );
 };
 
-export default Home;
+export {Home};
