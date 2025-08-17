@@ -7,6 +7,7 @@ from flatlib.geopos import GeoPos
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import matplotlib.pyplot as plt
+import math
 import os
 import pytz
 
@@ -15,6 +16,12 @@ CORS(app)
 
 CHART_PATH = '/app/chart.png'
 
+# Кольори для знаків зодіаку
+SIGN_COLORS = {
+    'Aries': '#FF0000', 'Taurus': '#008000', 'Gemini': '#FFFF00', 'Cancer': '#00FFFF',
+    'Leo': '#FFA500', 'Virgo': '#808080', 'Libra': '#FFC0CB', 'Scorpio': '#800000',
+    'Sagittarius': '#0000FF', 'Capricorn': '#000000', 'Aquarius': '#00FF00', 'Pisces': '#800080'
+}
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
@@ -66,13 +73,50 @@ def generate_chart():
                 'speed': round(obj.ecl_lon_speed, 2)
             })
 
-        # Малюємо PNG
+        # Малюємо натальну карту
         plt.figure(figsize=(6, 6))
-        plt.title(f'Natal Chart for {date} {time} ({place})')
+        ax = plt.gca()
+        ax.set_xlim(-1.3, 1.3)
+        ax.set_ylim(-1.3, 1.3)
+        ax.set_aspect('equal')
+        plt.axis('off')
+
+        # Коло зодіаку
+        circle = plt.Circle((0, 0), 1, color='lightgrey', fill=False, linewidth=2)
+        ax.add_artist(circle)
+
+        # Сектори 12 будинків і підписи
+        for i in range(12):
+            angle_deg = i * 30
+            angle_rad = math.radians(angle_deg)
+            x = math.cos(angle_rad)
+            y = math.sin(angle_rad)
+            plt.plot([0, x], [0, y], color='grey', linewidth=1)
+            hx = 0.7 * math.cos(angle_rad + math.radians(15))
+            hy = 0.7 * math.sin(angle_rad + math.radians(15))
+            plt.text(hx, hy, str(i+1), fontsize=10, ha='center', va='center', fontweight='bold')
+
+        # Внутрішнє коло будинків
+        inner_circle = plt.Circle((0, 0), 0.7, color='lightgrey', fill=False, linestyle='dashed', linewidth=1)
+        ax.add_artist(inner_circle)
+
+        # Планети
         for obj in chart.objects:
-            plt.plot(obj.lon, obj.lat, 'o', label=obj.id)
-        plt.legend()
-        plt.savefig(CHART_PATH)
+            sign_color = SIGN_COLORS.get(obj.sign, '#000000')
+            angle = math.radians(obj.lon)
+            radius = 0.95
+            x = radius * math.cos(angle)
+            y = radius * math.sin(angle)
+            plt.plot(x, y, 'o', color=sign_color, markersize=10)
+            plt.text(x*1.05, y*1.05, obj.id, fontsize=8, ha='center', va='center')
+
+        # Легенда
+        for sign, color in SIGN_COLORS.items():
+            ax.plot([], [], 'o', color=color, label=sign)
+        plt.legend(loc='upper right', fontsize=6)
+
+        plt.title(f'Natal Chart for {date} {time} ({place})', fontsize=10)
+        plt.savefig(CHART_PATH, bbox_inches='tight')
         plt.close()
 
         return jsonify({
