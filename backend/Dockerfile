@@ -1,34 +1,39 @@
-# Базовий образ з Python
+# Базовий образ
 FROM python:3.11-slim
 
-# Оновлюємо систему і встановлюємо залежності для matplotlib
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    libfreetype6-dev \
-    libpng-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Робоча директорія
+# Робоча папка всередині контейнера
 WORKDIR /app
 
-# Копіюємо файли
+# Системні пакети
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    libgeos-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Копіюємо requirements
 COPY requirements.txt .
-COPY . .
 
-# Встановлюємо Python-залежності
-RUN pip install --no-cache-dir -r requirements.txt
+# Віртуальне оточення
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Створюємо папку для ephemeris Flatlib
-RUN mkdir -p /data/ephe
+# Встановлюємо залежності
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Встановлюємо EPHE для Flatlib (Swiss Ephemeris)
-# Завантажуємо актуальні ephemeris файли
-RUN apt-get update && apt-get install -y wget unzip && \
-    wget -O /tmp/seph.zip https://www.astro.com/ftp/swisseph/ephe/sepl_23.zip && \
-    unzip /tmp/seph.zip -d /data/ephe && rm /tmp/seph.zip
+# Копіюємо весь бекенд
+COPY . /app
 
-# Відкриваємо порт
+# Створюємо директорію для ефемерид
+RUN mkdir -p /data/ephe && \
+    tar -xzf /app/ephe.tar.gz -C /data/ephe
+
+# Копіюємо і робимо виконуваним entrypoint
+RUN chmod +x /app/entrypoint.sh
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# Відкритий порт
 EXPOSE 8080
 
-# Команда запуску
-CMD ["python", "app.py"]
+# Запуск Gunicorn
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
