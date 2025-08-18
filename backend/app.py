@@ -54,17 +54,15 @@ def generate_chart():
 
         # Часовий пояс
         tf = TimezoneFinder()
-        tz_name = tf.timezone_at(lat=lat, lng=lon)
-        if not tz_name:
-            tz_name = "UTC"
+        tz_name = tf.timezone_at(lat=lat, lng=lon) or "UTC"
         timezone = pytz.timezone(tz_name)
         dt_obj = datetime(year, month, day, hour, minute)
         dt_obj = timezone.localize(dt_obj)
 
         # Правильний offset для Flatlib
-        offset_total_minutes = int(dt_obj.utcoffset().total_seconds() / 60)
-        offset_hours = offset_total_minutes // 60
-        offset_minutes = abs(offset_total_minutes % 60)
+        offset_total_minutes = dt_obj.utcoffset().total_seconds() / 60
+        offset_hours = int(offset_total_minutes // 60)
+        offset_minutes = int(abs(offset_total_minutes % 60))
         offset_str = f"{offset_hours:+d}:{offset_minutes:02d}"  # "+3:00" або "-5:30"
 
         dt = Datetime(dt_obj.strftime("%Y/%m/%d"), dt_obj.strftime("%H:%M"), offset_str)
