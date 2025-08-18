@@ -62,8 +62,10 @@ def generate_chart():
         dt_obj = timezone.localize(dt_obj)
 
         # Коректне передання offset для Flatlib
-        offset_hours = dt_obj.utcoffset().total_seconds() / 3600
-        offset_str = f"{offset_hours:+.1f}"  # наприклад "+3.0" або "-5.5"
+        offset_hours_float = dt_obj.utcoffset().total_seconds() / 3600
+        offset_hours = int(offset_hours_float)
+        offset_minutes = int((offset_hours_float - offset_hours) * 60)
+        offset_str = f"{offset_hours:+d}:{abs(offset_minutes):02d}"  # "+3:00" або "-5:30"
 
         dt = Datetime(dt_obj.strftime("%Y/%m/%d"), dt_obj.strftime("%H:%M"), offset_str)
         pos = GeoPos(lat, lon)
