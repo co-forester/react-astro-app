@@ -29,3 +29,4 @@ gunicorn==21.2.0
 flatlib==0.2.3
 pytz>=2023.3
 pyswisseph==2.08.00-1
+kaleido==0.2.1
