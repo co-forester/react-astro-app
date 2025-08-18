@@ -1,44 +1,44 @@
+# app.py
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flatlib.chart import Chart
-from flatlib import const
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
+from flatlib import const
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import matplotlib.pyplot as plt
 import math
-import os
 import pytz
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
 
-CHART_PATH = '/app/chart.png'
+CHART_PATH = "chart.png"
 
-# Кольори для знаків зодіаку
+# Кольори для знаків Зодіаку
 SIGN_COLORS = {
-    'Aries': '#FF0000', 'Taurus': '#008000', 'Gemini': '#FFFF00', 'Cancer': '#00FFFF',
-    'Leo': '#FFA500', 'Virgo': '#808080', 'Libra': '#FFC0CB', 'Scorpio': '#800000',
-    'Sagittarius': '#0000FF', 'Capricorn': '#000000', 'Aquarius': '#00FF00', 'Pisces': '#800080'
+    'Aries': '#FF0000', 'Taurus': '#FFA500', 'Gemini': '#FFFF00',
+    'Cancer': '#008000', 'Leo': '#FFD700', 'Virgo': '#00FF00',
+    'Libra': '#00FFFF', 'Scorpio': '#800080', 'Sagittarius': '#FF00FF',
+    'Capricorn': '#A52A2A', 'Aquarius': '#0000FF', 'Pisces': '#FFC0CB'
 }
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
     data = request.get_json()
-
     if not data:
         return jsonify({'error': 'Невірні дані'}), 400
 
-    date = data.get('date')   # формат YYYY-MM-DD
-    time = data.get('time')   # формат HH:MM
+    date = data.get('date')
+    time = data.get('time')
     place = data.get('place')
 
     if not date or not time or not place:
         return jsonify({'error': 'Невірні дані'}), 400
 
     try:
-        # Розбираємо дату і час
         year, month, day = map(int, date.split('-'))
         hour, minute = map(int, time.split(':'))
 
@@ -55,11 +55,13 @@ def generate_chart():
         tz_name = tf.timezone_at(lat=lat, lng=lon)
         if not tz_name:
             tz_name = "UTC"
+        timezone = pytz.timezone(tz_name)
+        dt_obj = datetime(year, month, day, hour, minute)
+        dt_obj = timezone.localize(dt_obj)
 
-        # Створюємо chart
-        dt = Datetime(f"{year}/{month:02d}/{day:02d}",
-                      f"{hour:02d}:{minute:02d}",
-                      tz_name)
+        # Передаємо числовий зсув годин для flatlib
+        offset_hours = dt_obj.utcoffset().total_seconds() / 3600
+        dt = Datetime(dt_obj.strftime("%Y/%m/%d"), dt_obj.strftime("%H:%M"), str(offset_hours))
         pos = GeoPos(lat, lon)
         chart = Chart(dt, pos, IDs=const.LIST_OBJECTS)
 
@@ -73,7 +75,7 @@ def generate_chart():
                 'speed': round(obj.ecl_lon_speed, 2)
             })
 
-        # Малюємо натальну карту
+        # Малювання карти
         plt.figure(figsize=(6, 6))
         ax = plt.gca()
         ax.set_xlim(-1.3, 1.3)
@@ -81,11 +83,9 @@ def generate_chart():
         ax.set_aspect('equal')
         plt.axis('off')
 
-        # Коло зодіаку
         circle = plt.Circle((0, 0), 1, color='lightgrey', fill=False, linewidth=2)
         ax.add_artist(circle)
 
-        # Сектори 12 будинків і підписи
         for i in range(12):
             angle_deg = i * 30
             angle_rad = math.radians(angle_deg)
@@ -96,11 +96,9 @@ def generate_chart():
             hy = 0.7 * math.sin(angle_rad + math.radians(15))
             plt.text(hx, hy, str(i+1), fontsize=10, ha='center', va='center', fontweight='bold')
 
-        # Внутрішнє коло будинків
         inner_circle = plt.Circle((0, 0), 0.7, color='lightgrey', fill=False, linestyle='dashed', linewidth=1)
         ax.add_artist(inner_circle)
 
-        # Планети
         for obj in chart.objects:
             sign_color = SIGN_COLORS.get(obj.sign, '#000000')
             angle = math.radians(obj.lon)
@@ -110,7 +108,6 @@ def generate_chart():
             plt.plot(x, y, 'o', color=sign_color, markersize=10)
             plt.text(x*1.05, y*1.05, obj.id, fontsize=8, ha='center', va='center')
 
-        # Легенда
         for sign, color in SIGN_COLORS.items():
             ax.plot([], [], 'o', color=color, label=sign)
         plt.legend(loc='upper right', fontsize=6)
@@ -119,20 +116,18 @@ def generate_chart():
         plt.savefig(CHART_PATH, bbox_inches='tight')
         plt.close()
 
-        return jsonify({
-            'objects': object_data,
-            'chart': '/chart.png'
-        })
+        return jsonify({'objects': object_data, 'chart': '/chart.png'})
 
     except Exception as e:
         return jsonify({'error': str(e), 'trace': repr(e)}), 500
 
 
 @app.route('/chart.png', methods=['GET'])
-def chart_png():
-    if os.path.exists(CHART_PATH):
+def get_chart():
+    try:
         return send_file(CHART_PATH, mimetype='image/png')
-    return jsonify({'error': 'Chart not found'}), 404
+    except Exception:
+        return jsonify({'error': 'Карта ще не створена'}), 404
 
 
 if __name__ == '__main__':
