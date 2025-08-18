@@ -5,7 +5,7 @@ EPHE_DIR="/data/ephe"
 EPHE_ARCHIVE="/app/ephe.tar.gz"
 
 echo "Запуск entrypoint.sh"
-echo "Python версія: $(python --version)"
+echo "Python версія: $(python3 --version)"
 echo "PATH: $PATH"
 
 # Перевіряємо ефемериди

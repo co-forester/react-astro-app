@@ -25,6 +25,9 @@ RUN chmod +x /app/entrypoint.sh
 # Додаємо venv у PATH
 ENV PATH="/opt/venv/bin:$PATH"
 
+# Тест залежностей
+RUN /opt/venv/bin/python /app/test_dependencies.py
+
 # Безголовий режим matplotlib
 ENV MPLBACKEND="Agg"
 
