@@ -68,3 +68,13 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+### Деплой на Fly.io
+# Логін в Fly.io
+fly auth login
+
+# Ініціалізація проекту (якщо ще не створено)
+fly launch --name my-astro-backend --region fra --dockerfile ./Dockerfile --no-deploy
+
+# Деплой
+fly deploy --remote-only

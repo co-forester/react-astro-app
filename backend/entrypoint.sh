@@ -8,7 +8,7 @@ echo "Запуск entrypoint.sh"
 echo "Python версія: $(python3 --version)"
 echo "PATH: $PATH"
 
-# Перевіряємо ефемериди
+# ====================== Перевіряємо ефемериди ======================
 if [ -z "$(find "$EPHE_DIR" -type f -name '*.se1' | head -n 1)" ]; then
     echo "Ефемериди не знайдені у volume."
     if [ -f "$EPHE_ARCHIVE" ]; then
@@ -23,5 +23,10 @@ else
     echo "Ефемериди знайдені у volume. Пропускаємо розпаковку."
 fi
 
-# Запуск Gunicorn у foreground
+# ====================== Встановлюємо порт за замовчуванням ======================
+: "${PORT:=8080}"
+
+echo "Запуск Gunicorn на порту $PORT"
+
+# ====================== Запуск Gunicorn ======================
 exec gunicorn -b 0.0.0.0:$PORT app:app
