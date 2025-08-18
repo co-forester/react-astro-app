@@ -24,4 +24,4 @@ else
 fi
 
 # Запуск Gunicorn у foreground
-exec gunicorn -b 0.0.0.0:8080 app:app
+exec gunicorn -b 0.0.0.0:$PORT app:app
