@@ -1,7 +1,5 @@
-# Вибираємо точну версію Python
 FROM python:3.10.18-slim
 
-# Робоча папка всередині контейнера
 WORKDIR /app
 
 # Встановлюємо системні пакети
@@ -14,10 +12,8 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Копіюємо requirements
+# Копіюємо requirements і встановлюємо залежності у venv
 COPY requirements.txt .
-
-# Створюємо віртуальне оточення і встановлюємо залежності
 RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --upgrade pip \
     && /opt/venv/bin/pip install -r requirements.txt
@@ -28,18 +24,21 @@ COPY . /app
 # Створюємо директорію для ефемерид
 RUN mkdir -p /data/ephe
 
-# Робимо entrypoint виконуваним
+# Дозвіл на виконання entrypoint
 RUN chmod +x /app/entrypoint.sh
 
-# Додаємо venv в PATH
+# Додаємо venv у PATH
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Встановлюємо змінну для matplotlib безголового режиму
+# Встановлюємо безголовий режим matplotlib
 ENV MPLBACKEND="Agg"
 
-# Відкритий порт
+# Відкритий порт для Gunicorn
 EXPOSE 8080
 
-# Entrypoint і запуск Gunicorn
+# Додано: змінна середовища для Fly
+ENV PORT=8080
+
+# Entrypoint і запуск Gunicorn з динамічним портом
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
+CMD ["sh", "-c", "gunicorn -b 0.0.0.0:${PORT} app:app"]

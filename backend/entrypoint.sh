@@ -4,6 +4,10 @@ set -e
 EPHE_DIR="/data/ephe"
 EPHE_ARCHIVE="/app/ephe.tar.gz"
 
+echo "Запуск entrypoint.sh"
+echo "Python версія: $(python --version)"
+echo "PATH: $PATH"
+
 # Перевіряємо наявність ефемерид
 if [ -z "$(find "$EPHE_DIR" -type f -name '*.se1' | head -n 1)" ]; then
     echo "Ефемериди не знайдені у volume."
@@ -19,5 +23,5 @@ else
     echo "Ефемериди знайдені у volume. Пропускаємо розпаковку."
 fi
 
-# Запускаємо основну команду
+# Запуск основного процесу (Gunicorn)
 exec "$@"

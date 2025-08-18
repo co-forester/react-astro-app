@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import plotly.graph_objects as go
@@ -8,7 +9,7 @@ import base64
 app = Flask(__name__)
 CORS(app)
 
-# Простий набір планет (демо-анімаційні параметри з кутами)
+# ====================== Планети ======================
 PLANETS = [
     {"name": "Sun",     "radius": 0.50, "color": "yellow",     "angle": 0},
     {"name": "Moon",    "radius": 0.30, "color": "lightgray",  "angle": 45},
@@ -22,14 +23,18 @@ PLANETS = [
 
 LOGO_TEXT = "Albireo Daria"
 
+# ====================== Health Check ======================
 @app.get("/health")
 def health():
+    """
+    Ендпоінт для Fly.io smoke checks
+    """
     return jsonify({"status": "ok"}), 200
 
+# ====================== Генерація карти ======================
 @app.post("/generate")
 def generate_chart():
     _ = request.get_json(silent=True) or {}
-
     fig = go.Figure()
 
     for planet in PLANETS:
@@ -39,6 +44,7 @@ def generate_chart():
         y = [r[i] * math.sin(math.radians(theta[i] + planet["angle"])) for i in range(len(theta))]
         z = [0.1 * i for i in range(len(theta))]
 
+        # Орбіти
         fig.add_trace(go.Scatter3d(
             x=x, y=y, z=z,
             mode="lines",
@@ -47,6 +53,7 @@ def generate_chart():
             hoverinfo="skip"
         ))
 
+        # Планети
         px = planet["radius"] * 4 * math.cos(math.radians(planet["angle"]))
         py = planet["radius"] * 4 * math.sin(math.radians(planet["angle"]))
         fig.add_trace(go.Scatter3d(
@@ -58,6 +65,7 @@ def generate_chart():
             name=planet["name"]
         ))
 
+    # Логотип
     logo_radius = 5.5
     logo_angle = 0
     lx = logo_radius * math.cos(math.radians(logo_angle))
@@ -71,6 +79,7 @@ def generate_chart():
         hoverinfo="skip"
     ))
 
+    # Оформлення сцени
     fig.update_layout(
         scene=dict(
             xaxis=dict(visible=False),
@@ -84,13 +93,17 @@ def generate_chart():
         margin=dict(l=0, r=0, t=0, b=0),
     )
 
+    # Експорт
     try:
         img_bytes = fig.to_image(format="png", width=800, height=800, scale=2, engine="kaleido")
         img_b64 = base64.b64encode(img_bytes).decode("utf-8")
         return jsonify({"chart_png": img_b64}), 200
     except Exception as e:
+        # fallback на HTML, якщо PNG не згенеровано
         html = fig.to_html(full_html=False, include_plotlyjs="cdn", config={"displayModeBar": False})
         return jsonify({"chart_html": html, "warning": f"png_export_failed: {str(e)}"}), 200
 
+# ====================== Локальний запуск ======================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+    port = int(os.environ.get("PORT", 5000))  # 5000 для локального запуску
+    app.run(host="0.0.0.0", port=port)
