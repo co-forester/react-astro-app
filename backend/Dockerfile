@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Робоча папка всередині контейнера
 WORKDIR /app
 
-# Системні пакети
+# Встановлюємо системні пакети
 RUN apt-get update && apt-get install -y \
     build-essential \
     gcc \
@@ -14,26 +14,27 @@ RUN apt-get update && apt-get install -y \
 # Копіюємо requirements
 COPY requirements.txt .
 
-# Віртуальне оточення
-RUN python -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
-# Встановлюємо залежності
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# Створюємо віртуальне оточення і встановлюємо залежності
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --upgrade pip \
+    && /opt/venv/bin/pip install -r requirements.txt
 
 # Копіюємо весь бекенд
 COPY . /app
 
-# Створюємо директорію для ефемерид
-RUN mkdir -p /data/ephe && \
-    tar -xzf /app/ephe.tar.gz -C /data/ephe
+# Створюємо директорію для ефемерид та розпаковуємо, якщо файл є
+RUN mkdir -p /data/ephe \
+    && [ -f /app/ephe.tar.gz ] && tar -xzf /app/ephe.tar.gz -C /data/ephe || echo "No ephe.tar.gz found"
 
-# Копіюємо і робимо виконуваним entrypoint
+# Робимо entrypoint виконуваним
 RUN chmod +x /app/entrypoint.sh
-ENTRYPOINT ["/app/entrypoint.sh"]
+
+# Додаємо venv в PATH
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Відкритий порт
 EXPOSE 8080
 
-# Запуск Gunicorn
+# Entrypoint і запуск Gunicorn
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
