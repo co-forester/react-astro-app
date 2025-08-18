@@ -23,5 +23,5 @@ else
     echo "Ефемериди знайдені у volume. Пропускаємо розпаковку."
 fi
 
-# Запуск Gunicorn без sh -c, з фіксованим портом 8080
+# Запуск Gunicorn на 0.0.0.0:8080
 exec gunicorn -b 0.0.0.0:8080 app:app --reload
