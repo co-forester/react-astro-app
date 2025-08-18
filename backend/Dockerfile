@@ -39,6 +39,7 @@ EXPOSE 8080
 # Змінна середовища для Fly / динамічний порт
 ENV PORT=8080
 
-# Entrypoint і запуск Gunicorn з динамічним портом
+# Entrypoint і запуск Gunicorn через entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["sh", "-c", "gunicorn -b 0.0.0.0:${PORT} app:app"]
+# CMD можна залишити пустим — entrypoint сам стартує Gunicorn на PORT
+CMD []

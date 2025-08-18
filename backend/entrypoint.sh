@@ -8,7 +8,7 @@ echo "Запуск entrypoint.sh"
 echo "Python версія: $(python --version)"
 echo "PATH: $PATH"
 
-# Перевіряємо наявність ефемерид
+# Перевірка ефемерид
 if [ -z "$(find "$EPHE_DIR" -type f -name '*.se1' | head -n 1)" ]; then
     echo "Ефемериди не знайдені у volume."
     if [ -f "$EPHE_ARCHIVE" ]; then
@@ -23,5 +23,12 @@ else
     echo "Ефемериди знайдені у volume. Пропускаємо розпаковку."
 fi
 
-# Запуск основного процесу (Gunicorn)
-exec "$@"
+# Якщо переданий CMD порожній — запускаємо Gunicorn на порті з ENV PORT
+if [ "$#" -eq 0 ]; then
+    PORT=${PORT:-8080}
+    echo "Запуск Gunicorn на порту $PORT ..."
+    exec gunicorn -b 0.0.0.0:$PORT app:app
+else
+    # Виконуємо команду, передану при запуску контейнера
+    exec "$@"
+fi
