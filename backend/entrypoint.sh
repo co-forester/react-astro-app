@@ -23,12 +23,5 @@ else
     echo "Ефемериди знайдені у volume. Пропускаємо розпаковку."
 fi
 
-# Якщо переданий CMD порожній — запускаємо Gunicorn на порті з ENV PORT
-if [ "$#" -eq 0 ]; then
-    PORT=${PORT:-8080}
-    echo "Запуск Gunicorn на порту $PORT ..."
-    exec gunicorn -b 0.0.0.0:$PORT app:app
-else
-    # Виконуємо команду, передану при запуску контейнера
-    exec "$@"
-fi
+# Запуск Gunicorn без sh -c, з фіксованим портом 8080
+exec gunicorn -b 0.0.0.0:8080 app:app --reload
