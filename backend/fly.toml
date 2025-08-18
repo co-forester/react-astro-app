@@ -1,21 +1,18 @@
 # Назва додатку на Fly.io
 app = "albireo-daria-96"
 
-# Інструкції збірки
 [build]
   dockerfile = "Dockerfile"
 
-# Том для зберігання ефемерид (збережеться між рестартами)
+# Опційний том для ефемерид
 [mounts]
   source = "ephe_data"
   destination = "/data/ephe"
 
-# Налаштування сервісу
 [[services]]
   internal_port = 8080
   protocol = "tcp"
 
-  # Відкриті порти для користувачів
   [[services.ports]]
     port = 80
     handlers = ["http"]
@@ -24,7 +21,14 @@ app = "albireo-daria-96"
     port = 443
     handlers = ["tls", "http"]
 
-  # Автоматичне масштабування
   [services.concurrency]
     hard_limit = 25
     soft_limit = 20
+
+  # Health checks від LB (вони б’ють /, тому варто мати /health)
+  [[services.http_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+    method = "get"
+    path = "/health"

@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+# Вибираємо точну версію Python
+FROM python:3.10.18-slim
 
 # Робоча папка всередині контейнера
 WORKDIR /app
@@ -24,7 +25,7 @@ RUN python -m venv /opt/venv \
 # Копіюємо весь бекенд
 COPY . /app
 
-# Створюємо директорію для ефемерид (якщо потрібна)
+# Створюємо директорію для ефемерид
 RUN mkdir -p /data/ephe
 
 # Робимо entrypoint виконуваним
