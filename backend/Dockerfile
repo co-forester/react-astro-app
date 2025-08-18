@@ -36,7 +36,7 @@ ENV MPLBACKEND="Agg"
 # Відкритий порт для Gunicorn
 EXPOSE 8080
 
-# Додано: змінна середовища для Fly
+# Змінна середовища для Fly / динамічний порт
 ENV PORT=8080
 
 # Entrypoint і запуск Gunicorn з динамічним портом
