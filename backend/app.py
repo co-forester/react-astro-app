@@ -1,13 +1,13 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flatlib.chart import Chart
+from flatlib import const
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
-import matplotlib.pyplot as plt
-from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 app = Flask(__name__)
 CORS(app)
@@ -16,50 +16,49 @@ CORS(app)
 def generate_chart():
     try:
         data = request.get_json()
-        date_str = data['date']
-        time_str = data['time']
-        place_str = data['place']
+        date = data['date']           # "1972-12-06"
+        time = data['time']           # "01:25"
+        place_name = data['place']    # "Миколаїв, Україна"
 
-        # Геолокація
-        geolocator = Nominatim(user_agent="astro_app")
-        location = geolocator.geocode(place_str)
-        if not location:
-            return jsonify({'error': 'Place not found'}), 400
+        # Отримання координат через словник (можна замінити на геокодер)
+        places = {
+            "Миколаїв, Україна": (46.9750, 31.9946),
+        }
+        if place_name not in places:
+            return jsonify({"error": "Unknown place"}), 400
+        lat, lon = places[place_name]
 
-        latitude = location.latitude
-        longitude = location.longitude
-
-        # Часовий пояс
+        # Визначаємо часовий пояс
         tf = TimezoneFinder()
-        tz_name = tf.timezone_at(lat=latitude, lng=longitude)
-        tz = pytz.timezone(tz_name)
+        timezone_str = tf.timezone_at(lat=lat, lng=lon)
+        if timezone_str is None:
+            timezone_str = 'Europe/Kiev'  # резервний варіант
 
-        # Обробка дати і часу
-        dt_naive = datetime.strptime(f'{date_str} {time_str}', '%Y-%m-%d %H:%M')
-        dt_local = tz.localize(dt_naive)
-        dt_utc = dt_local.astimezone(pytz.utc)
+        tz = pytz.timezone(timezone_str)
+        local_dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+        local_dt = tz.localize(local_dt)
+        offset_hours = local_dt.utcoffset().total_seconds() / 3600  # float
 
-        # Flatlib datetime
-        dt_flat = Datetime(dt_utc.strftime('%Y-%m-%d'), dt_utc.strftime('%H:%M'), '+0')
+        # Створення Flatlib Datetime та GeoPos
+        dt = Datetime(date, time, float(offset_hours))
+        pos = GeoPos(lat, lon)
 
-        # Створення натальної карти
-        chart = Chart(dt_flat, GeoPos(latitude, longitude))
+        chart = Chart(dt, pos, IDs=const.LIST_OBJECTS)
 
-        # Побудова простого графіка (як приклад)
-        fig, ax = plt.subplots(figsize=(6,6))
-        ax.text(0.5, 0.5, 'Натальна карта', fontsize=18, ha='center')
-        ax.axis('off')
+        # Малюємо дуже просту натальну карту (замінити на власну логіку)
+        plt.figure(figsize=(6,6))
+        plt.title(f'Natal Chart: {place_name} {date} {time}')
+        plt.text(0.5, 0.5, 'Тут можна додати планети та аспекти', ha='center')
         plt.savefig('chart.png')
         plt.close()
 
-        return jsonify({'message': 'Chart generated', 'chart_url': '/chart.png'})
-
+        return jsonify({"message": "Chart generated", "chart_url": "/chart.png"})
     except Exception as e:
-        return jsonify({'error': str(e), 'trace': repr(e)}), 500
+        return jsonify({"error": str(e), "trace": repr(e)}), 500
 
 @app.route('/chart.png')
-def get_chart():
+def chart_png():
     return send_file('chart.png', mimetype='image/png')
 
 if __name__ == '__main__':
-    app.run(port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080)
