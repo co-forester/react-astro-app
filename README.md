@@ -78,3 +78,6 @@ fly launch --name my-astro-backend --region fra --dockerfile ./Dockerfile --no-d
 
 # Деплой
 fly deploy --remote-only
+
+###	•	Якщо ти підключаєш volume для ефемерид на Fly, можна додати Fly Volume:
+fly volumes create ephe-data --size 1
