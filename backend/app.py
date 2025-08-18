@@ -1,4 +1,3 @@
-# app.py
 import math
 from datetime import datetime
 
@@ -61,11 +60,11 @@ def generate_chart():
         dt_obj = datetime(year, month, day, hour, minute)
         dt_obj = timezone.localize(dt_obj)
 
-        # Коректне передання offset для Flatlib
+        # Виправлення для Flatlib: offset у форматі "+3:00" або "-5:30"
         offset_hours_float = dt_obj.utcoffset().total_seconds() / 3600
         offset_hours = int(offset_hours_float)
-        offset_minutes = int((offset_hours_float - offset_hours) * 60)
-        offset_str = f"{offset_hours:+d}:{abs(offset_minutes):02d}"  # "+3:00" або "-5:30"
+        offset_minutes = int(round((offset_hours_float - offset_hours) * 60))
+        offset_str = f"{offset_hours:+d}:{abs(offset_minutes):02d}"
 
         dt = Datetime(dt_obj.strftime("%Y/%m/%d"), dt_obj.strftime("%H:%M"), offset_str)
         pos = GeoPos(lat, lon)
@@ -87,11 +86,9 @@ def generate_chart():
         ax.set_aspect('equal')
         plt.axis('off')
 
-        # Зовнішнє коло
         circle = plt.Circle((0, 0), 1, color='lightgrey', fill=False, linewidth=2)
         ax.add_artist(circle)
 
-        # Сектора знаків
         for i in range(12):
             angle_deg = i * 30
             angle_rad = math.radians(angle_deg)
@@ -102,11 +99,9 @@ def generate_chart():
             hy = 0.7 * math.sin(angle_rad + math.radians(15))
             plt.text(hx, hy, str(i+1), fontsize=10, ha='center', va='center', fontweight='bold')
 
-        # Внутрішнє коло
         inner_circle = plt.Circle((0, 0), 0.7, color='lightgrey', fill=False, linestyle='dashed', linewidth=1)
         ax.add_artist(inner_circle)
 
-        # Планети
         for obj in chart.objects:
             sign_color = SIGN_COLORS.get(obj.sign, '#000000')
             angle = math.radians(obj.lon)
@@ -116,7 +111,6 @@ def generate_chart():
             plt.plot(x, y, 'o', color=sign_color, markersize=10)
             plt.text(x*1.05, y*1.05, obj.id, fontsize=8, ha='center', va='center')
 
-        # Легенда
         for sign, color in SIGN_COLORS.items():
             ax.plot([], [], 'o', color=color, label=sign)
         plt.legend(loc='upper right', fontsize=6)
