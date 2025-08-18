@@ -27,6 +27,13 @@ SIGN_COLORS = {
     'Capricorn': '#A52A2A', 'Aquarius': '#0000FF', 'Pisces': '#FFC0CB'
 }
 
+def format_offset(dt_obj):
+    """Повертає offset у форматі +3:00 або -5:30 для Flatlib"""
+    total_minutes = int(dt_obj.utcoffset().total_seconds() // 60)
+    hours = total_minutes // 60
+    minutes = abs(total_minutes % 60)
+    return f"{hours:+d}:{minutes:02d}"
+
 @app.route('/generate', methods=['POST'])
 def generate_chart():
     data = request.get_json()
@@ -59,11 +66,8 @@ def generate_chart():
         dt_obj = datetime(year, month, day, hour, minute)
         dt_obj = timezone.localize(dt_obj)
 
-        # Правильний offset для Flatlib
-        offset_total_minutes = dt_obj.utcoffset().total_seconds() / 60
-        offset_hours = int(offset_total_minutes // 60)
-        offset_minutes = int(abs(offset_total_minutes % 60))
-        offset_str = f"{offset_hours:+d}:{offset_minutes:02d}"  # "+3:00" або "-5:30"
+        # UTC offset для Flatlib
+        offset_str = format_offset(dt_obj)
 
         dt = Datetime(dt_obj.strftime("%Y/%m/%d"), dt_obj.strftime("%H:%M"), offset_str)
         pos = GeoPos(lat, lon)
