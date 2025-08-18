@@ -1,43 +1,85 @@
-# (залишаємо попередні імпорти та налаштування)
+# app.py
+from flask import Flask, request, jsonify
+import plotly.graph_objects as go
+import math
+import io
+import base64
 
-def add_glowing_orbit(radius, color='white', points=72):
-    theta = [2*math.pi*i/points for i in range(points+1)]
-    x = [radius*math.cos(t) for t in theta]
-    y = [radius*math.sin(t) for t in theta]
-    z = [0]*len(theta)
-    # Основна орбіта
-    main_line = go.Scatter3d(x=x, y=y, z=z, mode='lines', line=dict(color=color, width=2), showlegend=False)
-    # Світловий ореол (розсіяння)
-    glow_lines = []
-    for scale in [1.02, 1.04]:
-        glow_lines.append(go.Scatter3d(
-            x=[scale*xi for xi in x],
-            y=[scale*yi for yi in y],
-            z=z,
+app = Flask(__name__)
+
+# Простий набір планет для прикладу
+PLANETS = [
+    {"name": "Sun", "radius": 0.5, "color": "yellow", "angle": 0},
+    {"name": "Moon", "radius": 0.3, "color": "lightgray", "angle": 45},
+    {"name": "Mercury", "radius": 0.2, "color": "darkgray", "angle": 90},
+    {"name": "Venus", "radius": 0.25, "color": "orange", "angle": 135},
+    {"name": "Mars", "radius": 0.2, "color": "red", "angle": 180},
+    {"name": "Jupiter", "radius": 0.4, "color": "brown", "angle": 225},
+    {"name": "Saturn", "radius": 0.35, "color": "goldenrod", "angle": 270},
+    {"name": "Uranus", "radius": 0.3, "color": "lightblue", "angle": 315},
+]
+
+LOGO = "Albireo Daria"
+
+@app.route("/generate", methods=["POST"])
+def generate_chart():
+    data = request.get_json()
+    # date, time, place можна використовувати для розрахунків позицій планет (поки простий приклад)
+    fig = go.Figure()
+
+    # Створимо орбіти планет
+    for planet in PLANETS:
+        theta = [i for i in range(0, 360, 5)]
+        r = [planet["radius"] * 4 for _ in theta]
+        x = [r[i] * math.cos(math.radians(theta[i] + planet["angle"])) for i in range(len(theta))]
+        y = [r[i] * math.sin(math.radians(theta[i] + planet["angle"])) for i in range(len(theta))]
+        z = [0.1 * i for i in range(len(theta))]
+        fig.add_trace(go.Scatter3d(
+            x=x, y=y, z=z,
             mode='lines',
-            line=dict(color=color, width=1, dash='dot'),
-            opacity=0.15,
-            showlegend=False
+            line=dict(color=planet["color"], width=2),
+            name=f'{planet["name"]} orbit'
         ))
-    return [main_line] + glow_lines
+        # Додаємо планету як точку
+        px = planet["radius"] * 4 * math.cos(math.radians(planet["angle"]))
+        py = planet["radius"] * 4 * math.sin(math.radians(planet["angle"]))
+        fig.add_trace(go.Scatter3d(
+            x=[px], y=[py], z=[0],
+            mode='markers+text',
+            marker=dict(size=8, color=planet["color"], symbol='circle', line=dict(color='white', width=1)),
+            text=[planet["name"]],
+            textposition='top center',
+            name=planet["name"]
+        ))
 
-# В основній функції генерації кадрів додаємо орбіти зі світлом
-for idx in range(len(planet_data)):
-    radius = radius_base + idx*0.2
-    orbit_traces = add_glowing_orbit(radius, color='lightblue')
-    for trace in orbit_traces:
-        fig.add_trace(trace)
+    # Додаємо логотип на зовнішню орбіту
+    logo_radius = 5.5
+    logo_angle = 0
+    lx = logo_radius * math.cos(math.radians(logo_angle))
+    ly = logo_radius * math.sin(math.radians(logo_angle))
+    fig.add_trace(go.Scatter3d(
+        x=[lx], y=[ly], z=[0],
+        mode='text',
+        text=[LOGO],
+        textfont=dict(size=18, color='white'),
+        name='Logo'
+    ))
 
-# Для планет залишаємо функцію add_planet_with_depth з попереднього коду
-# Логотип інтегруємо як легке світіння
-lx = (radius_base + len(planet_data)*0.25) * math.cos(angle_shift)
-ly = (radius_base + len(planet_data)*0.25) * math.sin(angle_shift)
-logo_traces = add_planet_with_depth(lx, ly, logo_z, 'lightblue')
-# Додаємо текст як м’яке світло
-logo_traces[-1].text = ['Albireo Daria']
-logo_traces[-1].mode = 'text+markers'
-logo_traces[-1].textfont = dict(size=22, color='lightblue', family='Arial')
-for t in logo_traces:
-    frame_data.append(t)
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            zaxis=dict(visible=False),
+            bgcolor='black'
+        ),
+        paper_bgcolor='black',
+        showlegend=False
+    )
 
-# (решта коду залишаємо без змін: кадри, аспекти, updatemenus)
+    # Експортуємо графік у PNG
+    img_bytes = fig.to_image(format="png", width=800, height=800, scale=2)
+    img_b64 = base64.b64encode(img_bytes).decode('utf-8')
+    return jsonify({"chart_png": img_b64})
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8080)
