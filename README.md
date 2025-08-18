@@ -81,3 +81,12 @@ fly deploy --remote-only
 
 ###	•	Якщо ти підключаєш volume для ефемерид на Fly, можна додати Fly Volume:
 fly volumes create ephe-data --size 1
+
+### локально Перебудовуємо образ:
+docker build -t my-astro-backend .
+
+### Якщо збірка проходить успішно, запускаємо:
+docker run --rm -p 8080:8080 \
+    -v $(pwd)/data/ephe:/data/ephe \
+    -e PORT=8080 \
+    my-astro-backend
