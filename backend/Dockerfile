@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     gcc \
     libgeos-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libjpeg-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Копіюємо requirements
@@ -22,7 +25,7 @@ RUN python -m venv /opt/venv \
 # Копіюємо весь бекенд
 COPY . /app
 
-# Створюємо директорію для ефемерид та розпаковуємо, якщо файл є
+# Створюємо директорію для ефемерид і розпаковуємо, якщо файл є
 RUN mkdir -p /data/ephe \
     && [ -f /app/ephe.tar.gz ] && tar -xzf /app/ephe.tar.gz -C /data/ephe || echo "No ephe.tar.gz found"
 
@@ -31,6 +34,9 @@ RUN chmod +x /app/entrypoint.sh
 
 # Додаємо venv в PATH
 ENV PATH="/opt/venv/bin:$PATH"
+
+# Встановлюємо змінну для matplotlib безголового режиму
+ENV MPLBACKEND="Agg"
 
 # Відкритий порт
 EXPOSE 8080

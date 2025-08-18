@@ -1,4 +1,11 @@
 # app.py
+import math
+from datetime import datetime
+
+import matplotlib
+matplotlib.use('Agg')  # безголовий бекенд для серверів
+import matplotlib.pyplot as plt
+import pytz
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flatlib.chart import Chart
@@ -7,17 +14,12 @@ from flatlib.geopos import GeoPos
 from flatlib import const
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
-import matplotlib.pyplot as plt
-import math
-import pytz
-from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
 
 CHART_PATH = "chart.png"
 
-# Кольори для знаків Зодіаку
 SIGN_COLORS = {
     'Aries': '#FF0000', 'Taurus': '#FFA500', 'Gemini': '#FFFF00',
     'Cancer': '#008000', 'Leo': '#FFD700', 'Virgo': '#00FF00',
@@ -59,21 +61,21 @@ def generate_chart():
         dt_obj = datetime(year, month, day, hour, minute)
         dt_obj = timezone.localize(dt_obj)
 
-        # Передаємо числовий зсув годин для flatlib
+        # Коректне передання offset для Flatlib
         offset_hours = dt_obj.utcoffset().total_seconds() / 3600
-        dt = Datetime(dt_obj.strftime("%Y/%m/%d"), dt_obj.strftime("%H:%M"), str(offset_hours))
+        offset_str = f"{offset_hours:+.1f}"  # наприклад "+3.0" або "-5.5"
+
+        dt = Datetime(dt_obj.strftime("%Y/%m/%d"), dt_obj.strftime("%H:%M"), offset_str)
         pos = GeoPos(lat, lon)
         chart = Chart(dt, pos, IDs=const.LIST_OBJECTS)
 
-        object_data = []
-        for obj in chart.objects:
-            object_data.append({
-                'id': obj.id,
-                'sign': obj.sign,
-                'lon': round(obj.lon, 2),
-                'lat': round(obj.lat, 2),
-                'speed': round(obj.ecl_lon_speed, 2)
-            })
+        object_data = [{
+            'id': obj.id,
+            'sign': obj.sign,
+            'lon': round(obj.lon, 2),
+            'lat': round(obj.lat, 2),
+            'speed': round(obj.ecl_lon_speed, 2)
+        } for obj in chart.objects]
 
         # Малювання карти
         plt.figure(figsize=(6, 6))
@@ -83,9 +85,11 @@ def generate_chart():
         ax.set_aspect('equal')
         plt.axis('off')
 
+        # Зовнішнє коло
         circle = plt.Circle((0, 0), 1, color='lightgrey', fill=False, linewidth=2)
         ax.add_artist(circle)
 
+        # Сектора знаків
         for i in range(12):
             angle_deg = i * 30
             angle_rad = math.radians(angle_deg)
@@ -96,9 +100,11 @@ def generate_chart():
             hy = 0.7 * math.sin(angle_rad + math.radians(15))
             plt.text(hx, hy, str(i+1), fontsize=10, ha='center', va='center', fontweight='bold')
 
+        # Внутрішнє коло
         inner_circle = plt.Circle((0, 0), 0.7, color='lightgrey', fill=False, linestyle='dashed', linewidth=1)
         ax.add_artist(inner_circle)
 
+        # Планети
         for obj in chart.objects:
             sign_color = SIGN_COLORS.get(obj.sign, '#000000')
             angle = math.radians(obj.lon)
@@ -108,6 +114,7 @@ def generate_chart():
             plt.plot(x, y, 'o', color=sign_color, markersize=10)
             plt.text(x*1.05, y*1.05, obj.id, fontsize=8, ha='center', va='center')
 
+        # Легенда
         for sign, color in SIGN_COLORS.items():
             ax.plot([], [], 'o', color=color, label=sign)
         plt.legend(loc='upper right', fontsize=6)
@@ -121,14 +128,12 @@ def generate_chart():
     except Exception as e:
         return jsonify({'error': str(e), 'trace': repr(e)}), 500
 
-
 @app.route('/chart.png', methods=['GET'])
 def get_chart():
     try:
         return send_file(CHART_PATH, mimetype='image/png')
     except Exception:
         return jsonify({'error': 'Карта ще не створена'}), 404
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
