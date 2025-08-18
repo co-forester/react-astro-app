@@ -1,4 +1,3 @@
-# Базовий образ
 FROM python:3.11-slim
 
 # Робоча папка всередині контейнера
@@ -25,9 +24,8 @@ RUN python -m venv /opt/venv \
 # Копіюємо весь бекенд
 COPY . /app
 
-# Створюємо директорію для ефемерид і розпаковуємо, якщо файл є
-RUN mkdir -p /data/ephe \
-    && [ -f /app/ephe.tar.gz ] && tar -xzf /app/ephe.tar.gz -C /data/ephe || echo "No ephe.tar.gz found"
+# Створюємо директорію для ефемерид (якщо потрібна)
+RUN mkdir -p /data/ephe
 
 # Робимо entrypoint виконуваним
 RUN chmod +x /app/entrypoint.sh
