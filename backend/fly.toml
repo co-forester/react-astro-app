@@ -15,10 +15,14 @@ app = "albireo-daria-96"
   internal_port = 8080
   protocol = "tcp"
 
-  # Відкритий порт для користувачів
+  # Відкриті порти для користувачів
   [[services.ports]]
     port = 80
     handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
 
   # Автоматичне масштабування
   [services.concurrency]
