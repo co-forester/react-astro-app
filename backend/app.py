@@ -1,68 +1,43 @@
-from flask import Flask, request, jsonify, send_file
-from flask_cors import CORS
-from flatlib.chart import Chart
-from flatlib.datetime import Datetime
-from flatlib.geopos import GeoPos
-from timezonefinder import TimezoneFinder
-from geopy.geocoders import Nominatim
-import matplotlib.pyplot as plt
-import pytz
-import os
+# (залишаємо попередні імпорти та налаштування)
 
-app = Flask(__name__)
-CORS(app)
+def add_glowing_orbit(radius, color='white', points=72):
+    theta = [2*math.pi*i/points for i in range(points+1)]
+    x = [radius*math.cos(t) for t in theta]
+    y = [radius*math.sin(t) for t in theta]
+    z = [0]*len(theta)
+    # Основна орбіта
+    main_line = go.Scatter3d(x=x, y=y, z=z, mode='lines', line=dict(color=color, width=2), showlegend=False)
+    # Світловий ореол (розсіяння)
+    glow_lines = []
+    for scale in [1.02, 1.04]:
+        glow_lines.append(go.Scatter3d(
+            x=[scale*xi for xi in x],
+            y=[scale*yi for yi in y],
+            z=z,
+            mode='lines',
+            line=dict(color=color, width=1, dash='dot'),
+            opacity=0.15,
+            showlegend=False
+        ))
+    return [main_line] + glow_lines
 
-@app.route('/generate', methods=['POST'])
-def generate_chart():
-    try:
-        data = request.get_json()
-        date = data.get('date')
-        time = data.get('time')
-        place_name = data.get('place')
+# В основній функції генерації кадрів додаємо орбіти зі світлом
+for idx in range(len(planet_data)):
+    radius = radius_base + idx*0.2
+    orbit_traces = add_glowing_orbit(radius, color='lightblue')
+    for trace in orbit_traces:
+        fig.add_trace(trace)
 
-        # Геокодування місця
-        geolocator = Nominatim(user_agent="astro_app")
-        location = geolocator.geocode(place_name)
-        if location is None:
-            return jsonify({'error': 'Місце не знайдено'}), 400
-        geo = GeoPos(location.latitude, location.longitude)
+# Для планет залишаємо функцію add_planet_with_depth з попереднього коду
+# Логотип інтегруємо як легке світіння
+lx = (radius_base + len(planet_data)*0.25) * math.cos(angle_shift)
+ly = (radius_base + len(planet_data)*0.25) * math.sin(angle_shift)
+logo_traces = add_planet_with_depth(lx, ly, logo_z, 'lightblue')
+# Додаємо текст як м’яке світло
+logo_traces[-1].text = ['Albireo Daria']
+logo_traces[-1].mode = 'text+markers'
+logo_traces[-1].textfont = dict(size=22, color='lightblue', family='Arial')
+for t in logo_traces:
+    frame_data.append(t)
 
-        # Знаходження часового поясу
-        tf = TimezoneFinder()
-        tz_str = tf.timezone_at(lng=location.longitude, lat=location.latitude)
-        if tz_str is None:
-            tz_str = 'UTC'
-        timezone = pytz.timezone(tz_str)
-
-        # Обробка дати та часу
-        dt = Datetime(date, time, tz_str)
-        chart = Chart(dt, geo)
-
-        # Малюємо просту карту
-        fig, ax = plt.subplots(figsize=(6,6))
-        ax.text(0.5, 0.5, 'Astro Chart', fontsize=20, ha='center')
-        plt.axis('off')
-        chart_path = os.path.join(os.getcwd(), 'chart.png')
-        plt.savefig(chart_path, bbox_inches='tight')
-        plt.close()
-
-        return jsonify({
-            'message': 'Карта згенерована',
-            'chart_url': '/chart.png'
-        })
-    except Exception as e:
-        return jsonify({
-            'error': str(e),
-            'trace': repr(e)
-        }), 500
-
-@app.route('/chart.png')
-def get_chart():
-    chart_path = os.path.join(os.getcwd(), 'chart.png')
-    if os.path.exists(chart_path):
-        return send_file(chart_path, mimetype='image/png')
-    else:
-        return jsonify({'error': 'Файл карти не знайдено'}), 404
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+# (решта коду залишаємо без змін: кадри, аспекти, updatemenus)
