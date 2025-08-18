@@ -1,18 +1,21 @@
-# Назва додатку на Fly.io
+# ====================== Назва додатку ======================
 app = "albireo-daria-96"
 
+# ====================== Build ======================
 [build]
   dockerfile = "Dockerfile"
 
-# Опційний том для ефемерид
+# ====================== Том для ефемерид ======================
 [mounts]
   source = "ephe_data"
   destination = "/data/ephe"
 
+# ====================== Сервіси ======================
 [[services]]
   internal_port = 8080
   protocol = "tcp"
 
+  # Відкриті порти на Fly
   [[services.ports]]
     port = 80
     handlers = ["http"]
@@ -21,11 +24,12 @@ app = "albireo-daria-96"
     port = 443
     handlers = ["tls", "http"]
 
+  # Конкурентність Gunicorn / Flask
   [services.concurrency]
     hard_limit = 25
     soft_limit = 20
 
-  # Health checks від LB (вони б’ють /, тому варто мати /health)
+  # Health check для балансувальника
   [[services.http_checks]]
     interval = "15s"
     timeout = "2s"

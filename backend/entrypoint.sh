@@ -5,10 +5,10 @@ EPHE_DIR="/data/ephe"
 EPHE_ARCHIVE="/app/ephe.tar.gz"
 
 echo "Запуск entrypoint.sh"
-echo "Python версія: $(python3 --version)"
+echo "Python версія: $(python --version)"
 echo "PATH: $PATH"
 
-# ====================== Перевіряємо ефемериди ======================
+# ====================== Перевірка ефемерид ======================
 if [ -z "$(find "$EPHE_DIR" -type f -name '*.se1' | head -n 1)" ]; then
     echo "Ефемериди не знайдені у volume."
     if [ -f "$EPHE_ARCHIVE" ]; then
@@ -23,10 +23,6 @@ else
     echo "Ефемериди знайдені у volume. Пропускаємо розпаковку."
 fi
 
-# ====================== Встановлюємо порт за замовчуванням ======================
-: "${PORT:=8080}"
-
-echo "Запуск Gunicorn на порту $PORT"
-
-# ====================== Запуск Gunicorn ======================
-exec gunicorn -b 0.0.0.0:$PORT app:app
+# ====================== Запуск команди ======================
+# exec "$@" пробросить будь-яку команду з Docker CMD
+exec "$@"
