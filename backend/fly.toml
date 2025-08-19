@@ -7,7 +7,7 @@ app = "albireo-daria-96"
 
 # ====================== Том для ефемерид ======================
 [mounts]
-  source = "ephe_data"
+  source = "ephemeris"
   destination = "/data/ephe"
 
 # ====================== Сервіси ======================
