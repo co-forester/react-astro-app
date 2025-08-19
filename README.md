@@ -83,13 +83,13 @@ fly deploy --remote-only
 fly volumes create ephe-data --size 1
 
 ### локально Перебудовуємо образ:
-docker build -t my-astro-backend .
+docker build -t my-astro-backend-with-kaleido .
 
 ### Якщо збірка проходить успішно, запускаємо:
 docker run --rm -p 8080:8080 \
     -v $(pwd)/data/ephe:/data/ephe \
     -e PORT=8080 \
-    my-astro-backend
+    my-astro-backend:kaleido
 
 ### Активуй правильний Python через pyenv (якщо ще не активовано):
 cd /Users/SerGio/siteDashaReact_003/git/react-astro-app/backend
