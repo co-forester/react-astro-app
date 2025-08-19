@@ -50,3 +50,7 @@ backend/ephe/
 
 # Ігноруємо всю папку з ефемеридами
 backend/data/ephe/
+
+# Ігноруємо всю папку з ефемеридами
+backend/ephe_data/ephe/
+
