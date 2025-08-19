@@ -4,13 +4,13 @@ FROM python:3.11-slim
 # ====================== Робоча директорія ======================
 WORKDIR /app
 
-# ====================== Встановлення системних пакетів ======================
+# ====================== Системні пакети ======================
 RUN apt-get update && apt-get install -y \
     build-essential gcc libgeos-dev libfreetype6-dev libpng-dev libjpeg-dev \
-    libffi-dev \
+    libffi-dev tar \
     && rm -rf /var/lib/apt/lists/*
 
-# ====================== Встановлення Python-залежностей у venv ======================
+# ====================== Python-залежності у venv ======================
 COPY requirements.txt .
 RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --upgrade pip wheel setuptools \
@@ -19,7 +19,7 @@ RUN python -m venv /opt/venv \
 # ====================== Копіюємо бекенд ======================
 COPY . /app
 
-# ====================== Створюємо директорію для ефемерид (Fly volume) ======================
+# ====================== Директорія для ефемерид ======================
 RUN mkdir -p /data/ephe
 
 # ====================== Дозвіл на виконання entrypoint ======================
@@ -28,13 +28,14 @@ RUN chmod +x /app/entrypoint.sh
 # ====================== Додаємо venv у PATH ======================
 ENV PATH="/opt/venv/bin:$PATH"
 
-# ====================== Безголовий режим matplotlib ======================
+# ====================== Безголовий matplotlib ======================
 ENV MPLBACKEND="Agg"
 
-# ====================== Відкритий порт ======================
+# ====================== Порт ======================
 EXPOSE 8080
 
 # ====================== Entrypoint ======================
 ENTRYPOINT ["/app/entrypoint.sh"]
 
+# ====================== CMD Gunicorn ======================
 CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:8080", "app:app", "--access-logfile", "-", "--error-logfile", "-"]
