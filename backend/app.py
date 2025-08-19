@@ -105,5 +105,4 @@ def generate_chart():
 
 # ====================== Локальний запуск ======================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))  # 8080 за замовчуванням
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=8080)

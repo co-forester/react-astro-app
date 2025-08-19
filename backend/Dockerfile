@@ -38,4 +38,4 @@ EXPOSE 8080
 ENTRYPOINT ["/app/entrypoint.sh"]
 
 # ====================== CMD Gunicorn ======================
-CMD ["gunicorn", "-w", "2", "-b", "0.0.0.0:8080", "app:app", "--access-logfile", "-", "--error-logfile", "-"]
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
