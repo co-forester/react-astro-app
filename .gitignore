@@ -47,3 +47,6 @@ backend/ephe.tar.gz
 
 # Ігноруємо всю папку з ефемеридами
 backend/ephe/
+
+# Ігноруємо всю папку з ефемеридами
+backend/data/ephe/
