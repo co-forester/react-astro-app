@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-EPHE_DIR="/data/ephe"
+EPHE_DIR="/ephe"
 EPHE_ARCHIVE="/app/ephe.tar.gz"
 
 echo "Запуск entrypoint.sh"
