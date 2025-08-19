@@ -90,3 +90,12 @@ docker run --rm -p 8080:8080 \
     -v $(pwd)/data/ephe:/data/ephe \
     -e PORT=8080 \
     my-astro-backend
+
+### Активуй правильний Python через pyenv (якщо ще не активовано):
+cd /Users/SerGio/siteDashaReact_003/git/react-astro-app/backend
+pyenv local 3.11.13
+
+### Встанови залежності requests для цієї версії Python:
+python3 -m ensurepip --upgrade   # переконайся, що pip є
+python3 -m pip install --upgrade pip
+python3 -m pip install requests
