@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import os
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import plotly.graph_objects as go
 import math
 import base64
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+import plotly.graph_objects as go
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 CORS(app)
 
 # ====================== Планети ======================
@@ -23,13 +23,13 @@ PLANETS = [
 
 LOGO_TEXT = "Albireo Daria"
 
+
 # ====================== Health Check ======================
 @app.get("/health")
 def health():
-    """
-    Ендпоінт для Fly.io smoke checks
-    """
+    """ Ендпоінт для Fly.io smoke checks """
     return jsonify({"status": "ok"}), 200
+
 
 # ====================== Генерація карти ======================
 @app.post("/generate")
@@ -93,15 +93,27 @@ def generate_chart():
         margin=dict(l=0, r=0, t=0, b=0),
     )
 
-    # Експорт
+    # Генеруємо PNG і зберігаємо в /static
     try:
-        img_bytes = fig.to_image(format="png", width=800, height=800, scale=2, engine="kaleido")
-        img_b64 = base64.b64encode(img_bytes).decode("utf-8")
-        return jsonify({"chart_png": img_b64}), 200
+        os.makedirs("static", exist_ok=True)
+        file_path = os.path.join("static", "chart.png")
+        fig.write_image(file_path, format="png", width=800, height=800, scale=2, engine="kaleido")
+
+        # Формуємо URL для фронтенду
+        chart_url = f"/static/chart.png"
+        return jsonify({"chart_image_url": chart_url}), 200
+
     except Exception as e:
-        # fallback на HTML, якщо PNG не згенеровано
         html = fig.to_html(full_html=False, include_plotlyjs="cdn", config={"displayModeBar": False})
         return jsonify({"chart_html": html, "warning": f"png_export_failed: {str(e)}"}), 200
+
+
+# ====================== Видача статичних PNG ======================
+@app.get("/static/<path:filename>")
+def serve_static(filename):
+    """ Віддає збережені картинки """
+    return send_from_directory("static", filename)
+
 
 # ====================== Локальний запуск ======================
 if __name__ == "__main__":
