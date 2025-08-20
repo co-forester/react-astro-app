@@ -23,54 +23,51 @@ if not os.path.exists(STATIC_FOLDER):
 geolocator = Nominatim(user_agent="albireo_app")
 tf = TimezoneFinder()
 
-@app.route('/')
-def index():
-    return 'App is running'
-
 @app.route('/generate', methods=['POST'])
 def generate_chart():
-    try:
-        data = request.json
-        date = data.get('date')
-        time = data.get('time')
-        place = data.get('place')
+    data = request.json
+    date = data.get('date')
+    time = data.get('time')
+    place = data.get('place')
 
-        if not (date and time and place):
-            return jsonify({'error': 'Введіть дату, час та місце'}), 400
+    if not (date and time and place):
+        return jsonify({'error': 'Введіть дату, час та місце'}), 400
 
-        location = geolocator.geocode(place)
-        if not location:
-            return jsonify({'error': 'Не вдалося знайти координати міста'}), 400
+    # Геокодування
+    location = geolocator.geocode(place)
+    if not location:
+        return jsonify({'error': 'Не вдалося знайти координати міста'}), 400
 
-        lat, lon = location.latitude, location.longitude
+    lat, lon = location.latitude, location.longitude
 
-        tz_str = tf.timezone_at(lat=lat, lng=lon) or 'UTC'
-        tz = pytz.timezone(tz_str)
+    # Автоматичне визначення часового поясу
+    tz_str = tf.timezone_at(lat=lat, lng=lon) or 'UTC'
+    tz = pytz.timezone(tz_str)
 
-        dt_naive = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
-        dt_local = tz.localize(dt_naive)
-        dt = Datetime(dt_local.strftime("%Y-%m-%d"),
-                      dt_local.strftime("%H:%M"),
-                      dt_local.strftime("%z"))
+    # Локалізація дати і часу
+    dt_naive = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+    dt_local = tz.localize(dt_naive)
+    dt = Datetime(dt_local.strftime("%Y-%m-%d"),
+                  dt_local.strftime("%H:%M"),
+                  dt_local.strftime("%z"))
 
-        geo = GeoPos(lat, lon)
-        objects = [const.SUN, const.MOON, const.MERCURY, const.VENUS,
-                   const.MARS, const.JUPITER, const.SATURN, const.URANUS,
-                   const.NEPTUNE, const.PLUTO]
-        chart = Chart(dt, geo, objects=objects)
+    geo = GeoPos(lat, lon)
 
-        fig, ax = plt.subplots(figsize=(6,6))
-        ax.text(0.5, 0.5, f'Натальна карта: {place}\nЧасовий пояс: {tz_str}', 
-                ha='center', va='center', fontsize=14)
-        chart_path = os.path.join(STATIC_FOLDER, 'chart.png')
-        plt.savefig(chart_path)
-        plt.close(fig)
+    # Класична натальна карта
+    objects = [const.SUN, const.MOON, const.MERCURY, const.VENUS,
+               const.MARS, const.JUPITER, const.SATURN, const.URANUS,
+               const.NEPTUNE, const.PLUTO]
+    chart = Chart(dt, geo, objects=objects)
 
-        return jsonify({'chart_image_url': f'/static/chart.png'})
+    # Малюємо просту картинку
+    fig, ax = plt.subplots(figsize=(6,6))
+    ax.text(0.5, 0.5, f'Натальна карта: {place}\nЧасовий пояс: {tz_str}',
+            ha='center', va='center', fontsize=14)
+    chart_path = os.path.join(STATIC_FOLDER, 'chart.png')
+    plt.savefig(chart_path)
+    plt.close(fig)
 
-    except Exception as e:
-        print(e)
-        return jsonify({'error': 'Помилка генерації карти'}), 500
+    return jsonify({'chart_image_url': f'/static/chart.png'}), 200
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
