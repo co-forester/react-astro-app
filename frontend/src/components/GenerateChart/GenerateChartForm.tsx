@@ -1,78 +1,70 @@
-import React, { useState, useEffect } from 'react';
+// ChartGenerator.tsx
+import React, { useState } from 'react';
 import axios from 'axios';
-import css from './GenerateChartForm.module.css';
-import { themeActions } from '../../redux/slices/themeSlice';
-import { useAppDispatch, useAppSelector } from '../../hooks/reduxHook';
 
-interface FormData {
-  date: string;
-  time: string;
-  place: string;
-}
-
-const GenerateChartForm: React.FC = () => {
-  const theme = useAppSelector((state) => state.theme.theme);
-  const [form, setForm] = useState<FormData>({ date: '', time: '', place: '' });
-  const [chartImg, setChartImg] = useState<string | null>(null);
+const ChartGenerator = () => {
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
+  const [place, setPlace] = useState('');
+  const [chartUrl, setChartUrl] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const dispatch = useAppDispatch();
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    dispatch(themeActions.setTheme(savedTheme === 'light'));
-  }, [dispatch]);
-
-  const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8080';
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setChartImg(null);
+  const generateChart = async () => {
+    if (!date || !time || !place) {
+      setError('Введіть дату, час та місце');
+      return;
+    }
     setLoading(true);
-
+    setError('');
     try {
-      const response = await axios.post(`${API_URL}/generate`, form, { responseType: 'blob' });
-      const imageUrl = URL.createObjectURL(response.data);
-      setChartImg(imageUrl);
+      const res = await axios.post('http://localhost:8080/generate', {
+        date,
+        time,
+        place
+      });
+      setChartUrl(res.data.chart_image_url);
     } catch (err: any) {
-      setError(err?.response?.data?.error || 'Помилка генерації карти');
+      setError(err.response?.data?.error || 'Помилка генерації карти');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className={theme ? css.wrapperLight : css.wrapperDark}>
-      <h1>Натальна карта Abireo Daria</h1>
-
-      <form onSubmit={handleSubmit} className={css.form}>
-        <input name="date" type="date" value={form.date} onChange={handleChange} required className={css.input} />
-        <input name="time" type="time" value={form.time} onChange={handleChange} required className={css.input} />
-        <input name="place" type="text" value={form.place} onChange={handleChange} placeholder="Місто" required className={css.input} />
-        <button type="submit" className={theme ? css.buttonLight : css.buttonDark}>
-          {loading ? 'Генерація...' : 'Згенерувати карту'}
-        </button>
-      </form>
-
-      {error && <p className={css.error}>{error}</p>}
-
-      {chartImg && (
-        <div className={css.chartWrapper}>
-          <div className={css.chartCircle}>
-            <img src={chartImg} alt="Натальна карта" className={css.chartImage} />
-            <div className={theme ? `${css.logoCircle} ${css.logoLight}` : `${css.logoCircle} ${css.logoDark}`}>
-                       Abireo Daria
-            </div>
-          </div>
+    <div style={{ textAlign: 'center', padding: '2rem' }}>
+      <h2>Генератор натальної карти</h2>
+      <div style={{ margin: '1rem' }}>
+        <input
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          style={{ marginRight: '0.5rem' }}
+        />
+        <input
+          type="time"
+          value={time}
+          onChange={(e) => setTime(e.target.value)}
+          style={{ marginRight: '0.5rem' }}
+        />
+        <input
+          type="text"
+          placeholder="Місце"
+          value={place}
+          onChange={(e) => setPlace(e.target.value)}
+        />
+      </div>
+      <button onClick={generateChart} disabled={loading}>
+        {loading ? 'Генеруємо...' : 'Згенерувати'}
+      </button>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {chartUrl && (
+        <div style={{ marginTop: '2rem' }}>
+          <img src={`http://localhost:8080${chartUrl}`} alt="Натальна карта" />
         </div>
       )}
     </div>
   );
 };
 
-export { GenerateChartForm };
+export default ChartGenerator;

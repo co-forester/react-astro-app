@@ -9,12 +9,16 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
+# ====================== Flask ======================
 app = Flask(__name__)
 CORS(app)
 
-if not os.path.exists('static'):
-    os.makedirs('static')
+# Статична папка для карт
+STATIC_FOLDER = 'static'
+if not os.path.exists(STATIC_FOLDER):
+    os.makedirs(STATIC_FOLDER)
 
+# ====================== Ендпоінт генерації карти ======================
 @app.route('/generate', methods=['POST'])
 def generate_chart():
     try:
@@ -26,22 +30,24 @@ def generate_chart():
         if not (date and time and place):
             return jsonify({'error': 'Введіть дату, час та місце'}), 400
 
-        lat, lon = 50.4501, 30.5234  # для прикладу
+        # ====================== Простий приклад геопозиції ======================
+        lat, lon = 50.4501, 30.5234  # Київ для прикладу
         dt = Datetime(f"{date} {time}", '+03:00')
         geo = GeoPos(lat, lon)
         chart = Chart(dt, geo)
 
+        # ====================== Малювання карти ======================
         fig, ax = plt.subplots(figsize=(6,6), subplot_kw={'polar': True})
         ax.set_xticks([])
         ax.set_yticks([])
         ax.set_ylim(0,1)
 
-        # малюємо коло натальної карти
+        # Коло карти
         circle = plt.Circle((0.5, 0.5), 0.45, transform=ax.transAxes,
                             fill=False, color='blue', linewidth=2)
         ax.add_artist(circle)
 
-        # логотип по колу
+        # Логотип по колу
         text = "Abireo Daria"
         n = len(text)
         radius = 0.48
@@ -55,22 +61,28 @@ def generate_chart():
                     ha='center', va='center', fontsize=10, color='purple')
 
         ax.set_title(f"Натальна карта: {place}", fontsize=14)
-        chart_path = os.path.join('static', 'chart.png')
+
+        # ====================== Збереження карти ======================
+        chart_path = os.path.join(STATIC_FOLDER, 'chart.png')
         plt.savefig(chart_path, bbox_inches='tight', dpi=150)
         plt.close(fig)
 
-        return jsonify({'chart_image_url': '/static/chart.png'})
+        return jsonify({'chart_image_url': f'/static/chart.png'})
+
     except Exception as e:
         print(e)
         return jsonify({'error': 'Помилка генерації карти'}), 500
 
+# ====================== Доступ до статичних файлів ======================
 @app.route('/static/<path:filename>')
 def static_files(filename):
-    return send_from_directory('static', filename)
+    return send_from_directory(STATIC_FOLDER, filename)
 
+# ====================== Health Check ======================
 @app.route('/health')
 def health():
     return 'OK', 200
 
+# ====================== Запуск сервера ======================
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
