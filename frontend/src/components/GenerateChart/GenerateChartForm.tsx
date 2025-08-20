@@ -1,8 +1,7 @@
 // ChartGenerator.tsx
 import React, { useState } from 'react';
 import axios from 'axios';
-import './GenerateChartForm.module.css'; // твій CSS з fadeInForm, fadeInUpForm, formContainer, etc.
-
+import './GenerateChartForm.module.css'; 
 const GenerateChartForm = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
