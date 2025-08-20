@@ -1,71 +1,101 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-interface GenerateChartResponse {
-  chart_url?: string;
-  warning?: string;
+import css from './GenerateChartForm.module.css';
+import { themeActions } from '../../redux/slices/themeSlice';
+import { useAppDispatch, useAppSelector } from '../../hooks/reduxHook';
+
+interface FormData {
+  date: string;
+  time: string;
+  place: string;
 }
 
 const GenerateChartForm: React.FC = () => {
-  const [chartUrl, setChartUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const theme = useAppSelector((state) => state.theme.theme);
+  const [form, setForm] = useState<FormData>({ date: '', time: '', place: '' });
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setLoading(true);
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      dispatch(themeActions.setTheme(savedTheme === 'light'));
+    } else {
+      dispatch(themeActions.setTheme(true));
+    }
+  }, [dispatch]);
+
+  const API_URL = process.env.REACT_APP_API_URL || '';
+  if (!API_URL) {
+    console.warn('⚠️ REACT_APP_API_URL is not set!');
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
+    setImageUrl(null);
 
     try {
-      const res = await fetch("http://127.0.0.1:8080/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: "1972-12-06",
-          time: "01:25",
-          place: "Миколаїв, Україна"
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Помилка сервера: ${res.status}`);
-      }
-
-      const data: GenerateChartResponse = await res.json();
-      if (data.chart_url) {
-        // напряму підвантажуємо картинку
-        setChartUrl(`http://127.0.0.1:8080${data.chart_url}?t=${Date.now()}`);
-      } else {
-        setError("Не отримали URL до карти");
-      }
+      const response = await axios.post(`${API_URL}/generate`, form);
+      const chartImageUrl = `${API_URL}${response.data.chart_image_url}`;
+      setImageUrl(chartImageUrl);
     } catch (err: any) {
-      setError(err.message || "Сталася невідома помилка");
-    } finally {
-      setLoading(false);
+      const message = err?.response?.data?.error || 'Помилка запиту';
+      setError(message);
     }
   };
 
   return (
-    <div>
-      <h2>Генератор натальної карти</h2>
-      <form onSubmit={handleSubmit}>
-        <button type="submit" disabled={loading}>
-          {loading ? "Завантаження..." : "Згенерувати карту"}
+    <div className={css.wrapper}>
+      <h1>Создание натальной карты</h1>
+
+      <form onSubmit={handleSubmit} className={css.form}>
+        <input
+          name="date"
+          type="date"
+          value={form.date}
+          onChange={handleChange}
+          required
+          className={css.input}
+        />
+        <input
+          name="time"
+          type="time"
+          value={form.time}
+          onChange={handleChange}
+          required
+          className={css.input}
+        />
+        <input
+          name="place"
+          type="text"
+          value={form.place}
+          onChange={handleChange}
+          placeholder="Київ"
+          required
+          className={css.input}
+        />
+        <button type="submit" className={theme ? css.buttonLight : css.buttonDark}>
+          Згенерувати карту
         </button>
       </form>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {error && <p className={css.error}>{error}</p>}
 
-      <div style={{ marginTop: "20px" }}>
-        {chartUrl && (
-          <img
-            src={chartUrl}
-            alt="Натальна карта"
-            style={{ width: "400px", border: "1px solid #ccc" }}
-          />
-        )}
-      </div>
+      {imageUrl && (
+        <div className={css.result}>
+          <h2 className={css.title}>Натальна карта</h2>
+          <img src={imageUrl} alt="Натальна карта" className={css.image} />
+        </div>
+      )}
     </div>
   );
 };
 
-export { GenerateChartForm };
+export  {GenerateChartForm};

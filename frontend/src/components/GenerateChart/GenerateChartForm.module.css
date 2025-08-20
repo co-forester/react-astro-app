@@ -39,7 +39,8 @@
 }
 
 /* ================== Кнопки ================== */
-.buttonLight, .buttonDark {
+.buttonLight,
+.buttonDark {
   padding: 0.75rem 1.5rem;
   border: none;
   color: white;
@@ -63,16 +64,21 @@
 }
 
 /* Hover ефекти */
-.buttonLight:hover, .buttonDark:hover {
+.buttonLight:hover,
+.buttonDark:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5), 0 0 25px rgba(255,255,255,0.3);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5), 0 0 25px rgba(255, 255, 255, 0.3);
 }
 
 /* Світіння по краю (неон) */
-.buttonLight::before, .buttonDark::before {
+.buttonLight::before,
+.buttonDark::before {
   content: "";
   position: absolute;
-  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
   background: inherit;
   z-index: -1;
   filter: blur(10px);
@@ -106,8 +112,8 @@
 }
 
 @keyframes neonPulse {
-  0%, 100% { box-shadow: 0 0 5px rgba(255,255,255,0.3); }
-  50% { box-shadow: 0 0 25px rgba(255,255,255,0.8); }
+  0%, 100% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.3); }
+  50% { box-shadow: 0 0 25px rgba(255, 255, 255, 0.8); }
 }
 
 @keyframes spin {
