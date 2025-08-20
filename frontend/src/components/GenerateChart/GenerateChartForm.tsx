@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-const ChartGenerator = () => {
+const GenerateChartForm = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [place, setPlace] = useState('');
@@ -67,4 +67,4 @@ const ChartGenerator = () => {
   );
 };
 
-export default ChartGenerator;
+export {GenerateChartForm};
