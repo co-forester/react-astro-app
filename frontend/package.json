@@ -19,6 +19,7 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.7.0",
     "react-scripts": "5.0.1",
+    "tz-lookup": "^6.1.25",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
