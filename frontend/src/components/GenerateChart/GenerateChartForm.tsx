@@ -1,6 +1,7 @@
 // ChartGenerator.tsx
 import React, { useState } from 'react';
 import axios from 'axios';
+import './ChartForm.css'; // сюди вставляєш CSS, який ти дав (fadeInForm, fadeInUpForm, formContainer, etc.)
 
 const GenerateChartForm = () => {
   const [date, setDate] = useState('');
@@ -32,39 +33,48 @@ const GenerateChartForm = () => {
   };
 
   return (
-    <div style={{ textAlign: 'center', padding: '2rem' }}>
-      <h2>Генератор натальної карти</h2>
-      <div style={{ margin: '1rem' }}>
+    <div className="formContainer fadeInForm" style={{ maxWidth: '500px', margin: '2rem auto' }}>
+      <h2 className="fadeInUpForm" style={{ animationDelay: '0.1s' }}>Генератор натальної карти</h2>
+      <div style={{ margin: '1rem 0', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <input
+          className="formInput fadeInUpForm"
+          style={{ animationDelay: '0.2s' }}
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          style={{ marginRight: '0.5rem' }}
         />
         <input
+          className="formInput fadeInUpForm"
+          style={{ animationDelay: '0.3s' }}
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
-          style={{ marginRight: '0.5rem' }}
         />
         <input
+          className="formInput fadeInUpForm"
+          style={{ animationDelay: '0.4s' }}
           type="text"
           placeholder="Місце"
           value={place}
           onChange={(e) => setPlace(e.target.value)}
         />
       </div>
-      <button onClick={generateChart} disabled={loading}>
+      <button
+        className="formButton fadeInUpForm"
+        style={{ animationDelay: '0.5s' }}
+        onClick={generateChart}
+        disabled={loading}
+      >
         {loading ? 'Генеруємо...' : 'Згенерувати'}
       </button>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
       {chartUrl && (
-        <div style={{ marginTop: '2rem' }}>
-          <img src={`http://localhost:8080${chartUrl}`} alt="Натальна карта" />
+        <div className="fadeInUpForm" style={{ animationDelay: '0.6s', marginTop: '2rem' }}>
+          <img src={`http://localhost:8080${chartUrl}`} alt="Натальна карта" style={{ width: '100%' }} />
         </div>
       )}
     </div>
   );
 };
 
-export {GenerateChartForm};
+export { GenerateChartForm };
