@@ -11,6 +11,7 @@ import os
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -26,29 +27,32 @@ tf = TimezoneFinder()
 def generate_chart():
     try:
         data = request.json
-        date = data.get('date')
-        time = data.get('time')
-        place = data.get('place')
+        date = data.get('date')   # "YYYY-MM-DD"
+        time = data.get('time')   # "HH:MM"
+        place = data.get('place') # "City, Country"
 
         if not (date and time and place):
             return jsonify({'error': 'Введіть дату, час та місце'}), 400
 
         # Геокодування
-        location = geolocator.geocode(f"{place}, Україна")
+        location = geolocator.geocode(place)
         if not location:
             return jsonify({'error': 'Не вдалося знайти координати міста'}), 400
 
         lat, lon = location.latitude, location.longitude
 
-        # Часовий пояс
-        tz_str = tf.timezone_at(lat=lat, lng=lon) or 'Europe/Kiev'
+        # Автоматичне визначення часового поясу
+        tz_str = tf.timezone_at(lat=lat, lng=lon)
+        if not tz_str:
+            tz_str = 'UTC'
         tz = pytz.timezone(tz_str)
 
-        dt_obj = pytz.utc.localize(
-            pytz.datetime.datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
-        ).astimezone(tz)
-
-        dt = Datetime(dt_obj.strftime("%Y-%m-%d"), dt_obj.strftime("%H:%M"), dt_obj.strftime("%z"))
+        # Створення об’єкту дати і часу в потрібному часовому поясі
+        dt_naive = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+        dt_local = tz.localize(dt_naive)
+        dt = Datetime(dt_local.strftime("%Y-%m-%d"),
+                      dt_local.strftime("%H:%M"),
+                      dt_local.strftime("%z"))
 
         geo = GeoPos(lat, lon)
 
@@ -60,7 +64,8 @@ def generate_chart():
 
         # Малюємо просту карту
         fig, ax = plt.subplots(figsize=(6,6))
-        ax.text(0.5, 0.5, f'Натальна карта: {place}', ha='center', va='center', fontsize=16)
+        ax.text(0.5, 0.5, f'Натальна карта: {place}\nЧасовий пояс: {tz_str}', 
+                ha='center', va='center', fontsize=14)
         chart_path = os.path.join(STATIC_FOLDER, 'chart.png')
         plt.savefig(chart_path)
         plt.close(fig)
