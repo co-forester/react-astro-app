@@ -8,6 +8,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
+from geopy.geocoders import Nominatim
 
 # ====================== Flask ======================
 app = Flask(__name__)
@@ -17,6 +18,9 @@ CORS(app)
 STATIC_FOLDER = 'static'
 if not os.path.exists(STATIC_FOLDER):
     os.makedirs(STATIC_FOLDER)
+
+# Геолокатор
+geolocator = Nominatim(user_agent="albireo_app")
 
 # ====================== Ендпоінт генерації карти ======================
 @app.route('/generate', methods=['POST'])
@@ -30,9 +34,15 @@ def generate_chart():
         if not (date and time and place):
             return jsonify({'error': 'Введіть дату, час та місце'}), 400
 
-        # ====================== Простий приклад геопозиції ======================
-        lat, lon = 50.4501, 30.5234  # Київ для прикладу
-        dt = Datetime(f"{date} {time}", '+03:00')
+        # ====================== Геокодування через geopy ======================
+        location = geolocator.geocode(f"{place}, Україна")
+        if not location:
+            return jsonify({'error': 'Не вдалося знайти координати міста'}), 400
+
+        lat, lon = location.latitude, location.longitude
+
+        # ====================== Створення натальної карти ======================
+        dt = Datetime(f"{date} {time}", '+03:00')  # Можна динамічно підставляти часовий пояс
         geo = GeoPos(lat, lon)
         chart = Chart(dt, geo)
 
