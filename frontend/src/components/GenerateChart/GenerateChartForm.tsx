@@ -1,7 +1,7 @@
 // ChartGenerator.tsx
 import React, { useState } from 'react';
 import axios from 'axios';
-import './ChartForm.css'; // сюди вставляєш CSS, який ти дав (fadeInForm, fadeInUpForm, formContainer, etc.)
+import './GenerateChartForm.module.css'; // твій CSS з fadeInForm, fadeInUpForm, formContainer, etc.
 
 const GenerateChartForm = () => {
   const [date, setDate] = useState('');
@@ -69,8 +69,35 @@ const GenerateChartForm = () => {
       </button>
       {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
       {chartUrl && (
-        <div className="fadeInUpForm" style={{ animationDelay: '0.6s', marginTop: '2rem' }}>
-          <img src={`http://localhost:8080${chartUrl}`} alt="Натальна карта" style={{ width: '100%' }} />
+        <div
+          className="fadeInUpForm"
+          style={{
+            animationDelay: '0.6s',
+            marginTop: '2rem',
+            display: 'flex',
+            justifyContent: 'center'
+          }}
+        >
+          <div
+            style={{
+              width: '300px',
+              height: '300px',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#fff',
+              transition: 'transform 0.3s'
+            }}
+          >
+            <img
+              src={`http://localhost:8080${chartUrl}`}
+              alt="Натальна карта"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          </div>
         </div>
       )}
     </div>
