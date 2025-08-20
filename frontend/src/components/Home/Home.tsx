@@ -2,7 +2,7 @@
 import React, { FC, useEffect, useState } from 'react';
 import css from './home.module.css';
 import { useAppSelector } from '../../hooks/reduxHook';
-import GenerateChartForm from '../GenerateChart/GenerateChartForm';
+import {GenerateChartForm} from '../GenerateChart/GenerateChartForm';
 import { EclipsesOverview } from '../EclipsesOverview/EclipsesOverview';
 import { HoroscopeJuly19 } from '../HoroscopeJuly19/HoroscopeJuly19';
 import { ChildHoroscope } from '../ChildHoroscope/ChildHoroscope';

@@ -49,4 +49,4 @@ const ForecastAugust2025: React.FC = () => {
   );
 };
 
-export default ForecastAugust2025;
+export {ForecastAugust2025};
