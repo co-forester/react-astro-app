@@ -1,5 +1,7 @@
 # ====================== Назва додатку ======================
 app = "albireo-daria-96"
+kill_signal = "SIGINT"
+kill_timeout = 5
 
 # ====================== Build ======================
 [build]
@@ -36,3 +38,7 @@ app = "albireo-daria-96"
     grace_period = "10s"
     method = "get"
     path = "/health"
+
+# ====================== Змінні оточення ======================
+[env]
+  PORT = "8080"
