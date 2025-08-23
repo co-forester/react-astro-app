@@ -27,29 +27,24 @@ const GenerateChartForm = () => {
     }
   }, []);
 
-  // Автопідказки для міста
-  const fetchCitySuggestions = async (query: string) => {
-    if (!query) {
-      setSuggestions([]);
-      return;
-    }
-    try {
-      const res = await axios.get(NOMINATIM_URL, {
-        params: { q: query, format: 'json', limit: 5 },
-      });
+// Автопідказки для міста
+const fetchCitySuggestions = async (query: string) => {
+  if (!query) {
+    setSuggestions([]);
+    return;
+  }
+  try {
+    const res = await axios.get(NOMINATIM_URL, {
+      params: { q: query, format: 'json', limit: 5 },
+    });
 
-      const places = res.data.map((p: any) => p.display_name);
-      setSuggestions(places);
-
-      // Автовибір першого варіанту
-      if (places.length > 0) {
-        selectCity(places[0]);
-      }
-    } catch (err) {
-      console.error('Помилка автопідказки:', err);
-    }
-  };
-
+    const places = res.data.map((p: any) => p.display_name);
+    setSuggestions(places);
+    // 👇 Прибрано автоселект першого варіанту
+  } catch (err) {
+    console.error('Помилка автопідказки:', err);
+  }
+};
   // Вибір міста
   const selectCity = async (selection: string) => {
     setCity(selection);
