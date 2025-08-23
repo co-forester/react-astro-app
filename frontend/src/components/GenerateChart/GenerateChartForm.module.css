@@ -1,4 +1,4 @@
-/* Анімація появи, узгоджена з Home */
+/* Анімація появи */
 .fadeInForm {
   animation: fadeIn 0.8s ease forwards;
 }
@@ -19,25 +19,25 @@
   100% { opacity: 1; transform: translateY(0); }
 }
 
-/* Стиль форми */
+/* Контейнер форми */
 .formContainer {
-  background-color: var(--bg-block); /* можна прив'язати до теми Home */
+  background-color: var(--bg-block);
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
-/* Hover ефект */
+/* Hover ефект контейнера */
 .formContainer:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
-/* Кнопка */
+/* Кнопка відправки */
 .formButton {
   background-color: var(--accent-color);
   color: #fff;
@@ -64,5 +64,5 @@
 .formInput:focus {
   border-color: var(--accent-color);
   outline: none;
-  box-shadow: 0 0 6px rgba(0,0,0,0.1);
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
 }
