@@ -40,16 +40,18 @@ def generate_chart():
 
     lat, lon = location.latitude, location.longitude
 
-    # Автоматичне визначення часового поясу
+    # Визначення часового поясу
     tz_str = tf.timezone_at(lat=lat, lng=lon) or 'UTC'
     tz = pytz.timezone(tz_str)
 
     # Локалізація дати і часу
     dt_naive = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
     dt_local = tz.localize(dt_naive)
-    dt = Datetime(dt_local.strftime("%Y-%m-%d"),
-                  dt_local.strftime("%H:%M"),
-                  dt_local.strftime("%z"))
+    dt = Datetime(
+        dt_local.strftime("%Y/%m/%d"),  # формат YYYY/MM/DD для flatlib
+        dt_local.strftime("%H:%M"),
+        dt_local.strftime("%z")
+    )
 
     geo = GeoPos(lat, lon)
 
