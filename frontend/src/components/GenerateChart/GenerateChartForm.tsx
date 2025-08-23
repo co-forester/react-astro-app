@@ -1,85 +1,95 @@
-import React, { useState } from 'react';
-import './GenerateChartForm.module.css';
+import React, { useState } from "react";
+import "./GenerateChartForm.module.css";
+
+interface FormData {
+  date: string;
+  time: string;
+  place: string;
+}
 
 const GenerateChartForm: React.FC = () => {
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [place, setPlace] = useState('');
-  const [result, setResult] = useState<string | null>(null);
+  const [formData, setFormData] = useState<FormData>({
+    date: "",
+    time: "",
+    place: "",
+  });
+  const [chartUrl, setChartUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!date || !time || !place) {
-      alert('Будь ласка, заповніть всі поля');
-      return;
-    }
-
     setLoading(true);
-    setResult(null);
+    setError(null);
+    setChartUrl(null);
 
     try {
-      const response = await fetch('https://albireo-daria-96.fly.dev/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ date, time, place }),
+      const response = await fetch("http://localhost:8080/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
         const err = await response.json();
-        alert(err.error || 'Помилка на сервері');
-        setLoading(false);
-        return;
+        throw new Error(err.error || "Помилка генерації карти");
       }
 
       const data = await response.json();
-      setResult(data.chart_image_url);
-    } catch (error) {
-      alert('Помилка з’єднання з сервером');
-      console.error(error);
+      setChartUrl(data.chart_image_url); // використовуємо URL картинки з бекенду
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form className="formContainer fadeInForm" onSubmit={handleSubmit}>
-      <input
-        className="formInput"
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        placeholder="Дата народження"
-        required
-      />
-      <input
-        className="formInput"
-        type="time"
-        value={time}
-        onChange={(e) => setTime(e.target.value)}
-        placeholder="Час народження"
-        required
-      />
-      <input
-        className="formInput"
-        type="text"
-        value={place}
-        onChange={(e) => setPlace(e.target.value)}
-        placeholder="Місто народження"
-        required
-      />
-      <button className="formButton" type="submit" disabled={loading}>
-        {loading ? 'Генеруємо...' : 'Згенерувати карту'}
-      </button>
+    <div className="formContainer fadeInForm">
+      <form onSubmit={handleSubmit}>
+        <input
+          type="date"
+          name="date"
+          value={formData.date}
+          onChange={handleChange}
+          className="formInput"
+          required
+        />
+        <input
+          type="time"
+          name="time"
+          value={formData.time}
+          onChange={handleChange}
+          className="formInput"
+          required
+        />
+        <input
+          type="text"
+          name="place"
+          value={formData.place}
+          onChange={handleChange}
+          className="formInput"
+          placeholder="Місто"
+          required
+        />
+        <button type="submit" className="formButton" disabled={loading}>
+          {loading ? "Генерація..." : "Побудувати натальну карту"}
+        </button>
+      </form>
 
-      {result && (
-        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-          <img src={result} alt="Натальна карта" style={{ maxWidth: '100%' }} />
+      {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
+
+      {chartUrl && (
+        <div className="chartContainer fadeInUpForm">
+          <img src={chartUrl} alt="Натальна карта" />
         </div>
       )}
-    </form>
+    </div>
   );
 };
 
-export {GenerateChartForm};
+export  {GenerateChartForm};
