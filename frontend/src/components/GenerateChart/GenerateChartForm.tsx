@@ -20,7 +20,7 @@ const GenerateChartForm: React.FC = () => {
     setResult(null);
 
     try {
-      const response = await fetch('https://<твоє-доменне-ім’я>/generate', {
+      const response = await fetch('https://albireo-daria-96.fly.dev/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ date, time, place }),
