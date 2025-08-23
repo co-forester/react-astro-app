@@ -40,7 +40,7 @@ const GenerateChartForm: React.FC = () => {
       }
 
       const data = await response.json();
-      setChartUrl(data.chart_image_url); // використовуємо URL картинки з бекенду
+      setChartUrl(`https://albireo-daria-96.fly.dev${data.chart_image_url}`); // використовуємо URL картинки з бекенду
     } catch (err: any) {
       setError(err.message);
     } finally {
