@@ -28,7 +28,7 @@ const GenerateChartForm: React.FC = () => {
     setChartUrl(null);
 
     try {
-      const response = await fetch("http://localhost:8080/generate", {
+      const response = await fetch("https://albireo-daria-96.fly.dev/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
