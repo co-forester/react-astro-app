@@ -47,8 +47,9 @@ def generate_chart():
     # Локалізація дати і часу
     dt_naive = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
     dt_local = tz.localize(dt_naive)
+
     dt = Datetime(
-        dt_local.strftime("%Y/%m/%d"),  # формат YYYY/MM/DD для flatlib
+        dt_local.strftime("%Y/%m/%d"),
         dt_local.strftime("%H:%M"),
         dt_local.strftime("%z")
     )
@@ -61,13 +62,17 @@ def generate_chart():
                const.NEPTUNE, const.PLUTO]
     chart = Chart(dt, geo, objects=objects)
 
-    # Малюємо просту картинку
-    fig, ax = plt.subplots(figsize=(6,6))
-    ax.text(0.5, 0.5, f'Натальна карта: {place}\nЧасовий пояс: {tz_str}',
-            ha='center', va='center', fontsize=14)
-    chart_path = os.path.join(STATIC_FOLDER, 'chart.png')
-    plt.savefig(chart_path)
-    plt.close(fig)
+    # Малюємо просту картинку з назвою міста та часовим поясом
+    try:
+        fig, ax = plt.subplots(figsize=(6,6))
+        ax.text(0.5, 0.5, f'Натальна карта:\n{place}\nЧасовий пояс: {tz_str}',
+                ha='center', va='center', fontsize=14, wrap=True)
+        ax.axis('off')  # прибираємо осі
+        chart_path = os.path.join(STATIC_FOLDER, 'chart.png')
+        plt.savefig(chart_path, bbox_inches='tight', dpi=150)
+        plt.close(fig)
+    except Exception as e:
+        return jsonify({'error': f'Помилка генерації картинки: {str(e)}'}), 500
 
     return jsonify({'chart_image_url': f'/static/chart.png'}), 200
 
@@ -75,7 +80,6 @@ def generate_chart():
 def static_files(filename):
     return send_from_directory(STATIC_FOLDER, filename)
 
-# ====================== Health check для Fly ======================
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({"status": "ok"}), 200
