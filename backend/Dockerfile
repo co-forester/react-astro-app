@@ -4,7 +4,7 @@ FROM python:3.11-bullseye
 # ====================== Робоча директорія ======================
 WORKDIR /app
 
-# ====================== Системні пакети для наукоємних бібліотек ======================
+# ====================== Системні пакети ======================
 RUN apt-get update && apt-get install -y \
     build-essential gcc g++ make \
     libgeos-dev libfreetype6-dev libpng-dev libjpeg-dev \
@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     libbz2-dev liblzma-dev zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# ====================== Копіюємо requirements і встановлюємо ======================
+# ====================== Python-залежності ======================
 COPY requirements.txt .
 RUN pip install --upgrade pip wheel setuptools \
     && pip install --no-cache-dir -r requirements.txt
