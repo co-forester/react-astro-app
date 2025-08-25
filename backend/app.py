@@ -75,7 +75,7 @@ def generate_chart():
 
         for obj in chart.objects:
             planet = chart.get(obj)   # <-- ключова зміна
-            ax.plot([0], [0], 'o', label=f"{obj} {planet.lon:.2f}°")
+            ax.plot([0], [0], 'o', label=f"{obj.id} {obj.lon:.2f}°")
 
         ax.legend(fontsize=8, loc='upper left')
         plt.tight_layout()
