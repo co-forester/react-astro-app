@@ -267,7 +267,7 @@ def generate():
         fdate = dt_utc.strftime("%Y/%m/%d")
         ftime = dt_utc.strftime("%H:%M")
 
-        geopos = GeoPos(str(lat), str(lon))
+        geopos = GeoPos(float(lat), float(lon))
         fdt = Datetime(fdate, ftime, "+00:00")
 
         # Створюємо карту (Placidus за замовчуванням)
