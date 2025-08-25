@@ -6,13 +6,17 @@ WORKDIR /app
 
 # ====================== Системні пакети ======================
 RUN apt-get update && apt-get install -y \
-    build-essential gcc libgeos-dev libfreetype6-dev libpng-dev libjpeg-dev \
-    libffi-dev tar \
+    build-essential gcc g++ make \
+    libgeos-dev libfreetype6-dev libpng-dev libjpeg-dev \
+    libffi-dev tar curl wget \
     libgl1 libglib2.0-0 \
+    libbz2-dev liblzma-dev zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# ====================== Python-залежності у venv ======================
+# ====================== Копіюємо requirements ======================
 COPY requirements.txt .
+
+# ====================== Python-залежності у venv ======================
 RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --upgrade pip wheel setuptools \
     && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
