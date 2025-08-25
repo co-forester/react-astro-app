@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flatlib.chart import Chart
@@ -32,6 +33,7 @@ ASPECT_COLORS = {
     'SEX': 'purple'
 }
 
+# Кольори для 12 будинків
 HOUSES_COLORS = [
     '#ffe0b2', '#ffcc80', '#ffb74d', '#ffa726',
     '#ff9800', '#fb8c00', '#f57c00', '#ef6c00',
@@ -46,8 +48,8 @@ def generate_chart():
         time = data['time']
         place = data['place']
 
-        # Розділяємо місто на широту і довготу через GeoPy або API (тут заглушка)
-        lat, lon = 50.45, 30.52  # Київ як приклад
+        # Широта та довгота (заглушка)
+        lat, lon = 50.45, 30.52  # Київ
         dt = Datetime(f"{date} {time}", '+03:00')
         pos = GeoPos(lat, lon)
         chart = Chart(dt, pos)
@@ -60,22 +62,22 @@ def generate_chart():
 
         # Додаємо кола для будинків
         for i in range(12):
-            ax.add_patch(plt.Circle((0, 0), 1-i*0.08, fill=True, color=HOUSES_COLORS[i], alpha=0.3))
+            ax.add_patch(plt.Circle((0, 0), 1 - i*0.08, fill=True, color=HOUSES_COLORS[i], alpha=0.3))
 
         # Додаємо планети
         for obj in chart.objects:
-            x = 0.7 * np.cos(obj.lon * np.pi / 180)
-            y = 0.7 * np.sin(obj.lon * np.pi / 180)
+            x = 0.7 * np.cos(np.radians(obj.lon))
+            y = 0.7 * np.sin(np.radians(obj.lon))
             ax.text(x, y, obj.id, color=PLANET_COLORS.get(obj.id, 'black'), fontsize=12, fontweight='bold')
 
         # Аспекти
         for asp in aspects.getAspects(chart):
             p1 = chart.get(asp.p1)
             p2 = chart.get(asp.p2)
-            x1 = 0.7 * np.cos(p1.lon * np.pi / 180)
-            y1 = 0.7 * np.sin(p1.lon * np.pi / 180)
-            x2 = 0.7 * np.cos(p2.lon * np.pi / 180)
-            y2 = 0.7 * np.sin(p2.lon * np.pi / 180)
+            x1 = 0.7 * np.cos(np.radians(p1.lon))
+            y1 = 0.7 * np.sin(np.radians(p1.lon))
+            x2 = 0.7 * np.cos(np.radians(p2.lon))
+            y2 = 0.7 * np.sin(np.radians(p2.lon))
             ax.plot([x1, x2], [y1, y2], color=ASPECT_COLORS.get(asp.type, 'grey'), linewidth=1.2)
 
         chart_path = "chart.png"
