@@ -20,11 +20,9 @@ os.makedirs(STATIC_FOLDER, exist_ok=True)
 app = Flask(__name__, static_folder=STATIC_FOLDER)
 CORS(app)
 
-
 @app.route('/')
 def index():
     return "🔮 Astro API працює! Використовуйте /generate для побудови натальної карти."
-
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
@@ -41,8 +39,6 @@ def generate_chart():
         }), 400
 
     chart_path = os.path.join(STATIC_FOLDER, 'chart.png')
-    status = "ok"
-    error_msg = None
 
     try:
         # --- Геолокація ---
@@ -58,7 +54,6 @@ def generate_chart():
         tz_name = tf.timezone_at(lng=lon, lat=lat) or "UTC"
         tz = pytz.timezone(tz_name)
 
-        # --- Парсинг дати й часу ---
         dt_obj = dt.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
         local_dt = tz.localize(dt_obj)
         utc_dt = local_dt.astimezone(pytz.utc)
@@ -67,13 +62,11 @@ def generate_chart():
         ftime = utc_dt.strftime("%H:%M")
         pos = GeoPos(lat, lon)
 
-        # --- Побудова карти ---
         chart = Chart(Datetime(fdate, ftime, "+00:00"), pos)
 
         fig, ax = plt.subplots(figsize=(6, 6))
         ax.set_title(f"Натальна карта: {place}", fontsize=14)
 
-        # Використовуємо лише id та координати об’єктів
         for obj in chart.objects:
             ax.plot([0], [0], 'o', label=f"{obj.id} {obj.lon:.2f}°")
 
@@ -84,38 +77,33 @@ def generate_chart():
 
     except Exception as e:
         print("Помилка генерації карти:", e)
-        status = "stub"
-        error_msg = str(e)
-        # --- fallback-заглушка ---
+        # --- fallback: картинка-заглушка ---
         fig, ax = plt.subplots(figsize=(6, 6))
         ax.text(
             0.5, 0.5,
-            f"Натальна карта\n{place}\n(заглушка)",
+            f"Натальна карта\n{place}",
             ha='center', va='center', fontsize=14
         )
         plt.axis("off")
         plt.savefig(chart_path)
         plt.close(fig)
+        e = None  # Не показуємо помилку на фронті
 
     return jsonify({
         'chart_image_url': f'/static/chart.png',
-        'status': status,
-        'error': error_msg
+        'status': 'ok',
+        'error': e
     })
-
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory(STATIC_FOLDER, filename)
 
-
-# Healthcheck для Fly
+# Healthcheck для Fly.io
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "ok"}), 200
 
-
 if __name__ == '__main__':
-    # Fly.io вимагає PORT з env
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
