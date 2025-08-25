@@ -14,6 +14,7 @@ const GenerateChartForm: React.FC = () => {
     place: "",
   });
   const [chartUrl, setChartUrl] = useState<string | null>(null);
+  const [rawResponse, setRawResponse] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,6 +27,7 @@ const GenerateChartForm: React.FC = () => {
     setLoading(true);
     setError(null);
     setChartUrl(null);
+    setRawResponse(null);
 
     try {
       const response = await fetch("https://albireo-daria-96.fly.dev/generate", {
@@ -40,7 +42,19 @@ const GenerateChartForm: React.FC = () => {
       }
 
       const data = await response.json();
-      setChartUrl(`https://albireo-daria-96.fly.dev${data.chart_image_url}`); // використовуємо URL картинки з бекенду
+      setRawResponse(data);
+
+      // пробуємо кілька варіантів
+      const url =
+        data.chart_image_url ||
+        data.chart_url ||
+        (data.url ? `https://albireo-daria-96.fly.dev${data.url}` : null);
+
+      if (url) {
+        setChartUrl(url);
+      } else {
+        setError("У відповіді немає URL картинки");
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -88,8 +102,14 @@ const GenerateChartForm: React.FC = () => {
           <img src={chartUrl} alt="Натальна карта" />
         </div>
       )}
+
+      {rawResponse && (
+        <pre style={{ marginTop: "1rem", fontSize: "0.8rem", color: "#aaa" }}>
+          {JSON.stringify(rawResponse, null, 2)}
+        </pre>
+      )}
     </div>
   );
 };
 
-export  {GenerateChartForm};
+export { GenerateChartForm };
