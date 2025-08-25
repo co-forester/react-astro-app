@@ -14,6 +14,7 @@ const GenerateChartForm: React.FC = () => {
     place: "",
   });
   const [chartUrl, setChartUrl] = useState<string | null>(null);
+  const [aspectsHtml, setAspectsHtml] = useState<string | null>(null);
   const [rawResponse, setRawResponse] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +28,7 @@ const GenerateChartForm: React.FC = () => {
     setLoading(true);
     setError(null);
     setChartUrl(null);
+    setAspectsHtml(null);
     setRawResponse(null);
 
     try {
@@ -45,6 +47,10 @@ const GenerateChartForm: React.FC = () => {
 
       const url = `https://albireo-daria-96.fly.dev${data.chart_image_url}`;
       setChartUrl(url);
+
+      if (data.aspects_table_html) {
+        setAspectsHtml(data.aspects_table_html);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -91,6 +97,13 @@ const GenerateChartForm: React.FC = () => {
         <div className="chartContainer fadeInUpForm">
           <img src={chartUrl} alt="Натальна карта" />
         </div>
+      )}
+
+      {aspectsHtml && (
+        <div
+          className="aspectsTable fadeInUpForm"
+          dangerouslySetInnerHTML={{ __html: aspectsHtml }}
+        />
       )}
 
       {rawResponse && (

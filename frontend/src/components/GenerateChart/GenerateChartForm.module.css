@@ -46,3 +46,34 @@
 /* Картинка */
 .chartContainer { margin-top: 1rem; display: flex; justify-content: center; }
 .chartContainer img { max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+/* Таблиця аспектів */
+.aspectsTable {
+  margin-top: 1.5rem;
+  background: var(--bg-block);
+  border-radius: 10px;
+  overflow-x: auto;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+.aspectsTable table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.aspectsTable th, .aspectsTable td {
+  padding: 0.6rem 0.8rem;
+  border: 1px solid rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+.aspectsTable th {
+  background: var(--accent-color);
+  color: #fff;
+  font-weight: 600;
+}
+
+.aspectsTable tr:nth-child(even) {
+  background: rgba(0,0,0,0.03);
+}
