@@ -2,7 +2,7 @@ import os
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # бекенд без GUI
 import matplotlib.pyplot as plt
 
 from flatlib.chart import Chart
@@ -15,8 +15,7 @@ from datetime import datetime as dt
 
 # --- Конфіг ---
 STATIC_FOLDER = 'static'
-if not os.path.exists(STATIC_FOLDER):
-    os.makedirs(STATIC_FOLDER)
+os.makedirs(STATIC_FOLDER, exist_ok=True)
 
 app = Flask(__name__, static_folder=STATIC_FOLDER)
 CORS(app)
@@ -29,7 +28,7 @@ def index():
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
-    data = request.json
+    data = request.json or {}
     date = data.get('date')
     time = data.get('time')
     place = data.get('place')
@@ -48,7 +47,7 @@ def generate_chart():
     try:
         # --- Геолокація ---
         geolocator = Nominatim(user_agent="astro_app")
-        location = geolocator.geocode(place)
+        location = geolocator.geocode(place, timeout=10)
         if not location:
             raise ValueError("Місце не знайдено")
 
@@ -56,9 +55,7 @@ def generate_chart():
 
         # --- Часовий пояс ---
         tf = TimezoneFinder()
-        tz_name = tf.timezone_at(lng=lon, lat=lat)
-        if not tz_name:
-            tz_name = "UTC"
+        tz_name = tf.timezone_at(lng=lon, lat=lat) or "UTC"
         tz = pytz.timezone(tz_name)
 
         # --- Парсинг дати й часу ---
@@ -70,17 +67,17 @@ def generate_chart():
         ftime = utc_dt.strftime("%H:%M")
         pos = GeoPos(lat, lon)
 
-        # --- Побудова карти через Flatlib ---
+        # --- Побудова карти ---
         chart = Chart(Datetime(fdate, ftime, "+00:00"), pos)
 
-        # --- Малювання карти ---
         fig, ax = plt.subplots(figsize=(6, 6))
         ax.set_title(f"Натальна карта: {place}", fontsize=14)
 
         for obj in chart.objects:
             ax.plot([0], [0], 'o', label=f"{obj} {chart[obj].lon:.2f}°")
 
-        ax.legend()
+        ax.legend(fontsize=8, loc='upper left')
+        plt.tight_layout()
         plt.savefig(chart_path)
         plt.close(fig)
 
@@ -88,13 +85,14 @@ def generate_chart():
         print("Помилка генерації карти:", e)
         status = "stub"
         error_msg = str(e)
-        # --- Якщо є помилка → генеруємо заглушку ---
+        # --- fallback-заглушка ---
         fig, ax = plt.subplots(figsize=(6, 6))
         ax.text(
             0.5, 0.5,
             f"Натальна карта\n{place}\n(заглушка)",
             ha='center', va='center', fontsize=14
         )
+        plt.axis("off")
         plt.savefig(chart_path)
         plt.close(fig)
 
@@ -102,13 +100,19 @@ def generate_chart():
         'chart_image_url': f'/static/chart.png',
         'status': status,
         'error': error_msg
-    }), 200
+    })
 
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory(STATIC_FOLDER, filename)
 
+# Healthcheck для Fly
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok"}), 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    # Fly.io вимагає PORT з env
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
