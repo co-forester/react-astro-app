@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import "./GenerateChartForm.module.css";
 
 interface FormData {
+  firstName: string;
+  lastName: string;
   date: string;
   time: string;
   place: string;
@@ -9,6 +11,8 @@ interface FormData {
 
 const GenerateChartForm: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
+    firstName: "",
+    lastName: "",
     date: "",
     time: "",
     place: "",
@@ -61,6 +65,24 @@ const GenerateChartForm: React.FC = () => {
   return (
     <div className="formContainer fadeInForm">
       <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          name="firstName"
+          value={formData.firstName}
+          onChange={handleChange}
+          className="formInput"
+          placeholder="Ім'я"
+          required
+        />
+        <input
+          type="text"
+          name="lastName"
+          value={formData.lastName}
+          onChange={handleChange}
+          className="formInput"
+          placeholder="Прізвище"
+          required
+        />
         <input
           type="date"
           name="date"
