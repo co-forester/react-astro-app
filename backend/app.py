@@ -1,119 +1,112 @@
-import os
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
-import matplotlib
-matplotlib.use('Agg')  # бекенд без GUI
-import matplotlib.pyplot as plt
-
+from flask import Flask, request, jsonify
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
+from flatlib import const
+import matplotlib.pyplot as plt
+import os
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
-from datetime import datetime as dt
+from datetime import datetime
+import math
 
-# --- Конфіг ---
-STATIC_FOLDER = 'static'
-os.makedirs(STATIC_FOLDER, exist_ok=True)
+app = Flask(__name__)
 
-app = Flask(__name__, static_folder=STATIC_FOLDER)
-CORS(app)
+STATIC_FOLDER = os.path.join(os.path.dirname(__file__), "static")
+if not os.path.exists(STATIC_FOLDER):
+    os.makedirs(STATIC_FOLDER)
 
+geolocator = Nominatim(user_agent="astro_app")
+tf = TimezoneFinder()
 
-@app.route('/')
-def index():
-    return jsonify({"status": "ok", "message": "Astro API працює"})
+# Функція для координат планет на колі
+def get_planet_positions(chart):
+    positions = {}
+    for obj in const.PLANETS:
+        body = chart.get(obj)
+        positions[obj] = float(body.lon)
+    return positions
 
+# Малюємо коло натальної карти
+def draw_chart(planet_positions, place):
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.set_xlim(-1.2, 1.2)
+    ax.set_ylim(-1.2, 1.2)
+    ax.axis("off")
 
-@app.route('/generate', methods=['POST'])
+    # Малюємо коло
+    circle = plt.Circle((0, 0), 1, fill=False, linewidth=2)
+    ax.add_artist(circle)
+
+    # Додаємо знаки з 30° на коло
+    signs = const.SIGNS
+    for i, sign in enumerate(signs):
+        angle = math.radians(i * 30)
+        x = 1.05 * math.cos(angle)
+        y = 1.05 * math.sin(angle)
+        ax.text(x, y, sign, ha="center", va="center", fontsize=10, fontweight="bold")
+
+    # Малюємо планети
+    for planet, lon in planet_positions.items():
+        angle = math.radians(lon)
+        x = 0.9 * math.cos(angle)
+        y = 0.9 * math.sin(angle)
+        ax.plot(x, y, 'o', markersize=10, label=planet)
+        ax.text(x, y, planet, fontsize=9, ha="center", va="center")
+
+    # Легенда
+    ax.legend(loc="upper right", fontsize=8)
+
+    # Підпис
+    ax.text(0, -1.1, f"Натальна карта — {place}", ha="center", va="center", fontsize=12, fontweight="bold")
+
+    # Зберігаємо
+    chart_file = os.path.join(STATIC_FOLDER, "chart.png")
+    fig.savefig(chart_file, bbox_inches="tight")
+    plt.close(fig)
+    return chart_file
+
+@app.route("/generate", methods=["POST"])
 def generate_chart():
-    data = request.json or {}
-    date = data.get('date')
-    time = data.get('time')
-    place = data.get('place')
-
-    if not (date and time and place):
-        return jsonify({
-            'chart_image_url': None,
-            'status': 'error',
-            'error': 'Введіть дату, час та місце'
-        }), 400
-
-    chart_path = os.path.join(STATIC_FOLDER, 'chart.png')
-    status = "ok"
-    error_msg = None
-
     try:
-        # --- Геолокація ---
-        geolocator = Nominatim(user_agent="astro_app")
-        location = geolocator.geocode(place, timeout=10)
+        data = request.json
+        date = data.get("date")
+        time = data.get("time")
+        place = data.get("place")
+
+        # Отримуємо геопозицію міста
+        location = geolocator.geocode(place)
         if not location:
-            raise ValueError("Місце не знайдено")
+            return jsonify({"error": f"Місто '{place}' не знайдено", "status": "stub"}), 400
 
         lat, lon = location.latitude, location.longitude
+        geopos = GeoPos(str(lat), str(lon))
 
-        # --- Часовий пояс ---
-        tf = TimezoneFinder()
-        tz_name = tf.timezone_at(lng=lon, lat=lat) or "UTC"
+        # Визначаємо часовий пояс
+        tz_name = tf.timezone_at(lat=lat, lng=lon)
+        if not tz_name:
+            tz_name = "UTC"
         tz = pytz.timezone(tz_name)
 
-        # --- Парсинг дати й часу ---
-        dt_obj = dt.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
-        local_dt = tz.localize(dt_obj)
-        utc_dt = local_dt.astimezone(pytz.utc)
+        # Парсимо дату і час
+        naive_dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+        aware_dt = tz.localize(naive_dt)
+        dt = Datetime(aware_dt.strftime("%Y-%m-%d %H:%M"), tz_name)
 
-        fdate = utc_dt.strftime("%Y/%m/%d")
-        ftime = utc_dt.strftime("%H:%M")
-        pos = GeoPos(lat, lon)
+        # Створюємо натальну карту
+        chart = Chart(dt, geopos)
 
-        # --- Побудова карти ---
-        chart = Chart(Datetime(fdate, ftime, "+00:00"), pos)
+        # Отримуємо позиції планет
+        planet_positions = get_planet_positions(chart)
 
-        fig, ax = plt.subplots(figsize=(6, 6))
-        ax.set_title(f"Натальна карта: {place}", fontsize=14)
+        # Малюємо картинку
+        chart_file = draw_chart(planet_positions, place)
 
-        for obj in chart.objects:
-            planet = chart.get(obj.id)  # <-- правильно отримуємо об'єкт
-            ax.plot([0], [0], 'o', label=f"{obj.id} {obj.lon:.2f}°")
-
-        ax.legend(fontsize=8, loc='upper left')
-        plt.tight_layout()
-        plt.savefig(chart_path)
-        plt.close(fig)
+        return jsonify({"chart_image_url": "/static/chart.png", "error": None, "status": "ok"})
 
     except Exception as e:
-        print("Помилка генерації карти:", e)
-        status = "stub"
-        error_msg = str(e)
-        # --- fallback-заглушка як картинка ---
-        fig, ax = plt.subplots(figsize=(6, 6))
-        ax.text(
-            0.5, 0.5,
-            f"Натальна карта\n{place}\n(заглушка)",
-            ha='center', va='center', fontsize=14
-        )
-        plt.axis("off")
-        plt.savefig(chart_path)
-        plt.close(fig)
+        return jsonify({"chart_image_url": "/static/chart.png", "error": str(e), "status": "stub"}), 500
 
-    return jsonify({
-        'chart_image_url': f'/static/chart.png',
-        'status': status,
-        'error': error_msg
-    })
-
-
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory(STATIC_FOLDER, filename)
-
-
-@app.route('/health', methods=['GET'])
-def health():
-    return jsonify({"status": "ok"}), 200
-
-
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+if __name__ == "__main__":
+    app.run(debug=True)
