@@ -108,5 +108,12 @@ def generate_chart():
     except Exception as e:
         return jsonify({"chart_image_url": "/static/chart.png", "error": str(e), "status": "stub"}), 500
 
-if __name__ == "__main__":
-    app.run(debug=True)
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({"status": "ok"}), 200
+
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
