@@ -45,10 +45,11 @@ const GenerateChartForm: React.FC = () => {
       setRawResponse(data);
 
       // пробуємо кілька варіантів
-      const url =
-        data.chart_image_url ||
-        data.chart_url ||
-        (data.url ? `https://albireo-daria-96.fly.dev${data.url}` : null);
+      // const url =
+      //   data.chart_image_url ||
+      //   data.chart_url ||
+      //   (data.url ? `https://albireo-daria-96.fly.dev${data.url}` : null);
+      const url = `https://albireo-daria-96.fly.dev${data.chart_image_url}`;
 
       if (url) {
         setChartUrl(url);
