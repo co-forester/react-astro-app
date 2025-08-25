@@ -67,14 +67,14 @@ def generate_chart():
         ftime = utc_dt.strftime("%H:%M")
         pos = GeoPos(lat, lon)
 
-               # --- Побудова карти ---
+        # --- Побудова карти ---
         chart = Chart(Datetime(fdate, ftime, "+00:00"), pos)
 
         fig, ax = plt.subplots(figsize=(6, 6))
         ax.set_title(f"Натальна карта: {place}", fontsize=14)
 
+        # Використовуємо лише id та координати об’єктів
         for obj in chart.objects:
-            planet = chart.get(obj)   # <-- ключова зміна
             ax.plot([0], [0], 'o', label=f"{obj.id} {obj.lon:.2f}°")
 
         ax.legend(fontsize=8, loc='upper left')
@@ -108,10 +108,12 @@ def generate_chart():
 def serve_static(filename):
     return send_from_directory(STATIC_FOLDER, filename)
 
+
 # Healthcheck для Fly
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "ok"}), 200
+
 
 if __name__ == '__main__':
     # Fly.io вимагає PORT з env
