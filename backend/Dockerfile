@@ -8,6 +8,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential gcc libgeos-dev libfreetype6-dev libpng-dev libjpeg-dev \
     libffi-dev tar \
+    libgl1 libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # ====================== Python-залежності у venv ======================
