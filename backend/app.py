@@ -67,14 +67,15 @@ def generate_chart():
         ftime = utc_dt.strftime("%H:%M")
         pos = GeoPos(lat, lon)
 
-        # --- Побудова карти ---
+               # --- Побудова карти ---
         chart = Chart(Datetime(fdate, ftime, "+00:00"), pos)
 
         fig, ax = plt.subplots(figsize=(6, 6))
         ax.set_title(f"Натальна карта: {place}", fontsize=14)
 
         for obj in chart.objects:
-            ax.plot([0], [0], 'o', label=f"{obj} {chart[obj].lon:.2f}°")
+            planet = chart.get(obj)   # <-- ключова зміна
+            ax.plot([0], [0], 'o', label=f"{obj} {planet.lon:.2f}°")
 
         ax.legend(fontsize=8, loc='upper left')
         plt.tight_layout()
