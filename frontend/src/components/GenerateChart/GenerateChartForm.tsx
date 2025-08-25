@@ -36,26 +36,15 @@ const GenerateChartForm: React.FC = () => {
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || "Помилка генерації карти");
-      }
-
       const data = await response.json();
       setRawResponse(data);
 
-      // пробуємо кілька варіантів
-      // const url =
-      //   data.chart_image_url ||
-      //   data.chart_url ||
-      //   (data.url ? `https://albireo-daria-96.fly.dev${data.url}` : null);
-      const url = `https://albireo-daria-96.fly.dev${data.chart_image_url}`;
-
-      if (url) {
-        setChartUrl(url);
-      } else {
-        setError("У відповіді немає URL картинки");
+      if (!response.ok) {
+        throw new Error(data.error || "Помилка генерації карти");
       }
+
+      const url = `https://albireo-daria-96.fly.dev${data.chart_image_url}`;
+      setChartUrl(url);
     } catch (err: any) {
       setError(err.message);
     } finally {
