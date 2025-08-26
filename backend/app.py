@@ -11,6 +11,7 @@ from timezonefinder import TimezoneFinder
 import pytz
 import matplotlib.pyplot as plt
 from PIL import Image
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 
@@ -46,7 +47,15 @@ def generate():
 
     # Створюємо Datetime для Flatlib
     try:
-        dt = Datetime(date.replace('-', '/'), time, float(pytz.timezone(tz_str).utcoffset(None).total_seconds() / 3600))
+        # Отримуємо UTC offset у годинах коректно
+        tz = pytz.timezone(tz_str)
+        # Для Flatlib потрібно локальний час
+        naive_dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
+        offset_hours = tz.utcoffset(naive_dt)
+        if offset_hours is None:
+            return jsonify({'error': 'Invalid timezone offset'}), 400
+        hours_offset = offset_hours.total_seconds() / 3600
+        dt = Datetime(date.replace('-', '/'), time, float(hours_offset))
     except Exception as e:
         return jsonify({'error': f'Invalid date/time format: {str(e)}'}), 400
 
