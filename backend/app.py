@@ -105,51 +105,89 @@ def generate_aspects_table(aspect_list):
     html += "</table>"
     return html
 
-@app.route('/generate', methods=['POST'])
+@app.route("/generate", methods=["POST"])
 def generate_chart():
-    data = request.json
+    data = request.get_json()
+
+    # Отримуємо ім'я та прізвище (необов'язково)
+    first_name = data.get("firstName", "")
+    last_name = data.get("lastName", "")
+
+    # Обробка дати та місця
+    datetime_str = data.get("datetime")
+    location_str = data.get("location")
+
+    # Альтернативні ключі
+    if not datetime_str or not location_str:
+        date = data.get("date")
+        time = data.get("time")
+        place = data.get("place")
+        if date and time and place:
+            datetime_str = f"{date} {time}"
+            location_str = place
+
+    if not datetime_str or not location_str:
+        return jsonify({"error": "Missing 'datetime'/'date+time' or 'location'/'place' field"}), 400
+
     try:
-        dt_str = data.get('datetime')  # формат 'YYYY-MM-DD HH:MM'
-        location = data.get('location')  # назва міста
-
-        if not dt_str or not location:
-            raise ValueError("Missing 'datetime' or 'location' field")
-
-        # Правильний розбір datetime
-        dt_parsed = datetime.strptime(dt_str, '%Y-%m-%d %H:%M')
-
-        # Отримуємо координати та часовий пояс
-        lat, lon, tz = geocode_location(location)
-
-        # Конвертуємо в Flatlib Datetime з таймзоною
-        dt_obj = Datetime(
-            dt_parsed.year, dt_parsed.month, dt_parsed.day,
-            dt_parsed.hour, dt_parsed.minute, 0,
-            tz.zone
-        )
-
-        # Позиція
-        pos = GeoPos(lat, lon)
-
-        # Створюємо натальну карту
-        chart = Chart(dt_obj, pos, hsys='P')  # Placidus
-
-        # Аспекти
-        aspects_list = get_aspects(chart)
-
-        # Малюємо карту
-        draw_chart(chart, 'chart.png')
-
-        # Генеруємо HTML таблицю аспектів
-        table_html = generate_aspects_table(aspects_list)
-
-        return jsonify({
-            'aspects_table_html': table_html,
-            'chart_image_url': '/chart.png'
-        })
-
+        # Парсимо дату і час
+        dt = Datetime(datetime_str, 'UTC')
     except Exception as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({"error": f"Invalid datetime format: {str(e)}"}), 400
+
+    try:
+        # Геокодування місця
+        geolocator = Nominatim(user_agent="astro_app")
+        loc = geolocator.geocode(location_str)
+        if not loc:
+            return jsonify({"error": f"Could not find location '{location_str}'"}), 400
+        geo = GeoPos(loc.latitude, loc.longitude)
+    except Exception as e:
+        return jsonify({"error": f"Geocoding error: {str(e)}"}), 400
+
+    try:
+        # Визначаємо часову зону
+        tf = TimezoneFinder()
+        tz_str = tf.timezone_at(lng=loc.longitude, lat=loc.latitude)
+        timezone = pytz.timezone(tz_str) if tz_str else pytz.UTC
+        dt_localized = dt.replace(tzinfo=pytz.UTC).astimezone(timezone)
+    except Exception as e:
+        return jsonify({"error": f"Timezone error: {str(e)}"}), 400
+
+    try:
+        chart = Chart(dt_localized, geo)
+    except Exception as e:
+        return jsonify({"error": f"Chart generation error: {str(e)}"}), 500
+
+    # Створимо просту таблицю аспектів
+    aspects_list = []
+    for obj1 in chart.objects:
+        for obj2 in chart.objects:
+            if obj1 != obj2:
+                for asp in aspects.ASPECTS:
+                    if aspects.aspect(obj1, obj2, asp['angle'], orb=1):
+                        aspects_list.append({
+                            "object1": obj1.id,
+                            "object2": obj2.id,
+                            "aspect": asp['name'],
+                            "angle": asp['angle']
+                        })
+
+    # Малюємо просту натальну карту (приклад)
+    fig, ax = plt.subplots(figsize=(6,6))
+    ax.set_title(f"Natal Chart: {first_name} {last_name}".strip())
+    ax.plot([0], [0], 'ro')  # Точка центру
+    plt.savefig("chart.png")
+    plt.close()
+
+    return jsonify({
+        "firstName": first_name,
+        "lastName": last_name,
+        "datetime": datetime_str,
+        "location": location_str,
+        "aspects": aspects_list,
+        "chartImage": "/chart.png"
+    })
 
 @app.route('/chart.png')
 def chart_png():
