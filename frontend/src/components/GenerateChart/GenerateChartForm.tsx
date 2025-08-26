@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./GenerateChartForm.module.css";
+import css from "./GenerateChartForm.module.css";
 
 interface FormData {
   firstName: string;
@@ -49,6 +49,7 @@ const GenerateChartForm: React.FC = () => {
         throw new Error(data.error || "Помилка генерації карти");
       }
 
+      // Твій оригінальний URL без змін
       const url = `https://albireo-daria-96.fly.dev${data.chart_image_url}`;
       setChartUrl(url);
 
@@ -63,14 +64,14 @@ const GenerateChartForm: React.FC = () => {
   };
 
   return (
-    <div className="formContainer fadeInForm">
-      <form onSubmit={handleSubmit}>
+    <div className={`${css.formContainer} ${css.fadeInForm}`}>
+      <form onSubmit={handleSubmit} className={css.form}>
         <input
           type="text"
           name="firstName"
           value={formData.firstName}
           onChange={handleChange}
-          className="formInput"
+          className={css.formInput}
           placeholder="Ім'я"
           required
         />
@@ -79,7 +80,7 @@ const GenerateChartForm: React.FC = () => {
           name="lastName"
           value={formData.lastName}
           onChange={handleChange}
-          className="formInput"
+          className={css.formInput}
           placeholder="Прізвище"
           required
         />
@@ -88,7 +89,7 @@ const GenerateChartForm: React.FC = () => {
           name="date"
           value={formData.date}
           onChange={handleChange}
-          className="formInput"
+          className={css.formInput}
           required
         />
         <input
@@ -96,7 +97,7 @@ const GenerateChartForm: React.FC = () => {
           name="time"
           value={formData.time}
           onChange={handleChange}
-          className="formInput"
+          className={css.formInput}
           required
         />
         <input
@@ -104,32 +105,32 @@ const GenerateChartForm: React.FC = () => {
           name="place"
           value={formData.place}
           onChange={handleChange}
-          className="formInput"
+          className={css.formInput}
           placeholder="Місто"
           required
         />
-        <button type="submit" className="formButton" disabled={loading}>
+        <button type="submit" className={css.formButton} disabled={loading}>
           {loading ? "Генерація..." : "Побудувати натальну карту"}
         </button>
       </form>
 
-      {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
+      {error && <p className={css.errorText}>{error}</p>}
 
       {chartUrl && (
-        <div className="chartContainer fadeInUpForm">
+        <div className={`${css.chartContainer} ${css.fadeInUpForm}`}>
           <img src={chartUrl} alt="Натальна карта" />
         </div>
       )}
 
       {aspectsHtml && (
         <div
-          className="aspectsTable fadeInUpForm"
+          className={`${css.aspectsTable} ${css.fadeInUpForm}`}
           dangerouslySetInnerHTML={{ __html: aspectsHtml }}
         />
       )}
 
       {rawResponse && (
-        <pre style={{ marginTop: "1rem", fontSize: "0.8rem", color: "#aaa" }}>
+        <pre className={css.rawResponse}>
           {JSON.stringify(rawResponse, null, 2)}
         </pre>
       )}

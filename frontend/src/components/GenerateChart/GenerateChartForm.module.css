@@ -1,99 +1,70 @@
-/* Основний контейнер форми */
 .formContainer {
-  background-color: var(--bg-form);
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transition: background 0.4s ease, color 0.4s ease;
 }
 
-/* Темна/світла тема */
 .light {
-  --bg-form: #ffffff;
-  --input-bg: #f8f8f8;
-  --text-color: #222222;
-  --highlight: #f67e7d;
+  background: #ffffff;
+  color: #222222;
 }
 
 .dark {
-  --bg-form: #1f1f1f;
-  --input-bg: #2a2a2a;
-  --text-color: #e0e0e0;
-  --highlight: #f67e7d;
+  background: #1e1e2f;
+  color: #f0f0f5;
 }
 
-/* Заголовок форми */
 .formHeader {
+  margin-bottom: 1rem;
   font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-color);
-  margin-bottom: 1.5rem;
   text-align: center;
 }
 
-/* Поля вводу */
 .inputField {
   width: 100%;
-  padding: 0.8rem 1rem;
+  padding: 0.75rem 1rem;
   margin-bottom: 1rem;
-  border-radius: 12px;
   border: 1px solid #ccc;
-  background-color: var(--input-bg);
-  color: var(--text-color);
-  transition: all 0.3s ease;
+  border-radius: 8px;
+  background: inherit;
+  color: inherit;
+  font-size: 1rem;
+  transition: border 0.3s ease, box-shadow 0.3s ease;
 }
 
 .inputField:focus {
-  border-color: var(--highlight);
   outline: none;
-  box-shadow: 0 0 8px rgba(246, 126, 125, 0.4);
+  border-color: #ff8c42; /* підсвітка при фокусі */
+  box-shadow: 0 0 8px rgba(255, 140, 66, 0.5);
 }
 
-/* Кнопка генерації */
 .generateButton {
-  display: block;
   width: 100%;
-  padding: 0.9rem;
-  border: none;
-  border-radius: 12px;
-  background: var(--highlight);
+  padding: 0.75rem 1rem;
+  background: #ff8c42;
   color: #fff;
-  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: center;
+  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
 }
 
 .generateButton:hover {
-  background: #f45654;
+  background: #ffb36e;
   transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(246, 126, 125, 0.4);
+  box-shadow: 0 6px 15px rgba(255, 140, 66, 0.5);
 }
 
-/* Анімація появи (сумісна з Home) */
-.fadeIn {
-  animation: fadeIn 0.8s ease forwards;
-}
-
+/* Анімація появи */
 .fadeInUp {
   opacity: 0;
   transform: translateY(20px);
   animation: fadeInUp 0.8s ease forwards;
 }
 
-@keyframes fadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
-}
-
 @keyframes fadeInUp {
   0% { opacity: 0; transform: translateY(20px); }
   100% { opacity: 1; transform: translateY(0); }
-}
-
-/* Плавний підйом при наведенні */
-.formContainer:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
