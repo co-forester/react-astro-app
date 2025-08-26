@@ -90,7 +90,7 @@ def generate_chart():
         time_str = dt_native.strftime("%H:%M")
         dt = Datetime(date_str, time_str, tz_str)
         pos = GeoPos(lat, lon)
-        chart = Chart(dt, pos, hsys='P')  # Placidus
+        chart = Chart(dt, pos, hsys=const.HOUSES_PLACIDUS)  # Placidus
         
         # --- Фігура ---
         fig, ax = plt.subplots(figsize=(8, 8))
