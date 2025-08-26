@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
+from datetime import datetime, timedelta
 from flatlib.geopos import GeoPos
 from flatlib import const
 import matplotlib.pyplot as plt
@@ -12,11 +13,21 @@ import logging
 app = Flask(__name__)
 CORS(app)
 
-def create_datetime(date_str: str, time_str: str):
+def create_datetime(date_str: str, time_str: str, tz_offset_hours: int = 3):
+    """
+    Створює об'єкт Flatlib Datetime з урахуванням зсуву по годині.
+    date_str: 'dd.mm.yyyy'
+    time_str: 'hh:mm'
+    tz_offset_hours: зміщення від UTC
+    """
     try:
         day, month, year = map(int, date_str.split('.'))
         hour, minute = map(int, time_str.split(':'))
-        dt = Datetime(year, month, day, hour, minute, zone='+3')
+        # Створюємо datetime у локальному часі
+        dt_local = datetime(year, month, day, hour, minute)
+        # Переводимо в UTC, віднімаючи зсув
+        dt_utc = dt_local - timedelta(hours=tz_offset_hours)
+        dt = Datetime(dt_utc.year, dt_utc.month, dt_utc.day, dt_utc.hour, dt_utc.minute)
         return dt
     except Exception as e:
         raise ValueError(f"Error creating Datetime: {str(e)}")
@@ -56,7 +67,7 @@ def generate_chart():
         return jsonify({'error': f'Error creating GeoPos: {str(e)}'}), 500
 
     try:
-        dt = create_datetime(date_str, time_str)
+        dt = create_datetime(date_str, time_str, tz_offset_hours=3)
     except Exception as e:
         logging.error(f"Error creating Datetime: {str(e)}")
         return jsonify({'error': f'Error creating Datetime: {str(e)}'}), 500
