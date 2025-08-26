@@ -8,6 +8,12 @@ from flatlib.geopos import GeoPos
 from flatlib import aspects, const
 import matplotlib.pyplot as plt
 
+# --- Нове ---
+from geopy.geocoders import Nominatim
+from timezonefinder import TimezoneFinder
+import pytz, datetime
+# ------------
+
 app = Flask(__name__)
 CORS(app)
 
@@ -44,18 +50,35 @@ HOUSES_COLORS = [
 def generate_chart():
     try:
         data = request.json
-        date = data['date']
-        time = data['time']
+        date_in = data['date']   # YYYY-MM-DD
+        time_in = data['time']   # HH:MM
         place = data['place']
 
-        # Широта та довгота (заглушка)
-        lat, lon = 50.45, 30.52  # Київ
+        # --- Геокодування місця ---
+        geolocator = Nominatim(user_agent="astro_app")
+        location = geolocator.geocode(place)
+        if location:
+            lat, lon = location.latitude, location.longitude
+        else:
+            lat, lon = 50.45, 30.52  # fallback Київ
 
-        # --- Мінімальна правка для коректного Datetime ---
-        year, month, day = map(int, date.split('-'))
-        hour, minute = map(int, time.split(':'))
-        dt = Datetime(year, month, day, hour, minute, 0, '+03:00')
-        # -----------------------------------------------------
+        # --- Часова зона ---
+        tf = TimezoneFinder()
+        timezone_str = tf.timezone_at(lng=lon, lat=lat)
+        if not timezone_str:
+            timezone_str = "Europe/Kiev"
+
+        tz = pytz.timezone(timezone_str)
+
+        dt_native = datetime.datetime.strptime(f"{date_in} {time_in}", "%Y-%m-%d %H:%M")
+        offset = tz.utcoffset(dt_native)
+        tz_offset_hours = int(offset.total_seconds() / 3600)
+        tz_str = f"{tz_offset_hours:+03d}:00"
+
+        # --- Правильний формат для flatlib ---
+        date_str = dt_native.strftime("%Y/%m/%d")
+        time_str = dt_native.strftime("%H:%M")
+        dt = Datetime(date_str, time_str, tz_str)
 
         pos = GeoPos(lat, lon)
         chart = Chart(dt, pos)
