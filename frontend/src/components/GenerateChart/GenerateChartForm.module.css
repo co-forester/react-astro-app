@@ -31,7 +31,7 @@
 /* Кнопка форми */
 .formButton {
   padding: 0.85rem 1.5rem;
-  background: #6c63ff;
+  background: #800020; /* бордо */
   color: white;
   border: none;
   border-radius: 0.75rem;
@@ -41,7 +41,7 @@
 }
 
 .formButton:hover {
-  background: #574fd1;
+  background: #a00030; /* світліше бордо при наведенні */
   transform: translateY(-2px);
 }
 
