@@ -1,178 +1,143 @@
-import os
-import numpy as np
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
 from flatlib import aspects, const
-import matplotlib.pyplot as plt
-
-# --- Нове ---
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
-import pytz, datetime
+import pytz
+import matplotlib.pyplot as plt
+import math
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-# --- Кольори для планет і аспектів ---
-PLANET_COLORS = {
-    const.SUN: 'gold',
-    const.MOON: 'silver',
-    const.MERCURY: 'green',
-    const.VENUS: 'pink',
-    const.MARS: 'red',
-    const.JUPITER: 'blue',
-    const.SATURN: 'brown',
-    const.URANUS: 'cyan',
-    const.NEPTUNE: 'navy',
-    const.PLUTO: 'purple'
-}
+PLANETS = [
+    const.SUN, const.MOON, const.MERCURY, const.VENUS, const.MARS,
+    const.JUPITER, const.SATURN, const.URANUS, const.NEPTUNE, const.PLUTO
+]
+
+ASPECTS = [
+    (const.CONJUNCTION, 0),
+    (const.SEXTILE, 60),
+    (const.SQUARE, 90),
+    (const.TRINE, 120),
+    (const.OPPOSITION, 180)
+]
 
 ASPECT_COLORS = {
-    'CONJ': 'red',
-    'OPP': 'blue',
-    'TRI': 'green',
-    'SQR': 'orange',
-    'SEX': 'purple'
+    const.CONJUNCTION: 'black',
+    const.SEXTILE: 'green',
+    const.SQUARE: 'red',
+    const.TRINE: 'blue',
+    const.OPPOSITION: 'magenta'
 }
 
-HOUSES_COLORS = [
-    '#ffe0b2', '#ffcc80', '#ffb74d', '#ffa726',
-    '#ff9800', '#fb8c00', '#f57c00', '#ef6c00',
-    '#e65100', '#ffccbc', '#ffab91', '#ff8a65'
-]
+def geocode_location(location_name):
+    geolocator = Nominatim(user_agent="astro_app")
+    loc = geolocator.geocode(location_name)
+    if loc:
+        tf = TimezoneFinder()
+        tzname = tf.timezone_at(lng=loc.longitude, lat=loc.latitude)
+        tz = pytz.timezone(tzname)
+        return loc.latitude, loc.longitude, tz
+    else:
+        raise ValueError("Location not found")
 
-ZODIAC_SIGNS = [
-    'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-]
+def get_aspects(chart):
+    aspect_list = []
+    for i, p1 in enumerate(PLANETS):
+        obj1 = chart.get(p1)
+        for j in range(i+1, len(PLANETS)):
+            p2 = PLANETS[j]
+            obj2 = chart.get(p2)
+            for asp_type, asp_angle in ASPECTS:
+                asp = aspects.getAspect(obj1, obj2, asp_angle)
+                if asp:
+                    aspect_list.append({
+                        'planet1': p1,
+                        'aspect': asp_type,
+                        'planet2': p2,
+                        'degree': round(asp.orb, 2)
+                    })
+    return aspect_list
 
-# --- Сумісність аспектів ---
-def _get_aspects(chart):
-    try:
-        return aspects.getAspects(chart)
-    except AttributeError:
-        try:
-            return aspects.getAspectsList(chart, aspects.MAJOR_ASPECTS)
-        except Exception:
-            return []
+def draw_chart(chart, filename='chart.png'):
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection':'polar'})
+    ax.set_ylim(0, 1)
+    ax.set_theta_zero_location('E')
+    ax.set_theta_direction(-1)
+    ax.set_xticks([math.radians(x) for x in range(0, 360, 30)])
+    ax.set_xticklabels([f'{i}°' for i in range(0, 360, 30)])
+    ax.set_yticklabels([])
+
+    # Draw house divisions
+    for h in range(1, 13):
+        cusp = chart.get(const.HOUSES[h-1]).lon
+        ax.plot([math.radians(cusp), math.radians(cusp)], [0, 1], color='lightgray', linestyle='--')
+
+    # Draw planets and ASC/MC
+    positions = {}
+    for p in PLANETS + [const.ASC, const.MC]:
+        obj = chart.get(p)
+        lon_rad = math.radians(obj.lon)
+        positions[p] = lon_rad
+        # Draw planet with shadow
+        ax.plot(lon_rad, 0.85, 'o', markersize=12, color='gold', markeredgecolor='black')
+        ax.text(lon_rad, 0.9, f"{p}\n{int(obj.lon)}°", ha='center', va='center', fontsize=9, fontweight='bold')
+
+    # Draw aspects
+    for asp in get_aspects(chart):
+        lon1 = positions[asp['planet1']]
+        lon2 = positions[asp['planet2']]
+        color = ASPECT_COLORS[asp['aspect']]
+        ax.plot([lon1, lon2], [0.85, 0.85], color=color, linewidth=1.5, alpha=0.7)
+
+    plt.savefig(filename, bbox_inches='tight', dpi=150)
+    plt.close()
+
+def generate_aspects_table(aspect_list):
+    html = "<table><tr><th>Планета 1</th><th>Аспект</th><th>Планета 2</th><th>Градус</th></tr>"
+    for a in aspect_list:
+        html += f"<tr><td>{a['planet1']}</td><td>{a['aspect']}</td><td>{a['planet2']}</td><td>{a['degree']}</td></tr>"
+    html += "</table>"
+    return html
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
+    data = request.json
     try:
-        data = request.json
-        date_in = data['date']   # YYYY-MM-DD
-        time_in = data['time']   # HH:MM
-        place = data['place']
-
-        # --- Геокодування ---
-        geolocator = Nominatim(user_agent="astro_app")
-        location = geolocator.geocode(place)
-        if location:
-            lat, lon = location.latitude, location.longitude
-        else:
-            lat, lon = 50.45, 30.52  # fallback Київ
-
-        tf = TimezoneFinder()
-        timezone_str = tf.timezone_at(lng=lon, lat=lat)
-        if not timezone_str:
-            timezone_str = "Europe/Kiev"
-        tz = pytz.timezone(timezone_str)
-
-        dt_native = datetime.datetime.strptime(f"{date_in} {time_in}", "%Y-%m-%d %H:%M")
-        offset = tz.utcoffset(dt_native)
-        tz_offset_hours = int(offset.total_seconds() / 3600)
-        tz_str = f"{tz_offset_hours:+03d}:00"
-
-        date_str = dt_native.strftime("%Y/%m/%d")
-        time_str = dt_native.strftime("%H:%M")
-        dt = Datetime(date_str, time_str, tz_str)
+        dt_str = data['datetime']  # 'YYYY-MM-DD HH:MM'
+        location = data['location']  # city name
+        lat, lon, tz = geocode_location(location)
+        dt_obj = Datetime(dt_str.split()[0], dt_str.split()[1], tz.zone)
         pos = GeoPos(lat, lon)
-        chart = Chart(dt, pos, hsys=const.HOUSES_PLACIDUS)  # Placidus
-        
-        # --- Фігура ---
-        fig, ax = plt.subplots(figsize=(8, 8))
-        ax.set_xlim(-1, 1)
-        ax.set_ylim(-1, 1)
-        ax.axis('off')
+        chart = Chart(dt_obj, pos, hsys='P')  # Placidus
 
-        # --- Кола будинків ---
-        for i in range(12):
-            ax.add_patch(plt.Circle((0, 0), 1 - i*0.08, fill=True, color=HOUSES_COLORS[i], alpha=0.3))
-
-        # --- Коло знаків зодіаку ---
-        for i, sign in enumerate(ZODIAC_SIGNS):
-            angle = i * 30 + 15  # центр знаку
-            x = 1.05 * np.cos(np.radians(angle))
-            y = 1.05 * np.sin(np.radians(angle))
-            ax.text(x, y, sign, ha='center', va='center', fontsize=10, fontweight='bold', color='darkblue')
-
-        # --- Логотип Albireo Daria ---
-        ax.text(0, 1.15, 'Albireo Daria', ha='center', va='center', fontsize=14, fontweight='bold', color='purple')
-
-        # --- Планети у правильних секторах ---
-        for obj in chart.objects:
-            sign_degree = obj.lon % 30       # градус у знаку
-            x = 0.7 * np.cos(np.radians(obj.lon))
-            y = 0.7 * np.sin(np.radians(obj.lon))
-            ax.text(x, y, f"{obj.id}\n{sign_degree:.1f}°", color=PLANET_COLORS.get(obj.id, 'black'),
-                    fontsize=12, fontweight='bold', ha='center', va='center')
-
-        # --- Критичні точки Asc і MC ---
-        asc = chart.get(const.ASC)
-        mc = chart.get(const.MC)
-
-        x_asc = 0.9 * np.cos(np.radians(asc.lon))
-        y_asc = 0.9 * np.sin(np.radians(asc.lon))
-        ax.text(x_asc, y_asc, 'Асцендент\n{:.1f}°'.format(asc.lon), color='darkgreen', fontsize=11,
-        fontweight='bold', ha='center', va='center')
-
-        x_mc = 0.9 * np.cos(np.radians(mc.lon))
-        y_mc = 0.9 * np.sin(np.radians(mc.lon))
-        ax.text(x_mc, y_mc, 'Середина неба\n{:.1f}°'.format(mc.lon), color='darkred', fontsize=11,
-                fontweight='bold', ha='center', va='center')
-
-        # --- Аспекти з дугами (коротші дуги, якщо перетинають 0°) ---
-        for asp in _get_aspects(chart):
-            p1 = chart.get(asp.p1)
-            p2 = chart.get(asp.p2)
-            theta1 = np.radians(p1.lon)
-            theta2 = np.radians(p2.lon)
-            if theta2 < theta1:
-               theta2 += 2 * np.pi  # завжди коротша дуга
-            arc = np.linspace(theta1, theta2, 100)
-            r = 0.65
-            x_arc = r * np.cos(arc)
-            y_arc = r * np.sin(arc)
-            ax.plot(x_arc, y_arc, color=ASPECT_COLORS.get(asp.type, 'grey'), linewidth=1.5)
-            chart_path = "chart.png"
-            plt.savefig(chart_path, bbox_inches='tight', dpi=150)
-            plt.close(fig)
-
-        # --- Таблиця аспектів ---
-        aspects_table = "<table><tr><th>Планета 1</th><th>Аспект</th><th>Планета 2</th><th>Градус</th></tr>"
-        for asp in _get_aspects(chart):
-            aspects_table += f"<tr style='color:{ASPECT_COLORS.get(asp.type,'black')}'><td>{asp.p1}</td><td>{asp.type}</td><td>{asp.p2}</td><td>{asp.orb:.1f}</td></tr>"
-        aspects_table += "</table>"
+        aspects_list = get_aspects(chart)
+        draw_chart(chart, 'chart.png')
+        table_html = generate_aspects_table(aspects_list)
 
         return jsonify({
-            "chart_image_url": f"/chart.png",
-            "aspects_table_html": aspects_table
+            'aspects_table_html': table_html,
+            'chart_image_url': '/chart.png'
         })
-
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 400
 
 @app.route('/chart.png')
-def chart_image():
-    return send_file("chart.png", mimetype='image/png')
+def chart_png():
+    if os.path.exists('chart.png'):
+        return send_file('chart.png', mimetype='image/png')
+    return "No chart generated yet", 404
 
-@app.route('/health', methods=['GET'])
+@app.route('/health')
 def health():
-    return jsonify({"status": "ok"}), 200
+    return "Server is healthy", 200
 
 if __name__ == '__main__':
+    import os
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
