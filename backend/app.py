@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
@@ -12,7 +11,6 @@ from datetime import datetime, timedelta
 import math
 
 app = Flask(__name__)
-CORS(app)
 
 STATIC_FOLDER = os.path.join(os.path.dirname(__file__), "static")
 if not os.path.exists(STATIC_FOLDER):
@@ -20,17 +18,6 @@ if not os.path.exists(STATIC_FOLDER):
 
 geolocator = Nominatim(user_agent="astro_app")
 tf = TimezoneFinder()
-
-def create_datetime(date_str: str, time_str: str, tz_offset_hours: float = 3.0) -> Datetime:
-    try:
-        day, month, year = map(int, date_str.split('.'))
-        hour, minute = map(int, time_str.split(':'))
-        local_dt = datetime(year, month, day, hour, minute)
-        utc_dt = local_dt - timedelta(hours=tz_offset_hours)
-        dt = Datetime(utc_dt.year, utc_dt.month, utc_dt.day, utc_dt.hour, utc_dt.minute)
-        return dt
-    except Exception as e:
-        raise ValueError(f"Error creating Datetime: {str(e)}")
 
 def get_planet_positions(chart):
     positions = {}
@@ -74,55 +61,54 @@ def draw_chart(planet_positions, place):
 def generate_chart():
     try:
         data = request.json
-        first_name = data.get("firstName", "")
-        last_name = data.get("lastName", "")
-        date = data.get("date")
-        time = data.get("time")
-        place = data.get("place")
+        date_str = data.get("date")
+        time_str = data.get("time")
+        place_str = data.get("place")
 
-        # Отримуємо геопозицію
-        location = geolocator.geocode(place)
+        # Геокодинг
+        location = geolocator.geocode(place_str)
         if not location:
-            return jsonify({"error": f"Місто '{place}' не знайдено", "status": "stub"}), 400
+            return jsonify({"error": f"Місто '{place_str}' не знайдено", "chart_image_url": "/static/chart.png", "status": "stub"}), 400
         lat, lon = location.latitude, location.longitude
-        geopos = GeoPos(lat, lon)
+        geopos = GeoPos(float(lat), float(lon))
 
-        # Визначаємо часовий пояс
+        # Часовий пояс
         tz_name = tf.timezone_at(lat=lat, lng=lon)
-        tz_offset_hours = 3.0  # дефолт +3, можна замінити на обчислений через pytz
-        dt = create_datetime(date, time, tz_offset_hours)
+        if not tz_name:
+            tz_name = "UTC"
+
+        tz_offset_hours = timedelta(seconds=pytz.timezone(tz_name).utcoffset(datetime.utcnow()).total_seconds()).total_seconds()/3600
+
+        # Парсимо дату та час
+        day, month, year = map(int, date_str.split('.'))
+        hour, minute = map(int, time_str.split(':'))
+
+        # Локальний час -> UTC
+        local_dt = datetime(year, month, day, hour, minute)
+        utc_dt = local_dt - timedelta(hours=tz_offset_hours)
+
+        # Правильний виклик Datetime
+        dt = Datetime(utc_dt.year, utc_dt.month, utc_dt.day, utc_dt.hour, utc_dt.minute)
 
         # Створюємо натальну карту
         chart = Chart(dt, geopos)
 
-        # Отримуємо позиції планет
         planet_positions = get_planet_positions(chart)
-
-        # Малюємо картинку
-        chart_file = draw_chart(planet_positions, place)
+        chart_file = draw_chart(planet_positions, place_str)
 
         return jsonify({
-            "firstName": first_name,
-            "lastName": last_name,
-            "date": date,
-            "time": time,
-            "place": place,
             "chart_image_url": "/static/chart.png",
             "error": None,
             "status": "ok"
         })
 
     except Exception as e:
-        return jsonify({
-            "chart_image_url": "/static/chart.png",
-            "error": str(e),
-            "status": "stub"
-        }), 500
+        return jsonify({"chart_image_url": "/static/chart.png", "error": str(e), "status": "stub"}), 500
 
-@app.route("/health", methods=["GET"])
+@app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "ok"}), 200
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host='0.0.0.0', port=port)
