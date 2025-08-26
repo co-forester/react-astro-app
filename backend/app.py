@@ -1,124 +1,122 @@
 import os
+import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
-from flatlib import const
+from flatlib import aspects, const
+from geopy.geocoders import Nominatim
+from timezonefinder import TimezoneFinder
+import pytz
 import matplotlib.pyplot as plt
-import math
+from PIL import Image
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
 CORS(app)
 
-def parse_datetime(date_str, time_str):
-    try:
-        year, month, day = map(int, date_str.split('-'))
-        hour, minute = map(int, time_str.split(':'))
-        return Datetime(year, month, day, hour, minute)
-    except Exception as e:
-        raise ValueError(f"Invalid date/time format: {str(e)}")
+@app.route('/health')
+def health():
+    return "Server is healthy", 200
 
 @app.route('/generate', methods=['POST'])
-def generate_chart():
+def generate():
+    data = request.get_json()
+    first_name = data.get('firstName')
+    last_name = data.get('lastName')
+    date = data.get('date')  # YYYY-MM-DD
+    time = data.get('time')  # HH:MM
+    place = data.get('place')  # City, Country
+
+    # Геокодування
+    geolocator = Nominatim(user_agent="natal_chart_app")
+    location = geolocator.geocode(place)
+    if not location:
+        return jsonify({'error': 'Place not found'}), 400
+
+    lat, lon = location.latitude, location.longitude
+
+    # Часовий пояс
+    tf = TimezoneFinder()
+    tz_str = tf.timezone_at(lng=lon, lat=lat)
+    if not tz_str:
+        return jsonify({'error': 'Timezone not found'}), 400
+
+    # Створюємо Datetime для Flatlib
     try:
-        data = request.get_json()
-        first_name = data.get('firstName', '')
-        last_name = data.get('lastName', '')
-        date_str = data.get('date', '')
-        time_str = data.get('time', '')
-        place_str = data.get('place', '')
+        tz = pytz.timezone(tz_str)
+        offset = tz.utcoffset(pytz.datetime.datetime.now())
+        hours_offset = float(offset.total_seconds() / 3600) if offset else 0
+        dt = Datetime(date.replace('-', '/'), time, hours_offset)
+    except Exception as e:
+        return jsonify({'error': f'Invalid date/time format: {str(e)}'}), 400
 
-        # Для простоти: geocoding через Flatlib GeoPos можна реалізувати через словник міст
-        cities = {
-            "Mykolaiv, Ukraine": (46.9753, 31.9946)
-        }
-        if place_str not in cities:
-            return jsonify({'error': 'Unknown place'}), 400
+    geo = GeoPos(lat, lon)
 
-        lat, lon = cities[place_str]
-
-        dt = parse_datetime(date_str, time_str)
-        pos = GeoPos(lat, lon)
-
-        chart = Chart(dt, pos)
-
-        # Збираємо позиції планет
-        points = {}
-        for obj in const.PLANETS:
-            try:
-                points[obj] = {'lon': chart.get(obj).lon}
-            except:
-                continue
-
-        # Створюємо список аспектів
-        asp_list = []
-        for i, obj1 in enumerate(const.PLANETS):
-            for obj2 in const.PLANETS[i+1:]:
-                try:
-                    aspect = chart.aspect(obj1, obj2)
-                    if aspect:
-                        asp_list.append({'obj1': obj1, 'obj2': obj2, 'type': aspect.type})
-                except:
-                    continue
-
-        # Малюємо натальну карту
-        try:
-            fig, ax = plt.subplots(figsize=(8, 8))
-            ax.set_xlim(-1.2, 1.2)
-            ax.set_ylim(-1.2, 1.2)
-            ax.axis('off')
-
-            # Коло знаків
-            SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-                     'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
-            colors = ['#FF9999','#FFCC99','#FFFF99','#CCFF99','#99FF99','#99FFFF',
-                      '#99CCFF','#9999FF','#CC99FF','#FF99FF','#FF99CC','#FF6666']
-
-            for i, sign in enumerate(SIGNS):
-                angle = i * 30
-                rad = math.radians(angle)
-                x = 1.1 * math.cos(rad)
-                y = 1.1 * math.sin(rad)
-                ax.text(x, y, sign, ha='center', va='center', color=colors[i], fontsize=10, fontweight='bold')
-
-            # Планети на колі
-            for p, info in points.items():
-                if 'lon' in info:
-                    rad = math.radians(info['lon'])
-                    x = 0.9 * math.cos(rad)
-                    y = 0.9 * math.sin(rad)
-                    ax.plot(x, y, 'o', markersize=10, label=p)
-                    ax.text(x*1.05, y*1.05, p, fontsize=9)
-
-            # Аспекти лініями
-            for a in asp_list:
-                obj1 = points.get(a['obj1'])
-                obj2 = points.get(a['obj2'])
-                if obj1 and 'lon' in obj1 and obj2 and 'lon' in obj2:
-                    rad1 = math.radians(obj1['lon'])
-                    rad2 = math.radians(obj2['lon'])
-                    x1, y1 = 0.9*math.cos(rad1), 0.9*math.sin(rad1)
-                    x2, y2 = 0.9*math.cos(rad2), 0.9*math.sin(rad2)
-                    ax.plot([x1,x2],[y1,y2], linestyle='--', color='gray', linewidth=0.8)
-
-            plt.savefig('chart.png', bbox_inches='tight', dpi=150)
-            plt.close(fig)
-        except Exception as e:
-            return jsonify({'error': f'Error drawing chart: {str(e)}'}), 500
-
-        return jsonify({
-            'firstName': first_name,
-            'lastName': last_name,
-            'date': date_str,
-            'time': time_str,
-            'place': place_str,
-            'planets': points,
-            'aspects': asp_list,
-            'chartImage': '/chart.png'
-        })
+    # Створюємо карту
+    try:
+        chart = Chart(dt, geo, hsys='P')  # Placidus
     except Exception as e:
         return jsonify({'error': f'Error creating chart: {str(e)}'}), 500
+
+    # Планети та важливі точки
+    planets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto']
+    points = {}
+    for p in planets:
+        try:
+            obj = chart.get(p)
+            points[p] = {
+                'sign': obj.sign,
+                'lon': obj.lon
+            }
+        except Exception as e:
+            points[p] = {'error': str(e)}
+
+    # Асцендент і Середина Неба
+    try:
+        points['Asc'] = chart.get('Asc').sign
+        points['MC'] = chart.get('MC').sign
+    except Exception as e:
+        points['Asc'] = points['MC'] = {'error': str(e)}
+
+    # Аспекти
+    asp_list = []
+    try:
+        for a in aspects.getAspectList(chart, planets):
+            asp_list.append({
+                'type': a.type,
+                'obj1': a.obj1.id,
+                'obj2': a.obj2.id,
+                'exact': a.isExact()
+            })
+    except Exception as e:
+        asp_list.append({'error': str(e)})
+
+    # Малюємо карту
+    try:
+        fig, ax = plt.subplots(figsize=(8,8))
+        ax.axis('off')
+
+        # Коло знаків зодіаку
+        for i, sign in enumerate(const.SIGNS):
+            angle = i * (360/12)
+            ax.text(angle, 1.05, sign, ha='center', va='center', rotation=angle, transform=ax.transAxes)
+
+        # TODO: додати логотип та інші елементи по колу
+        plt.savefig('chart.png', bbox_inches='tight')
+        plt.close(fig)
+    except Exception as e:
+        return jsonify({'error': f'Error drawing chart: {str(e)}'}), 500
+
+    return jsonify({
+        'firstName': first_name,
+        'lastName': last_name,
+        'planets': points,
+        'aspects': asp_list,
+        'chartUrl': '/chart.png'
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
