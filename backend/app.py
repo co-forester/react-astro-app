@@ -109,23 +109,24 @@ def generate_aspects_table(aspect_list):
 def generate_chart():
     data = request.json
     try:
-        dt_str = data['datetime']  # формат 'YYYY-MM-DD HH:MM'
-        location = data['location']  # назва міста
+        dt_str = data.get('datetime')  # формат 'YYYY-MM-DD HH:MM'
+        location = data.get('location')  # назва міста
 
-        # Розбираємо дату і час через datetime.strptime
-        dt_parsed = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+        if not dt_str or not location:
+            raise ValueError("Missing 'datetime' or 'location' field")
 
-        year = dt_parsed.year
-        month = dt_parsed.month
-        day = dt_parsed.day
-        hour = dt_parsed.hour
-        minute = dt_parsed.minute
+        # Правильний розбір datetime
+        dt_parsed = datetime.strptime(dt_str, '%Y-%m-%d %H:%M')
 
         # Отримуємо координати та часовий пояс
         lat, lon, tz = geocode_location(location)
 
-        # Створюємо об'єкт Datetime Flatlib
-        dt_obj = Datetime(year, month, day, hour, minute, 0, tz.zone)
+        # Конвертуємо в Flatlib Datetime з таймзоною
+        dt_obj = Datetime(
+            dt_parsed.year, dt_parsed.month, dt_parsed.day,
+            dt_parsed.hour, dt_parsed.minute, 0,
+            tz.zone
+        )
 
         # Позиція
         pos = GeoPos(lat, lon)
@@ -163,4 +164,3 @@ def health():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
-    
