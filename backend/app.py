@@ -46,6 +46,20 @@ HOUSES_COLORS = [
     '#e65100', '#ffccbc', '#ffab91', '#ff8a65'
 ]
 
+# ---------- Лише фікс сумісності аспектів ----------
+def _get_aspects(chart):
+    """Сумісний виклик аспектів для різних версій flatlib."""
+    try:
+        # деякі версії
+        return aspects.getAspects(chart)
+    except AttributeError:
+        # інші версії
+        try:
+            return aspects.getAspectsList(chart, aspects.MAJOR_ASPECTS)
+        except Exception:
+            return []
+# ---------------------------------------------------
+
 @app.route('/generate', methods=['POST'])
 def generate_chart():
     try:
@@ -100,7 +114,7 @@ def generate_chart():
             ax.text(x, y, obj.id, color=PLANET_COLORS.get(obj.id, 'black'), fontsize=12, fontweight='bold')
 
         # Аспекти
-        for asp in aspects.getAspects(chart):
+        for asp in _get_aspects(chart):
             p1 = chart.get(asp.p1)
             p2 = chart.get(asp.p2)
             x1 = 0.7 * np.cos(np.radians(p1.lon))
@@ -115,7 +129,7 @@ def generate_chart():
 
         # HTML таблиця аспектів
         aspects_table = "<table><tr><th>Планета 1</th><th>Аспект</th><th>Планета 2</th><th>Градус</th></tr>"
-        for asp in aspects.getAspects(chart):
+        for asp in _get_aspects(chart):
             aspects_table += f"<tr style='color:{ASPECT_COLORS.get(asp.type,'black')}'><td>{asp.p1}</td><td>{asp.type}</td><td>{asp.p2}</td><td>{asp.orb:.1f}</td></tr>"
         aspects_table += "</table>"
 
