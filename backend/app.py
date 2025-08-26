@@ -13,7 +13,6 @@ app = Flask(__name__)
 CORS(app)
 
 def create_datetime(date_str: str, time_str: str):
-    # Перевірка формату дати
     if not date_str or len(date_str.split('.')) != 3:
         raise ValueError(f"Неправильний формат дати: очікується dd.mm.yyyy, отримано '{date_str}'")
     if not time_str or len(time_str.split(':')) != 2:
@@ -21,7 +20,7 @@ def create_datetime(date_str: str, time_str: str):
     try:
         day, month, year = map(int, date_str.split('.'))
         hour, minute = map(int, time_str.split(':'))
-        dt = Datetime(year, month, day, hour, minute, tz='Europe/Kiev')
+        dt = Datetime(year, month, day, hour, minute, 3)  # +3 години для Києва
         return dt
     except Exception as e:
         raise ValueError(f"Error creating Datetime: {str(e)}")
@@ -57,7 +56,7 @@ def generate_chart():
         return jsonify({'error': f'Error creating GeoPos: {str(e)}'}), 500
 
     try:
-        dt = create_datetime(date_str, time_str, "+03:00")
+        dt = create_datetime(date_str, time_str)
     except Exception as e:
         logging.error(f"Error creating Datetime: {str(e)}")
         return jsonify({'error': f'Error creating Datetime: {str(e)}'}), 500
