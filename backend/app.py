@@ -60,17 +60,18 @@ def draw_chart(planet_positions, place):
 
 def create_flatlib_datetime(date_str, time_str, tz_name):
     """
-    date_str: 'yyyy-mm-dd'
+    date_str: 'dd.mm.yyyy'
     time_str: 'HH:MM'
     tz_name: часовий пояс, наприклад 'Europe/Kiev'
     """
     try:
-        year, month, day = map(int, date_str.split('-'))
+        day, month, year = map(int, date_str.split('.'))
         hour, minute = map(int, time_str.split(':'))
 
         tz = pytz.timezone(tz_name)
         naive_dt = datetime(year, month, day, hour, minute)
         aware_dt = tz.localize(naive_dt)
+
         # UTC-offset у годинах
         offset_hours = aware_dt.utcoffset().total_seconds() / 3600.0
 
