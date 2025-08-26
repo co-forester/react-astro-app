@@ -1,106 +1,99 @@
-/* Контейнер */
+/* Основний контейнер форми */
 .formContainer {
-  background-color: var(--bg-block);
+  background-color: var(--bg-form);
   border-radius: 16px;
   padding: 2rem;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
   transition: all 0.3s ease;
-}
-.formContainer:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-
-/* Поля */
-.formInput {
-  padding: 0.9rem 1.2rem;
-  border-radius: 12px;
-  border: 1px solid #ccc;
-  transition: all 0.3s ease;
-  font-size: 1rem;
-  background-color: #fff;
-}
-.formInput:focus {
-  border-color: var(--accent-color);
-  outline: none;
-  box-shadow: 0 0 10px rgba(0,0,0,0.08);
+  margin-bottom: 2rem;
 }
 
-/* Плейсхолдер */
-.formInput::placeholder {
-  color: #aaa;
-  font-style: italic;
+/* Темна/світла тема */
+.light {
+  --bg-form: #ffffff;
+  --input-bg: #f8f8f8;
+  --text-color: #222222;
+  --highlight: #f67e7d;
 }
 
-/* Кнопка */
-.formButton {
-  background-color: var(--accent-color);
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  padding: 0.9rem 1.5rem;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
+.dark {
+  --bg-form: #1f1f1f;
+  --input-bg: #2a2a2a;
+  --text-color: #e0e0e0;
+  --highlight: #f67e7d;
+}
+
+/* Заголовок форми */
+.formHeader {
+  font-size: 1.5rem;
   font-weight: 600;
-}
-.formButton:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-.formButton:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* Картинка */
-.chartContainer { margin-top: 1.5rem; display: flex; justify-content: center; }
-.chartContainer img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 16px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease;
-}
-.chartContainer img:hover { transform: scale(1.02); }
-
-/* Таблиця аспектів */
-.aspectsTable {
-  margin-top: 2rem;
-  background: var(--bg-block);
-  border-radius: 12px;
-  overflow-x: auto;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-}
-
-.aspectsTable table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-}
-
-.aspectsTable th, .aspectsTable td {
-  padding: 0.7rem 1rem;
-  border: 1px solid rgba(0,0,0,0.1);
+  color: var(--text-color);
+  margin-bottom: 1.5rem;
   text-align: center;
 }
 
-.aspectsTable th {
-  background: var(--accent-color);
+/* Поля вводу */
+.inputField {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  transition: all 0.3s ease;
+}
+
+.inputField:focus {
+  border-color: var(--highlight);
+  outline: none;
+  box-shadow: 0 0 8px rgba(246, 126, 125, 0.4);
+}
+
+/* Кнопка генерації */
+.generateButton {
+  display: block;
+  width: 100%;
+  padding: 0.9rem;
+  border: none;
+  border-radius: 12px;
+  background: var(--highlight);
   color: #fff;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
 }
 
-.aspectsTable tr:nth-child(even) {
-  background: rgba(0,0,0,0.03);
+.generateButton:hover {
+  background: #f45654;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(246, 126, 125, 0.4);
 }
 
-/* Анімації */
-.fadeInForm { animation: fadeIn 0.8s ease forwards; }
-.fadeInUpForm { opacity: 0; transform: translateY(20px); animation: fadeInUp 0.8s ease forwards; }
+/* Анімація появи (сумісна з Home) */
+.fadeIn {
+  animation: fadeIn 0.8s ease forwards;
+}
 
-@keyframes fadeIn { 0% {opacity:0;} 100% {opacity:1;} }
-@keyframes fadeInUp { 0% {opacity:0; transform:translateY(20px);} 100% {opacity:1; transform:translateY(0);} }
+.fadeInUp {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 0.8s ease forwards;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Плавний підйом при наведенні */
+.formContainer:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
