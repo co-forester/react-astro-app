@@ -58,6 +58,22 @@ def draw_chart(planet_positions, place):
     plt.close(fig)
     return chart_file
 
+def create_datetime(date_str: str, time_str: str, tz_offset_hours: float = 3.0):
+    """
+    Створює Flatlib Datetime із правильними аргументами без зайвих позиційних параметрів.
+    date_str: 'dd.mm.yyyy'
+    time_str: 'HH:MM'
+    tz_offset_hours: зсув від UTC
+    """
+    try:
+        day, month, year = map(int, date_str.split('.'))
+        hour, minute = map(int, time_str.split(':'))
+        local_dt = datetime(year, month, day, hour, minute)
+        utc_dt = local_dt - timedelta(hours=tz_offset_hours)
+        return Datetime(utc_dt.year, utc_dt.month, utc_dt.day, utc_dt.hour, utc_dt.minute)
+    except Exception as e:
+        raise ValueError(f"Error creating Datetime: {str(e)}")
+
 @app.route("/generate", methods=["POST"])
 def generate_chart():
     try:
@@ -77,19 +93,12 @@ def generate_chart():
         tz_name = tf.timezone_at(lat=lat, lng=lon)
         if not tz_name:
             tz_name = "UTC"
+        tz = pytz.timezone(tz_name)
+        now = datetime.utcnow()
+        offset_hours = tz.utcoffset(now).total_seconds() / 3600.0
 
-        tz_offset_hours = timedelta(seconds=pytz.timezone(tz_name).utcoffset(datetime.utcnow()).total_seconds()).total_seconds()/3600
-
-        # Парсимо дату та час
-        day, month, year = map(int, date_str.split('.'))
-        hour, minute = map(int, time_str.split(':'))
-
-        # Локальний час -> UTC
-        local_dt = datetime(year, month, day, hour, minute)
-        utc_dt = local_dt - timedelta(hours=tz_offset_hours)
-
-        # Правильний виклик Datetime
-        dt = Datetime(utc_dt.year, utc_dt.month, utc_dt.day, utc_dt.hour, utc_dt.minute)
+        # Створюємо Datetime для Flatlib
+        dt = create_datetime(date_str, time_str, tz_offset_hours=offset_hours)
 
         # Створюємо натальну карту
         chart = Chart(dt, geopos)
