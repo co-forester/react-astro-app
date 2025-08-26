@@ -12,12 +12,12 @@ import logging
 app = Flask(__name__)
 CORS(app)
 
-def create_datetime(date_str, time_str):
+def create_datetime(date_str: str, time_str: str):
     try:
-        dt = Datetime(f"{date_str} {time_str}", tz='Europe/Kiev')
-        return dt
+        dt = create_datetime(date_str, time_str)
     except Exception as e:
-        raise ValueError(f"Error creating Datetime: {str(e)}")
+        logging.error(f"Error creating Datetime: {str(e)}")
+        return jsonify({'error': f'Error creating Datetime: {str(e)}'}), 500
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
