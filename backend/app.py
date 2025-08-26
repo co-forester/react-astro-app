@@ -39,38 +39,13 @@ def create_datetime(date_str: str, time_str: str, tz_offset_hours: float = 3.0) 
         raise ValueError(f"Error creating Datetime: {str(e)}")
 
 @app.route('/generate', methods=['POST'])
-def generate_chart():
+def create_datetime(date_str: str, time_str: str, tz_offset: float):
     try:
-        data = request.get_json()
-        logging.info("Received JSON data successfully")
+        day, month, year = map(int, date_str.split('.'))
+        hour, minute = map(int, time_str.split(':'))
+        return Datetime(year, month, day, hour, minute, tzoffset=tz_offset)
     except Exception as e:
-        logging.error(f"Error parsing JSON: {str(e)}")
-        return jsonify({'error': f'Error parsing JSON: {str(e)}'}), 400
-
-    first_name = data.get('firstName', '')
-    last_name = data.get('lastName', '')
-    date_str = data.get('date', '')
-    time_str = data.get('time', '')
-    place_str = data.get('place', '')
-
-    try:
-        # Простий geocoding через словник міст з нормалізацією
-        cities = {
-            "Mykolaiv, Ukraine": (46.9753, 31.9946)
-        }
-        place_str_normalized = place_str.strip().lower()
-        cities_normalized = {k.lower(): v for k, v in cities.items()}
-
-        if place_str_normalized not in cities_normalized:
-            logging.error("Unknown place: " + place_str)
-            return jsonify({'error': 'Unknown place'}), 400
-
-        lat, lon = cities_normalized[place_str_normalized]
-        pos = GeoPos(lat, lon)
-        logging.info(f"Created GeoPos for place {place_str}: lat={lat}, lon={lon}")
-    except Exception as e:
-        logging.error(f"Error creating GeoPos: {str(e)}")
-        return jsonify({'error': f'Error creating GeoPos: {str(e)}'}), 500
+        raise ValueError(f"Error creating Datetime: {str(e)}")
 
     try:
         dt = create_datetime(date_str, time_str, tz_offset_hours=3.0)
