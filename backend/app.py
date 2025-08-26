@@ -46,10 +46,11 @@ def generate():
 
     # Створюємо Datetime для Flatlib
     try:
+        import datetime
+        dt_naive = datetime.datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
         tz = pytz.timezone(tz_str)
-        offset = tz.utcoffset(pytz.datetime.datetime.now())
-        hours_offset = float(offset.total_seconds() / 3600) if offset else 0
-        dt = Datetime(date.replace('-', '/'), time, hours_offset)
+        offset_hours = tz.utcoffset(dt_naive).total_seconds() / 3600
+        dt = Datetime(date.replace('-', '/'), time, offset_hours)
     except Exception as e:
         return jsonify({'error': f'Invalid date/time format: {str(e)}'}), 400
 
@@ -57,7 +58,7 @@ def generate():
 
     # Створюємо карту
     try:
-        chart = Chart(dt, geo, hsys='P')  # Placidus
+        chart = Chart(dt, geo, hsys=const.PLACIDUS)  # виправлено hsys
     except Exception as e:
         return jsonify({'error': f'Error creating chart: {str(e)}'}), 500
 
@@ -99,8 +100,11 @@ def generate():
         fig, ax = plt.subplots(figsize=(8,8))
         ax.axis('off')
 
+        # Власний список знаків
+        SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces']
+
         # Коло знаків зодіаку
-        for i, sign in enumerate(const.SIGNS):
+        for i, sign in enumerate(SIGNS):
             angle = i * (360/12)
             ax.text(angle, 1.05, sign, ha='center', va='center', rotation=angle, transform=ax.transAxes)
 
