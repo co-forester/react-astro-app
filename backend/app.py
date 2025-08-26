@@ -13,20 +13,27 @@ import logging
 app = Flask(__name__)
 CORS(app)
 
-def create_datetime(date_str: str, time_str: str, tz_offset_hours: int = 3):
+def create_datetime(date_str: str, time_str: str, tz_offset_hours: float = 3.0) -> Datetime:
     """
-    Створює Flatlib Datetime без передавання зайвих аргументів.
-    Застосовує зсув у годинах окремо.
+    Створює об'єкт Flatlib Datetime з урахуванням часової зони.
+
+    date_str: 'dd.mm.yyyy'
+    time_str: 'hh:mm'
+    tz_offset_hours: зсув від UTC в годинах, може бути float
     """
     try:
+        # Розбиваємо дату і час
         day, month, year = map(int, date_str.split('.'))
         hour, minute = map(int, time_str.split(':'))
-        # Локальний час
-        dt_local = datetime(year, month, day, hour, minute)
-        # Переводимо в UTC
-        dt_utc = dt_local - timedelta(hours=tz_offset_hours)
-        # Передаємо лише 5 аргументів: year, month, day, hour, minute
-        dt = Datetime(dt_utc.year, dt_utc.month, dt_utc.day, dt_utc.hour, dt_utc.minute)
+
+        # Створюємо datetime у локальному часі
+        local_dt = datetime(year, month, day, hour, minute)
+
+        # Переводимо у UTC
+        utc_dt = local_dt - timedelta(hours=tz_offset_hours)
+
+        # Flatlib Datetime очікує аргументи: рік, місяць, день, година, хвилина
+        dt = Datetime(utc_dt.year, utc_dt.month, utc_dt.day, utc_dt.hour, utc_dt.minute)
         return dt
     except Exception as e:
         raise ValueError(f"Error creating Datetime: {str(e)}")
@@ -66,7 +73,7 @@ def generate_chart():
         return jsonify({'error': f'Error creating GeoPos: {str(e)}'}), 500
 
     try:
-        dt = create_datetime(date_str, time_str, tz_offset_hours=3)
+        dt = create_datetime(date_str, time_str, tz_offset_hours=3.0)
     except Exception as e:
         logging.error(f"Error creating Datetime: {str(e)}")
         return jsonify({'error': f'Error creating Datetime: {str(e)}'}), 500
