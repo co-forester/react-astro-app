@@ -106,24 +106,36 @@ def generate_aspects_table(aspect_list):
     return html
 
 @app.route('/generate', methods=['POST'])
-def generate_chart_route():
+def generate_chart():
     data = request.json
     try:
-        dt_str = data['datetime']  # 'YYYY-MM-DD HH:MM'
-        location = data['location']  # city name
+        dt_str = data['datetime']  # формат 'YYYY-MM-DD HH:MM'
+        location = data['location']  # назва міста
 
-        # Геокодування
+        # Розбираємо дату і час
+        date_part, time_part = dt_str.split()  # '1972-12-06', '01:25'
+        year, month, day = map(int, date_part.split('-'))
+        hour, minute = map(int, time_part.split(':'))
+
+        # Отримуємо координати та часовий пояс
         lat, lon, tz = geocode_location(location)
 
-        # Парсинг дати і часу через стандартний datetime
-        date_part, time_part = dt_str.split()
-        dt_python = datetime.strptime(f"{date_part} {time_part}", "%Y-%m-%d %H:%M")
-        dt_obj = Datetime(dt_python.strftime("%Y-%m-%d"), dt_python.strftime("%H:%M"), tz.zone)
+        # Створюємо об'єкт Datetime Flatlib
+        dt_obj = Datetime(year, month, day, hour, minute, 0, tz.zone)
 
+        # Позиція
         pos = GeoPos(lat, lon)
-        chart = Chart(dt, pos, hsys=const.HOUSES_PLACIDUS)  # Placidus
+
+        # Створюємо натальну карту
+        chart = Chart(dt_obj, pos, hsys='P')  # Placidus
+
+        # Аспекти
         aspects_list = get_aspects(chart)
+
+        # Малюємо карту
         draw_chart(chart, 'chart.png')
+
+        # Генеруємо HTML таблицю аспектів
         table_html = generate_aspects_table(aspects_list)
 
         return jsonify({
