@@ -1,17 +1,20 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
 from flatlib import const
 import matplotlib.pyplot as plt
+import math
 import os
+import logging
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
-from datetime import datetime, timedelta
-import math
+from datetime import datetime
 
 app = Flask(__name__)
+CORS(app)
 
 STATIC_FOLDER = os.path.join(os.path.dirname(__file__), "static")
 if not os.path.exists(STATIC_FOLDER):
@@ -19,6 +22,26 @@ if not os.path.exists(STATIC_FOLDER):
 
 geolocator = Nominatim(user_agent="astro_app")
 tf = TimezoneFinder()
+
+def create_flatlib_datetime(date_str, time_str, tz_name="Europe/Kiev"):
+    try:
+        # Розбиваємо дату і час
+        day, month, year = map(int, date_str.split('.'))
+        hour, minute = map(int, time_str.split(':'))
+
+        # Локальний datetime
+        tz = pytz.timezone(tz_name)
+        naive_dt = datetime(year, month, day, hour, minute)
+        aware_dt = tz.localize(naive_dt)
+
+        # UTC-offset у годинах
+        offset_hours = aware_dt.utcoffset().total_seconds() / 3600.0
+
+        # Flatlib Datetime
+        dt = Datetime(year, month, day, hour, minute, offset_hours)
+        return dt
+    except Exception as e:
+        raise ValueError(f"Error creating Datetime: {str(e)}")
 
 def get_planet_positions(chart):
     positions = {}
@@ -58,63 +81,57 @@ def draw_chart(planet_positions, place):
     plt.close(fig)
     return chart_file
 
-def create_flatlib_datetime(date_str, time_str, tz_name):
-    """
-    date_str: 'dd.mm.yyyy'
-    time_str: 'HH:MM'
-    tz_name: часовий пояс, наприклад 'Europe/Kiev'
-    """
-    try:
-        day, month, year = map(int, date_str.split('.'))
-        hour, minute = map(int, time_str.split(':'))
-
-        tz = pytz.timezone(tz_name)
-        naive_dt = datetime(year, month, day, hour, minute)
-        aware_dt = tz.localize(naive_dt)
-
-        # UTC-offset у годинах
-        offset_hours = aware_dt.utcoffset().total_seconds() / 3600.0
-
-        dt = Datetime(year, month, day, hour, minute, offset_hours)
-        return dt
-    except Exception as e:
-        raise ValueError(f"Error creating Datetime: {str(e)}")
-
 @app.route("/generate", methods=["POST"])
 def generate_chart():
     try:
         data = request.json
+        first_name = data.get("firstName", "")
+        last_name = data.get("lastName", "")
         date = data.get("date")
         time = data.get("time")
         place = data.get("place")
 
+        # Геопозиція
         location = geolocator.geocode(place)
         if not location:
             return jsonify({"error": f"Місто '{place}' не знайдено", "status": "stub"}), 400
-
-        lat, lon = float(location.latitude), float(location.longitude)
+        lat, lon = location.latitude, location.longitude
         geopos = GeoPos(lat, lon)
 
-        tz_name = tf.timezone_at(lat=lat, lng=lon) or "UTC"
+        # Часовий пояс
+        tz_name = tf.timezone_at(lat=lat, lng=lon)
+        if not tz_name:
+            tz_name = "UTC"
 
+        # Створюємо Flatlib Datetime
         dt = create_flatlib_datetime(date, time, tz_name)
 
+        # Chart
         chart = Chart(dt, geopos)
 
+        # Планети
         planet_positions = get_planet_positions(chart)
 
+        # Малюємо картинку
         chart_file = draw_chart(planet_positions, place)
 
-        return jsonify({"chart_image_url": "/static/chart.png", "error": None, "status": "ok"})
+        return jsonify({
+            "firstName": first_name,
+            "lastName": last_name,
+            "date": date,
+            "time": time,
+            "place": place,
+            "chart_image_url": "/static/chart.png",
+            "planet_positions": planet_positions,
+            "status": "ok"
+        })
 
     except Exception as e:
         return jsonify({"chart_image_url": "/static/chart.png", "error": str(e), "status": "stub"}), 500
 
-
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({"status": "ok"}), 200
-
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 8080))
