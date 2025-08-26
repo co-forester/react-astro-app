@@ -34,11 +34,12 @@ def create_flatlib_datetime(date_str, time_str, tz_name="Europe/Kiev"):
         naive_dt = datetime(year, month, day, hour, minute)
         aware_dt = tz.localize(naive_dt)
 
-        # UTC-offset у годинах
-        offset_hours = aware_dt.utcoffset().total_seconds() / 3600.0
+        # Обчислення UTC-offset у годинах (залишаємо для можливого логування або відлагодження)
+        offset = aware_dt.utcoffset()
+        offset_hours = offset.total_seconds() / 3600.0 if offset else 0
 
-        # Flatlib Datetime
-        dt = Datetime(year, month, day, hour, minute, offset_hours)
+        # Flatlib Datetime (тільки 5 позиційних аргументів)
+        dt = Datetime(aware_dt.year, aware_dt.month, aware_dt.day, aware_dt.hour, aware_dt.minute)
         return dt
     except Exception as e:
         raise ValueError(f"Error creating Datetime: {str(e)}")
