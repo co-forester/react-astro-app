@@ -13,8 +13,12 @@ app = Flask(__name__)
 CORS(app)
 
 def create_datetime(date_str: str, time_str: str):
+    # Перевірка формату дати
+    if not date_str or len(date_str.split('.')) != 3:
+        raise ValueError(f"Неправильний формат дати: очікується dd.mm.yyyy, отримано '{date_str}'")
+    if not time_str or len(time_str.split(':')) != 2:
+        raise ValueError(f"Неправильний формат часу: очікується hh:mm, отримано '{time_str}'")
     try:
-        # date_str у форматі "dd.mm.yyyy"
         day, month, year = map(int, date_str.split('.'))
         hour, minute = map(int, time_str.split(':'))
         dt = Datetime(year, month, day, hour, minute, tz='Europe/Kiev')
