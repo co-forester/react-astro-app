@@ -1,70 +1,118 @@
+/* Контейнер форми */
 .formContainer {
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  transition: background 0.4s ease, color 0.4s ease;
-}
-
-.light {
+  max-width: 450px;
+  margin: 2rem auto;
+  padding: 2rem;
   background: #ffffff;
-  color: #222222;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.dark {
-  background: #1e1e2f;
-  color: #f0f0f5;
+/* Вхідні поля */
+.formInput {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
 }
 
-.formHeader {
-  margin-bottom: 1rem;
-  font-size: 1.5rem;
+.formInput:focus {
+  outline: none;
+  border-color: #6c63ff;
+  box-shadow: 0 0 5px rgba(108, 99, 255, 0.5);
+}
+
+/* Кнопка форми */
+.formButton {
+  padding: 0.85rem 1.5rem;
+  background: #6c63ff;
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.formButton:hover {
+  background: #574fd1;
+  transform: translateY(-2px);
+}
+
+.formButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Контейнер для зображення карти */
+.chartContainer {
+  margin-top: 1.5rem;
   text-align: center;
 }
 
-.inputField {
+.chartContainer img {
+  max-width: 100%;
+  border-radius: 1rem;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Таблиця аспектів */
+.aspectsTable {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.aspectsTable table {
   width: 100%;
-  padding: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background: inherit;
-  color: inherit;
-  font-size: 1rem;
-  transition: border 0.3s ease, box-shadow 0.3s ease;
+  border-collapse: collapse;
 }
 
-.inputField:focus {
-  outline: none;
-  border-color: #ff8c42; /* підсвітка при фокусі */
-  box-shadow: 0 0 8px rgba(255, 140, 66, 0.5);
+.aspectsTable th,
+.aspectsTable td {
+  padding: 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
 }
 
-.generateButton {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  background: #ff8c42;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+.aspectsTable th {
+  background: #f5f5f5;
 }
 
-.generateButton:hover {
-  background: #ffb36e;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(255, 140, 66, 0.5);
+/* Анімації появи */
+.fadeInForm {
+  animation: fadeIn 0.6s ease forwards;
 }
 
-/* Анімація появи */
-.fadeInUp {
-  opacity: 0;
-  transform: translateY(20px);
-  animation: fadeInUp 0.8s ease forwards;
+.fadeInUpForm {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes fadeInUp {
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
