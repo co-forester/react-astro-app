@@ -6,6 +6,7 @@ from flatlib.geopos import GeoPos
 from flatlib import const
 import matplotlib.pyplot as plt
 import math
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -21,54 +22,70 @@ def parse_datetime(date_str, time_str):
 @app.route('/generate', methods=['POST'])
 def generate_chart():
     try:
-        data = request.get_json()
-        first_name = data.get('firstName', '')
-        last_name = data.get('lastName', '')
-        date_str = data.get('date', '')
-        time_str = data.get('time', '')
-        place_str = data.get('place', '')
+        try:
+            data = request.get_json()
+        except Exception as e:
+            return jsonify({'error': f'Error parsing JSON: {str(e)}'}), 400
 
-        # Для простоти: geocoding через Flatlib GeoPos можна реалізувати через словник міст
-        cities = {
-            "Mykolaiv, Ukraine": (46.9753, 31.9946)
-        }
-        if place_str not in cities:
-            return jsonify({'error': 'Unknown place'}), 400
+        try:
+            first_name = data.get('firstName', '')
+            last_name = data.get('lastName', '')
+            date_str = data.get('date', '')
+            time_str = data.get('time', '')
+            place_str = data.get('place', '')
+        except Exception as e:
+            return jsonify({'error': f'Error extracting data fields: {str(e)}'}), 400
 
-        lat, lon = cities[place_str]
+        try:
+            cities = {
+                "Mykolaiv, Ukraine": (46.9753, 31.9946)
+            }
+            if place_str not in cities:
+                return jsonify({'error': 'Unknown place'}), 400
+            lat, lon = cities[place_str]
+        except Exception as e:
+            return jsonify({'error': f'Error handling location: {str(e)}'}), 400
 
-        dt = parse_datetime(date_str, time_str)
-        pos = GeoPos(lat, lon)
+        try:
+            dt = parse_datetime(date_str, time_str)
+            pos = GeoPos(lat, lon)
+        except Exception as e:
+            return jsonify({'error': f'Error creating Datetime/GeoPos: {str(e)}'}), 400
 
-        chart = Chart(dt, geo, hsys='Placidus')  # Placidus
+        try:
+            chart = Chart(dt, pos, hsys='Placidus')  # Placidus
+        except Exception as e:
+            return jsonify({'error': f'Error creating chart: {str(e)}'}), 500
 
-        # Збираємо позиції планет
-        points = {}
-        for obj in const.PLANETS:
-            try:
-                points[obj] = {'lon': chart.get(obj).lon}
-            except:
-                continue
-
-        # Створюємо список аспектів
-        asp_list = []
-        for i, obj1 in enumerate(const.PLANETS):
-            for obj2 in const.PLANETS[i+1:]:
+        try:
+            points = {}
+            for obj in const.PLANETS:
                 try:
-                    aspect = chart.aspect(obj1, obj2)
-                    if aspect:
-                        asp_list.append({'obj1': obj1, 'obj2': obj2, 'type': aspect.type})
+                    points[obj] = {'lon': chart.get(obj).lon}
                 except:
                     continue
+        except Exception as e:
+            return jsonify({'error': f'Error extracting planets: {str(e)}'}), 500
 
-        # Малюємо натальну карту
+        try:
+            asp_list = []
+            for i, obj1 in enumerate(const.PLANETS):
+                for obj2 in const.PLANETS[i+1:]:
+                    try:
+                        aspect = chart.aspect(obj1, obj2)
+                        if aspect:
+                            asp_list.append({'obj1': obj1, 'obj2': obj2, 'type': aspect.type})
+                    except:
+                        continue
+        except Exception as e:
+            return jsonify({'error': f'Error calculating aspects: {str(e)}'}), 500
+
         try:
             fig, ax = plt.subplots(figsize=(8, 8))
             ax.set_xlim(-1.2, 1.2)
             ax.set_ylim(-1.2, 1.2)
             ax.axis('off')
 
-            # Коло знаків
             SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
                      'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
             colors = ['#FF9999','#FFCC99','#FFFF99','#CCFF99','#99FF99','#99FFFF',
@@ -81,7 +98,6 @@ def generate_chart():
                 y = 1.1 * math.sin(rad)
                 ax.text(x, y, sign, ha='center', va='center', color=colors[i], fontsize=10, fontweight='bold')
 
-            # Планети на колі
             for p, info in points.items():
                 if 'lon' in info:
                     rad = math.radians(info['lon'])
@@ -90,7 +106,6 @@ def generate_chart():
                     ax.plot(x, y, 'o', markersize=10, label=p)
                     ax.text(x*1.05, y*1.05, p, fontsize=9)
 
-            # Аспекти лініями
             for a in asp_list:
                 obj1 = points.get(a['obj1'])
                 obj2 = points.get(a['obj2'])
@@ -116,8 +131,13 @@ def generate_chart():
             'aspects': asp_list,
             'chartImage': '/chart.png'
         })
+
     except Exception as e:
-        return jsonify({'error': f'Error creating chart: {str(e)}'}), 500
+        return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+
+@app.route("/health")
+def health():
+    return "OK", 200
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
