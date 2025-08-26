@@ -112,10 +112,14 @@ def generate_chart():
         dt_str = data['datetime']  # формат 'YYYY-MM-DD HH:MM'
         location = data['location']  # назва міста
 
-        # Розбираємо дату і час
-        date_part, time_part = dt_str.split()  # '1972-12-06', '01:25'
-        year, month, day = map(int, date_part.split('-'))
-        hour, minute = map(int, time_part.split(':'))
+        # Розбираємо дату і час через datetime.strptime
+        dt_parsed = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+
+        year = dt_parsed.year
+        month = dt_parsed.month
+        day = dt_parsed.day
+        hour = dt_parsed.hour
+        minute = dt_parsed.minute
 
         # Отримуємо координати та часовий пояс
         lat, lon, tz = geocode_location(location)
