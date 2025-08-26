@@ -63,7 +63,7 @@ def generate():
 
     # Створюємо карту
     try:
-        chart = Chart(dt, geo, hsys='P')  # Placidus
+        chart = Chart(dt, geo, hsys='Placidus')  # Placidus
     except Exception as e:
         return jsonify({'error': f'Error creating chart: {str(e)}'}), 500
 
