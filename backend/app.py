@@ -12,16 +12,12 @@ import logging
 app = Flask(__name__)
 CORS(app)
 
-def create_datetime(date_str, time_str, tz_offset):
-    # date_str = "1972-12-06"
-    # time_str = "01:25"
+def create_datetime(date_str, time_str):
     try:
-        year, month, day = map(int, date_str.split('-'))
-        hour, minute = map(int, time_str.split(':'))
-        dt = Datetime(year, month, day, hour, minute, tz_offset)
+        dt = Datetime(f"{date_str} {time_str}", tz='Europe/Kiev')
         return dt
     except Exception as e:
-        raise ValueError(f"Invalid date/time format: {str(e)}")
+        raise ValueError(f"Error creating Datetime: {str(e)}")
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
