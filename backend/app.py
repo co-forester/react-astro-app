@@ -13,13 +13,14 @@ app = Flask(__name__)
 CORS(app)
 
 def create_datetime(date_str, time_str, tz_offset):
+    # date_str = "1972-12-06"
+    # time_str = "01:25"
     try:
-        dt_str = f"{date_str} {time_str}"  # "1972-12-06 01:25"
-        dt = Datetime(dt_str, tz_offset)
-        logging.info(f"Created Datetime object: {dt_str} with tz {tz_offset}")
+        year, month, day = map(int, date_str.split('-'))
+        hour, minute = map(int, time_str.split(':'))
+        dt = Datetime(year, month, day, hour, minute, tz_offset)
         return dt
     except Exception as e:
-        logging.error(f"Invalid date/time format: {str(e)}")
         raise ValueError(f"Invalid date/time format: {str(e)}")
 
 @app.route('/generate', methods=['POST'])
