@@ -40,7 +40,7 @@ def generate_chart():
         dt = parse_datetime(date_str, time_str)
         pos = GeoPos(lat, lon)
 
-        chart = Chart(dt, geo, hsys=const.PLACIDUS)
+        chart = Chart(dt, geo, hsys='Placidus')  # Placidus
 
         # Збираємо позиції планет
         points = {}
