@@ -90,8 +90,8 @@ def generate_chart():
         time_str = dt_native.strftime("%H:%M")
         dt = Datetime(date_str, time_str, tz_str)
         pos = GeoPos(lat, lon)
-        chart = Chart(dt, pos)
-
+        chart = Chart(dt, pos, hsys='P')  # Placidus
+        
         # --- Фігура ---
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.set_xlim(-1, 1)
@@ -112,28 +112,44 @@ def generate_chart():
         # --- Логотип Albireo Daria ---
         ax.text(0, 1.15, 'Albireo Daria', ha='center', va='center', fontsize=14, fontweight='bold', color='purple')
 
-        # --- Планети ---
+        # --- Планети у правильних секторах ---
         for obj in chart.objects:
+            sign_degree = obj.lon % 30       # градус у знаку
             x = 0.7 * np.cos(np.radians(obj.lon))
             y = 0.7 * np.sin(np.radians(obj.lon))
-            ax.text(x, y, f"{obj.id}\n{obj.lon:.1f}°", color=PLANET_COLORS.get(obj.id, 'black'), fontsize=12, fontweight='bold', ha='center', va='center')
+            ax.text(x, y, f"{obj.id}\n{sign_degree:.1f}°", color=PLANET_COLORS.get(obj.id, 'black'),
+                    fontsize=12, fontweight='bold', ha='center', va='center')
 
-        # --- Аспекти з дугами ---
+        # --- Критичні точки Asc і MC ---
+        asc = chart.get(const.ASC)
+        mc = chart.get(const.MC)
+
+        x_asc = 0.9 * np.cos(np.radians(asc.lon))
+        y_asc = 0.9 * np.sin(np.radians(asc.lon))
+        ax.text(x_asc, y_asc, 'Асцендент\n{:.1f}°'.format(asc.lon), color='darkgreen', fontsize=11,
+        fontweight='bold', ha='center', va='center')
+
+        x_mc = 0.9 * np.cos(np.radians(mc.lon))
+        y_mc = 0.9 * np.sin(np.radians(mc.lon))
+        ax.text(x_mc, y_mc, 'Середина неба\n{:.1f}°'.format(mc.lon), color='darkred', fontsize=11,
+                fontweight='bold', ha='center', va='center')
+
+        # --- Аспекти з дугами (коротші дуги, якщо перетинають 0°) ---
         for asp in _get_aspects(chart):
             p1 = chart.get(asp.p1)
             p2 = chart.get(asp.p2)
-            # дуга по колу
             theta1 = np.radians(p1.lon)
             theta2 = np.radians(p2.lon)
+            if theta2 < theta1:
+               theta2 += 2 * np.pi  # завжди коротша дуга
             arc = np.linspace(theta1, theta2, 100)
             r = 0.65
             x_arc = r * np.cos(arc)
             y_arc = r * np.sin(arc)
             ax.plot(x_arc, y_arc, color=ASPECT_COLORS.get(asp.type, 'grey'), linewidth=1.5)
-
-        chart_path = "chart.png"
-        plt.savefig(chart_path, bbox_inches='tight', dpi=150)
-        plt.close(fig)
+            chart_path = "chart.png"
+            plt.savefig(chart_path, bbox_inches='tight', dpi=150)
+            plt.close(fig)
 
         # --- Таблиця аспектів ---
         aspects_table = "<table><tr><th>Планета 1</th><th>Аспект</th><th>Планета 2</th><th>Градус</th></tr>"
