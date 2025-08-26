@@ -12,12 +12,11 @@ import matplotlib.pyplot as plt
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz, datetime
-# ------------
 
 app = Flask(__name__)
 CORS(app)
 
-# Кольори для планет і аспектів
+# --- Кольори для планет і аспектів ---
 PLANET_COLORS = {
     const.SUN: 'gold',
     const.MOON: 'silver',
@@ -39,26 +38,26 @@ ASPECT_COLORS = {
     'SEX': 'purple'
 }
 
-# Кольори для 12 будинків
 HOUSES_COLORS = [
     '#ffe0b2', '#ffcc80', '#ffb74d', '#ffa726',
     '#ff9800', '#fb8c00', '#f57c00', '#ef6c00',
     '#e65100', '#ffccbc', '#ffab91', '#ff8a65'
 ]
 
-# ---------- Лише фікс сумісності аспектів ----------
+ZODIAC_SIGNS = [
+    'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+]
+
+# --- Сумісність аспектів ---
 def _get_aspects(chart):
-    """Сумісний виклик аспектів для різних версій flatlib."""
     try:
-        # деякі версії
         return aspects.getAspects(chart)
     except AttributeError:
-        # інші версії
         try:
             return aspects.getAspectsList(chart, aspects.MAJOR_ASPECTS)
         except Exception:
             return []
-# ---------------------------------------------------
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
@@ -68,7 +67,7 @@ def generate_chart():
         time_in = data['time']   # HH:MM
         place = data['place']
 
-        # --- Геокодування місця ---
+        # --- Геокодування ---
         geolocator = Nominatim(user_agent="astro_app")
         location = geolocator.geocode(place)
         if location:
@@ -76,12 +75,10 @@ def generate_chart():
         else:
             lat, lon = 50.45, 30.52  # fallback Київ
 
-        # --- Часова зона ---
         tf = TimezoneFinder()
         timezone_str = tf.timezone_at(lng=lon, lat=lat)
         if not timezone_str:
             timezone_str = "Europe/Kiev"
-
         tz = pytz.timezone(timezone_str)
 
         dt_native = datetime.datetime.strptime(f"{date_in} {time_in}", "%Y-%m-%d %H:%M")
@@ -89,45 +86,56 @@ def generate_chart():
         tz_offset_hours = int(offset.total_seconds() / 3600)
         tz_str = f"{tz_offset_hours:+03d}:00"
 
-        # --- Правильний формат для flatlib ---
         date_str = dt_native.strftime("%Y/%m/%d")
         time_str = dt_native.strftime("%H:%M")
         dt = Datetime(date_str, time_str, tz_str)
-
         pos = GeoPos(lat, lon)
         chart = Chart(dt, pos)
 
-        # Створюємо фігуру
+        # --- Фігура ---
         fig, ax = plt.subplots(figsize=(8, 8))
         ax.set_xlim(-1, 1)
         ax.set_ylim(-1, 1)
         ax.axis('off')
 
-        # Додаємо кола для будинків
+        # --- Кола будинків ---
         for i in range(12):
             ax.add_patch(plt.Circle((0, 0), 1 - i*0.08, fill=True, color=HOUSES_COLORS[i], alpha=0.3))
 
-        # Додаємо планети
+        # --- Коло знаків зодіаку ---
+        for i, sign in enumerate(ZODIAC_SIGNS):
+            angle = i * 30 + 15  # центр знаку
+            x = 1.05 * np.cos(np.radians(angle))
+            y = 1.05 * np.sin(np.radians(angle))
+            ax.text(x, y, sign, ha='center', va='center', fontsize=10, fontweight='bold', color='darkblue')
+
+        # --- Логотип Albireo Daria ---
+        ax.text(0, 1.15, 'Albireo Daria', ha='center', va='center', fontsize=14, fontweight='bold', color='purple')
+
+        # --- Планети ---
         for obj in chart.objects:
             x = 0.7 * np.cos(np.radians(obj.lon))
             y = 0.7 * np.sin(np.radians(obj.lon))
-            ax.text(x, y, obj.id, color=PLANET_COLORS.get(obj.id, 'black'), fontsize=12, fontweight='bold')
+            ax.text(x, y, f"{obj.id}\n{obj.lon:.1f}°", color=PLANET_COLORS.get(obj.id, 'black'), fontsize=12, fontweight='bold', ha='center', va='center')
 
-        # Аспекти
+        # --- Аспекти з дугами ---
         for asp in _get_aspects(chart):
             p1 = chart.get(asp.p1)
             p2 = chart.get(asp.p2)
-            x1 = 0.7 * np.cos(np.radians(p1.lon))
-            y1 = 0.7 * np.sin(np.radians(p1.lon))
-            x2 = 0.7 * np.cos(np.radians(p2.lon))
-            y2 = 0.7 * np.sin(np.radians(p2.lon))
-            ax.plot([x1, x2], [y1, y2], color=ASPECT_COLORS.get(asp.type, 'grey'), linewidth=1.2)
+            # дуга по колу
+            theta1 = np.radians(p1.lon)
+            theta2 = np.radians(p2.lon)
+            arc = np.linspace(theta1, theta2, 100)
+            r = 0.65
+            x_arc = r * np.cos(arc)
+            y_arc = r * np.sin(arc)
+            ax.plot(x_arc, y_arc, color=ASPECT_COLORS.get(asp.type, 'grey'), linewidth=1.5)
 
         chart_path = "chart.png"
         plt.savefig(chart_path, bbox_inches='tight', dpi=150)
         plt.close(fig)
 
-        # HTML таблиця аспектів
+        # --- Таблиця аспектів ---
         aspects_table = "<table><tr><th>Планета 1</th><th>Аспект</th><th>Планета 2</th><th>Градус</th></tr>"
         for asp in _get_aspects(chart):
             aspects_table += f"<tr style='color:{ASPECT_COLORS.get(asp.type,'black')}'><td>{asp.p1}</td><td>{asp.type}</td><td>{asp.p2}</td><td>{asp.orb:.1f}</td></tr>"
