@@ -50,7 +50,13 @@ def generate_chart():
 
         # Широта та довгота (заглушка)
         lat, lon = 50.45, 30.52  # Київ
-        dt = Datetime(f"{date} {time}", '+03:00')
+
+        # --- Мінімальна правка для коректного Datetime ---
+        year, month, day = map(int, date.split('-'))
+        hour, minute = map(int, time.split(':'))
+        dt = Datetime(year, month, day, hour, minute, 0, '+03:00')
+        # -----------------------------------------------------
+
         pos = GeoPos(lat, lon)
         chart = Chart(dt, pos)
 
