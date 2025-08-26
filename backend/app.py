@@ -11,7 +11,6 @@ from timezonefinder import TimezoneFinder
 import pytz
 import matplotlib.pyplot as plt
 from PIL import Image
-from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 
@@ -47,15 +46,7 @@ def generate():
 
     # Створюємо Datetime для Flatlib
     try:
-        # Отримуємо UTC offset у годинах коректно
-        tz = pytz.timezone(tz_str)
-        # Для Flatlib потрібно локальний час
-        naive_dt = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
-        offset_hours = tz.utcoffset(naive_dt)
-        if offset_hours is None:
-            return jsonify({'error': 'Invalid timezone offset'}), 400
-        hours_offset = offset_hours.total_seconds() / 3600
-        dt = Datetime(date.replace('-', '/'), time, float(hours_offset))
+        dt = Datetime(date.replace('-', '/'), time, float(pytz.timezone(tz_str).utcoffset(None).total_seconds() / 3600))
     except Exception as e:
         return jsonify({'error': f'Invalid date/time format: {str(e)}'}), 400
 
@@ -106,7 +97,9 @@ def generate():
         ax.axis('off')
 
         # Коло знаків зодіаку
-        for i, sign in enumerate(const.SIGNS):
+        signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 
+                 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
+        for i, sign in enumerate(signs):
             angle = i * (360/12)
             ax.text(angle, 1.05, sign, ha='center', va='center', rotation=angle, transform=ax.transAxes)
 
@@ -127,3 +120,4 @@ def generate():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
+    
