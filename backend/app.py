@@ -11,11 +11,10 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-def parse_datetime(date_str, time_str):
+def parse_datetime(date_str, time_str, tz='+03:00'):
     try:
-        year, month, day = map(int, date_str.split('-'))
-        hour, minute = map(int, time_str.split(':'))
-        return Datetime(year, month, day, hour, minute)
+        dt_str = f"{date_str} {time_str}"
+        return Datetime(dt_str, tz)
     except Exception as e:
         raise ValueError(f"Invalid date/time format: {str(e)}")
 
