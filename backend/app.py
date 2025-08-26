@@ -15,18 +15,17 @@ CORS(app)
 
 def create_datetime(date_str: str, time_str: str, tz_offset_hours: int = 3):
     """
-    Створює об'єкт Flatlib Datetime з урахуванням зсуву по годині.
-    date_str: 'dd.mm.yyyy'
-    time_str: 'hh:mm'
-    tz_offset_hours: зміщення від UTC
+    Створює Flatlib Datetime без передавання зайвих аргументів.
+    Застосовує зсув у годинах окремо.
     """
     try:
         day, month, year = map(int, date_str.split('.'))
         hour, minute = map(int, time_str.split(':'))
-        # Створюємо datetime у локальному часі
+        # Локальний час
         dt_local = datetime(year, month, day, hour, minute)
-        # Переводимо в UTC, віднімаючи зсув
+        # Переводимо в UTC
         dt_utc = dt_local - timedelta(hours=tz_offset_hours)
+        # Передаємо лише 5 аргументів: year, month, day, hour, minute
         dt = Datetime(dt_utc.year, dt_utc.month, dt_utc.day, dt_utc.hour, dt_utc.minute)
         return dt
     except Exception as e:
