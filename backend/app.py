@@ -10,6 +10,7 @@ import pytz
 import matplotlib.pyplot as plt
 import math
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app)
@@ -84,7 +85,6 @@ def draw_chart(chart, filename='chart.png'):
         obj = chart.get(p)
         lon_rad = math.radians(obj.lon)
         positions[p] = lon_rad
-        # Draw planet with shadow
         ax.plot(lon_rad, 0.85, 'o', markersize=12, color='gold', markeredgecolor='black')
         ax.text(lon_rad, 0.9, f"{p}\n{int(obj.lon)}°", ha='center', va='center', fontsize=9, fontweight='bold')
 
@@ -106,16 +106,22 @@ def generate_aspects_table(aspect_list):
     return html
 
 @app.route('/generate', methods=['POST'])
-def generate_chart():
+def generate_chart_route():
     data = request.json
     try:
         dt_str = data['datetime']  # 'YYYY-MM-DD HH:MM'
         location = data['location']  # city name
-        lat, lon, tz = geocode_location(location)
-        dt_obj = Datetime(dt_str.split()[0], dt_str.split()[1], tz.zone)
-        pos = GeoPos(lat, lon)
-        chart = Chart(dt_obj, pos, hsys='P')  # Placidus
 
+        # Геокодування
+        lat, lon, tz = geocode_location(location)
+
+        # Парсинг дати і часу через стандартний datetime
+        date_part, time_part = dt_str.split()
+        dt_python = datetime.strptime(f"{date_part} {time_part}", "%Y-%m-%d %H:%M")
+        dt_obj = Datetime(dt_python.strftime("%Y-%m-%d"), dt_python.strftime("%H:%M"), tz.zone)
+
+        pos = GeoPos(lat, lon)
+        chart = Chart(dt, pos, hsys=const.HOUSES_PLACIDUS)  # Placidus
         aspects_list = get_aspects(chart)
         draw_chart(chart, 'chart.png')
         table_html = generate_aspects_table(aspects_list)
@@ -124,6 +130,7 @@ def generate_chart():
             'aspects_table_html': table_html,
             'chart_image_url': '/chart.png'
         })
+
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
@@ -138,6 +145,6 @@ def health():
     return "Server is healthy", 200
 
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
+    
