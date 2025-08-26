@@ -14,10 +14,13 @@ CORS(app)
 
 def create_datetime(date_str: str, time_str: str):
     try:
-        dt = create_datetime(date_str, time_str)
+        # date_str у форматі "dd.mm.yyyy"
+        day, month, year = map(int, date_str.split('.'))
+        hour, minute = map(int, time_str.split(':'))
+        dt = Datetime(year, month, day, hour, minute, tz='Europe/Kiev')
+        return dt
     except Exception as e:
-        logging.error(f"Error creating Datetime: {str(e)}")
-        return jsonify({'error': f'Error creating Datetime: {str(e)}'}), 500
+        raise ValueError(f"Error creating Datetime: {str(e)}")
 
 @app.route('/generate', methods=['POST'])
 def generate_chart():
