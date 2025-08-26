@@ -13,27 +13,27 @@ from datetime import datetime, timedelta
 app = Flask(__name__)
 CORS(app)
 
-def create_datetime(date_str: str, time_str: str, tz_offset_hours: float = 3.0) -> Datetime:
-    """
-    Створює об'єкт Flatlib Datetime з урахуванням часової зони.
+from flatlib.datetime import Datetime
+from datetime import datetime, timedelta
 
-    date_str: 'dd.mm.yyyy'
-    time_str: 'hh:mm'
-    tz_offset_hours: зсув від UTC в годинах, може бути float
-    """
+def create_datetime(date_str: str, time_str: str, tz_offset_hours: float = 3.0) -> Datetime:
     try:
+        # Розбираємо дату і час
         day, month, year = map(int, date_str.split('.'))
         hour, minute = map(int, time_str.split(':'))
 
+        # Створюємо локальний datetime
         local_dt = datetime(year, month, day, hour, minute)
+
+        # Переводимо у UTC
         utc_dt = local_dt - timedelta(hours=tz_offset_hours)
 
-        # Flatlib Datetime приймає лише рік, місяць, день, годину, хвилину
+        # Створюємо Flatlib Datetime (без зайвих аргументів!)
         dt = Datetime(utc_dt.year, utc_dt.month, utc_dt.day, utc_dt.hour, utc_dt.minute)
         return dt
     except Exception as e:
         raise ValueError(f"Error creating Datetime: {str(e)}")
-
+    
 @app.route('/generate', methods=['POST'])
 def generate_chart():
     try:
