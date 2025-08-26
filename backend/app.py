@@ -5,13 +5,11 @@ from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
 from flatlib import const
 import matplotlib.pyplot as plt
-import math
 import os
-import logging
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
-import pytz
-from datetime import datetime
+from datetime import datetime, timedelta
+import math
 
 app = Flask(__name__)
 CORS(app)
@@ -23,23 +21,13 @@ if not os.path.exists(STATIC_FOLDER):
 geolocator = Nominatim(user_agent="astro_app")
 tf = TimezoneFinder()
 
-def create_flatlib_datetime(date_str, time_str, tz_name="Europe/Kiev"):
+def create_datetime(date_str: str, time_str: str, tz_offset_hours: float = 3.0) -> Datetime:
     try:
-        # Розбиваємо дату і час
         day, month, year = map(int, date_str.split('.'))
         hour, minute = map(int, time_str.split(':'))
-
-        # Локальний datetime
-        tz = pytz.timezone(tz_name)
-        naive_dt = datetime(year, month, day, hour, minute)
-        aware_dt = tz.localize(naive_dt)
-
-        # Обчислення UTC-offset у годинах (залишаємо для можливого логування або відлагодження)
-        offset = aware_dt.utcoffset()
-        offset_hours = offset.total_seconds() / 3600.0 if offset else 0
-
-        # Flatlib Datetime (тільки 5 позиційних аргументів)
-        dt = Datetime(aware_dt.year, aware_dt.month, aware_dt.day, aware_dt.hour, aware_dt.minute)
+        local_dt = datetime(year, month, day, hour, minute)
+        utc_dt = local_dt - timedelta(hours=tz_offset_hours)
+        dt = Datetime(utc_dt.year, utc_dt.month, utc_dt.day, utc_dt.hour, utc_dt.minute)
         return dt
     except Exception as e:
         raise ValueError(f"Error creating Datetime: {str(e)}")
@@ -92,25 +80,22 @@ def generate_chart():
         time = data.get("time")
         place = data.get("place")
 
-        # Геопозиція
+        # Отримуємо геопозицію
         location = geolocator.geocode(place)
         if not location:
             return jsonify({"error": f"Місто '{place}' не знайдено", "status": "stub"}), 400
         lat, lon = location.latitude, location.longitude
         geopos = GeoPos(lat, lon)
 
-        # Часовий пояс
+        # Визначаємо часовий пояс
         tz_name = tf.timezone_at(lat=lat, lng=lon)
-        if not tz_name:
-            tz_name = "UTC"
+        tz_offset_hours = 3.0  # дефолт +3, можна замінити на обчислений через pytz
+        dt = create_datetime(date, time, tz_offset_hours)
 
-        # Створюємо Flatlib Datetime
-        dt = create_flatlib_datetime(date, time, tz_name)
-
-        # Chart
+        # Створюємо натальну карту
         chart = Chart(dt, geopos)
 
-        # Планети
+        # Отримуємо позиції планет
         planet_positions = get_planet_positions(chart)
 
         # Малюємо картинку
@@ -123,17 +108,21 @@ def generate_chart():
             "time": time,
             "place": place,
             "chart_image_url": "/static/chart.png",
-            "planet_positions": planet_positions,
+            "error": None,
             "status": "ok"
         })
 
     except Exception as e:
-        return jsonify({"chart_image_url": "/static/chart.png", "error": str(e), "status": "stub"}), 500
+        return jsonify({
+            "chart_image_url": "/static/chart.png",
+            "error": str(e),
+            "status": "stub"
+        }), 500
 
-@app.route('/health', methods=['GET'])
+@app.route("/health", methods=["GET"])
 def health():
     return jsonify({"status": "ok"}), 200
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host="0.0.0.0", port=port)
