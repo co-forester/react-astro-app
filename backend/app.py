@@ -16,14 +16,7 @@ def create_datetime(date_str: str, time_str: str):
     try:
         day, month, year = map(int, date_str.split('.'))
         hour, minute = map(int, time_str.split(':'))
-        dt = Datetime(year, month, day, hour, minute, 3)  # +3 години для Києва
-        return dt
-    except Exception as e:
-        raise ValueError(f"Error creating Datetime: {str(e)}")
-    try:
-        day, month, year = map(int, date_str.split('.'))
-        hour, minute = map(int, time_str.split(':'))
-        dt = Datetime(year, month, day, hour, minute, 3)  # +3 години для Києва
+        dt = Datetime(year, month, day, hour, minute, zone='+3')
         return dt
     except Exception as e:
         raise ValueError(f"Error creating Datetime: {str(e)}")
@@ -44,14 +37,18 @@ def generate_chart():
     place_str = data.get('place', '')
 
     try:
-        # Простий geocoding через словник міст
+        # Простий geocoding через словник міст з нормалізацією
         cities = {
             "Mykolaiv, Ukraine": (46.9753, 31.9946)
         }
-        if place_str not in cities:
+        place_str_normalized = place_str.strip().lower()
+        cities_normalized = {k.lower(): v for k, v in cities.items()}
+
+        if place_str_normalized not in cities_normalized:
             logging.error("Unknown place: " + place_str)
             return jsonify({'error': 'Unknown place'}), 400
-        lat, lon = cities[place_str]
+
+        lat, lon = cities_normalized[place_str_normalized]
         pos = GeoPos(lat, lon)
         logging.info(f"Created GeoPos for place {place_str}: lat={lat}, lon={lon}")
     except Exception as e:
