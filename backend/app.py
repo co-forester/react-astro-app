@@ -109,15 +109,12 @@ def generate_aspects_table(aspect_list):
 def generate_chart():
     data = request.get_json()
 
-    # Отримуємо ім'я та прізвище (необов'язково)
     first_name = data.get("firstName", "")
     last_name = data.get("lastName", "")
 
-    # Обробка дати та місця
+    # Використовуємо datetime + location або date + time + place
     datetime_str = data.get("datetime")
     location_str = data.get("location")
-
-    # Альтернативні ключі
     if not datetime_str or not location_str:
         date = data.get("date")
         time = data.get("time")
@@ -130,13 +127,11 @@ def generate_chart():
         return jsonify({"error": "Missing 'datetime'/'date+time' or 'location'/'place' field"}), 400
 
     try:
-        # Парсимо дату і час
         dt = Datetime(datetime_str, 'UTC')
     except Exception as e:
         return jsonify({"error": f"Invalid datetime format: {str(e)}"}), 400
 
     try:
-        # Геокодування місця
         geolocator = Nominatim(user_agent="astro_app")
         loc = geolocator.geocode(location_str)
         if not loc:
@@ -146,7 +141,6 @@ def generate_chart():
         return jsonify({"error": f"Geocoding error: {str(e)}"}), 400
 
     try:
-        # Визначаємо часову зону
         tf = TimezoneFinder()
         tz_str = tf.timezone_at(lng=loc.longitude, lat=loc.latitude)
         timezone = pytz.timezone(tz_str) if tz_str else pytz.UTC
@@ -173,10 +167,10 @@ def generate_chart():
                             "angle": asp['angle']
                         })
 
-    # Малюємо просту натальну карту (приклад)
+    # Малюємо просту натальну карту
     fig, ax = plt.subplots(figsize=(6,6))
     ax.set_title(f"Natal Chart: {first_name} {last_name}".strip())
-    ax.plot([0], [0], 'ro')  # Точка центру
+    ax.plot([0], [0], 'ro')
     plt.savefig("chart.png")
     plt.close()
 
