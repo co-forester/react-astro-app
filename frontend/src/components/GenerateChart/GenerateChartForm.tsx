@@ -10,14 +10,14 @@ const GenerateChartForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const response = await fetch("http://localhost:5000/generate", {
+    const response = await fetch("http://albireo-daria-96.fly.dev/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date, time, place }),
     });
 
     const data = await response.json();
-    setChartUrl("http://localhost:5000/chart.png?ts=" + new Date().getTime());
+    setChartUrl("http://albireo-daria-96.fly.dev/chart.png?ts=" + new Date().getTime());
     setChartData(data);
   };
 
