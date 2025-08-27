@@ -1,6 +1,8 @@
 # app.py
 
 import os
+import time
+import hashlib
 from datetime import datetime as dt
 
 from flask import Flask, request, jsonify, send_from_directory
@@ -24,6 +26,23 @@ CORS(app)
 geolocator = Nominatim(user_agent="astro_app")
 tf = TimezoneFinder()
 
+# 🧹 Автоочистка старих файлів (старше 30 днів)
+def cleanup_old_charts(folder="static", days=30):
+    if not os.path.exists(folder):
+        return
+    now = time.time()
+    cutoff = now - days * 24 * 60 * 60
+    for filename in os.listdir(folder):
+        path = os.path.join(folder, filename)
+        if os.path.isfile(path) and filename.startswith("chart_") and filename.endswith(".png"):
+            if os.path.getmtime(path) < cutoff:
+                try:
+                    os.remove(path)
+                    print(f"🧹 Видалено старий файл: {filename}")
+                except Exception as e:
+                    print(f"⚠️ Не вдалось видалити {filename}: {e}")
+
+
 @app.route("/generate", methods=["POST"])
 def generate_chart():
     try:
@@ -33,29 +52,45 @@ def generate_chart():
         time_str = data.get("time")   # HH:MM
         place = data.get("place")     # Місто/адреса
 
-        # Геолокація
+        # Унікальний ключ (щоб не будувати двічі одну й ту саму карту)
+        key_str = f"{name}_{date_str}_{time_str}_{place}"
+        hash_key = hashlib.md5(key_str.encode("utf-8")).hexdigest()
+        filename = f"chart_{hash_key}.png"
+        chart_path = os.path.join("static", filename)
+
+        # 🧹 Чистимо старі файли перед роботою
+        os.makedirs("static", exist_ok=True)
+        cleanup_old_charts("static", days=30)
+
+        # Якщо файл вже існує — віддаємо готовий
+        if os.path.exists(chart_path):
+            return jsonify({
+                "name": name,
+                "date": date_str,
+                "time": time_str,
+                "place": place,
+                "timezone": "cached",
+                "chart_url": request.host_url.rstrip("/") + f"/static/{filename}"
+            })
+
+        # Якщо нема → будуємо новий
         location = geolocator.geocode(place)
         if not location:
             return jsonify({"error": "Місце не знайдено"}), 400
 
         lat, lon = location.latitude, location.longitude
 
-        # Таймзона
         tz_str = tf.timezone_at(lat=lat, lng=lon) or "UTC"
         tz = pytz.timezone(tz_str)
 
-        # Локальний час
         naive_dt = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         local_dt = tz.localize(naive_dt)
 
-        # Отримуємо зсув від UTC у годинах
-        offset = local_dt.utcoffset().total_seconds() / 3600
-        offset_str = f"{int(offset):+03d}:00"
-
-        # Flatlib datetime
-        fdate = Datetime(local_dt.strftime("%Y/%m/%d"),
-                        local_dt.strftime("%H:%M"),
-                        offset_str)
+        fdate = Datetime(
+            local_dt.strftime("%Y/%m/%d"),
+            local_dt.strftime("%H:%M"),
+            local_dt.utcoffset().total_seconds() / 3600
+        )
         pos = GeoPos(lat, lon)
         chart = Chart(fdate, pos)
 
@@ -65,8 +100,6 @@ def generate_chart():
         ax.plot([0, 1], [0, 1], "o")  # простий маркер
         ax.axis("off")
 
-        os.makedirs("static", exist_ok=True)
-        chart_path = os.path.join("static", "chart.png")
         plt.savefig(chart_path, bbox_inches="tight")
         plt.close(fig)
 
@@ -76,16 +109,12 @@ def generate_chart():
             "time": time_str,
             "place": place,
             "timezone": tz_str,
-            "chart_url": "/chart.png"
+            "chart_url": request.host_url.rstrip("/") + f"/static/{filename}"
         })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-@app.route("/chart.png")
-def get_chart():
-    return send_from_directory("static", "chart.png")
 
 @app.route("/health")
 def health():

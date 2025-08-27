@@ -1,59 +1,121 @@
-// GenerateChartForm.tsx
 import React, { useState } from "react";
-import css from './generateChartForm.module.css';
-import { useAppSelector } from '../../hooks/reduxHook';
+import "./GenerateChartForm.module.css";
+
+interface FormData {
+  firstName: string;
+  lastName: string;
+  date: string;
+  time: string;
+  place: string;
+}
 
 const GenerateChartForm: React.FC = () => {
-  const theme = useAppSelector((state: any) => state.theme.theme); // true = світла тема
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [place, setPlace] = useState("");
-  const [chartUrl, setChartUrl] = useState("");
-  const [chartData, setChartData] = useState<any>(null);
+  const [formData, setFormData] = useState<FormData>({
+    firstName: "",
+    lastName: "",
+    date: "",
+    time: "",
+    place: "",
+  });
+  const [chartUrl, setChartUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError(null);
+    setChartUrl(null);
 
-    const response = await fetch("http://albireo-daria-96.fly.dev/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date, time, place }),
-    });
+    try {
+      const response = await fetch("https://albireo-daria-96.fly.dev/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${formData.firstName} ${formData.lastName}`,
+          date: formData.date,
+          time: formData.time,
+          place: formData.place,
+        }),
+      });
 
-    const data = await response.json();
-    setChartUrl("http://albireo-daria-96.fly.dev/chart.png?ts=" + new Date().getTime());
-    setChartData(data);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Помилка генерації карти");
+      }
+
+      // ✅ Беремо готовий унікальний URL з бекенду
+      setChartUrl(data.chart_url);
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className={`${theme ? css.formLight : css.formDark}`}>
-      <form className={css.form} onSubmit={handleSubmit}>
-        <label>
-          Date:
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className={css.input} />
-        </label>
-        <label>
-          Time:
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required className={css.input} />
-        </label>
-        <label>
-          Place:
-          <input type="text" value={place} onChange={(e) => setPlace(e.target.value)} required className={css.input} />
-        </label>
-        <button type="submit" className={css.button}>Generate Chart</button>
+    <div className="formContainer fadeInForm">
+      <form onSubmit={handleSubmit}>
+        <input
+          type="text"
+          name="firstName"
+          value={formData.firstName}
+          onChange={handleChange}
+          className="formInput"
+          placeholder="Ім'я"
+          required
+        />
+        <input
+          type="text"
+          name="lastName"
+          value={formData.lastName}
+          onChange={handleChange}
+          className="formInput"
+          placeholder="Прізвище"
+          required
+        />
+        <input
+          type="date"
+          name="date"
+          value={formData.date}
+          onChange={handleChange}
+          className="formInput"
+          required
+        />
+        <input
+          type="time"
+          name="time"
+          value={formData.time}
+          onChange={handleChange}
+          className="formInput"
+          required
+        />
+        <input
+          type="text"
+          name="place"
+          value={formData.place}
+          onChange={handleChange}
+          className="formInput"
+          placeholder="Місто"
+          required
+        />
+        <button type="submit" className="formButton" disabled={loading}>
+          {loading ? "Генерація..." : "Побудувати натальну карту"}
+        </button>
       </form>
 
-      {chartUrl && (
-        <div className={css.chartContainer}>
-          <h2>Natal Chart</h2>
-          <img src={chartUrl} alt="Natal Chart" className={css.chartImg} />
-        </div>
-      )}
+      {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
 
-      {chartData && (
-        <div className={css.chartData}>
-          <h3>Chart Data</h3>
-          <pre>{JSON.stringify(chartData, null, 2)}</pre>
+      {chartUrl && (
+        <div className="chartContainer fadeInUpForm">
+          <h3>Натальна карта</h3>
+          <img src={chartUrl} alt="Натальна карта" />
         </div>
       )}
     </div>
