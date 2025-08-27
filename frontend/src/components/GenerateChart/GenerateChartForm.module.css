@@ -4,6 +4,8 @@
   gap: 0.8rem;
   padding: 1rem;
   border-radius: 8px;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .formLight {
@@ -22,6 +24,8 @@
   border: 1px solid #ccc;
   color: inherit;
   background-color: inherit;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .formButton {
@@ -39,10 +43,14 @@
 
 .chartContainer {
   margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .chartContainer img {
   max-width: 100%;
+  height: auto;
   border: 1px solid #ccc;
   border-radius: 6px;
 }
@@ -62,4 +70,45 @@
   padding: 0.5rem;
   border: 1px solid #ccc;
   text-align: center;
+}
+
+/* ====================== Адаптивність ====================== */
+@media (max-width: 768px) {
+  .formContainer {
+    padding: 0.5rem;
+    gap: 0.6rem;
+  }
+
+  .formInput,
+  .formButton {
+    font-size: 0.9rem;
+  }
+
+  .chartContainer img {
+    max-width: 100%;
+  }
+
+  .aspectsContainer th,
+  .aspectsContainer td {
+    font-size: 0.8rem;
+    padding: 0.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .formContainer {
+    padding: 0.3rem;
+    gap: 0.5rem;
+  }
+
+  .formInput,
+  .formButton {
+    font-size: 0.8rem;
+  }
+
+  .aspectsContainer th,
+  .aspectsContainer td {
+    font-size: 0.7rem;
+    padding: 0.3rem;
+  }
 }
