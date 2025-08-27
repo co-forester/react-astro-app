@@ -59,4 +59,4 @@ const GenerateChartForm: React.FC = () => {
   );
 };
 
-export default GenerateChartForm;
+export {GenerateChartForm};
