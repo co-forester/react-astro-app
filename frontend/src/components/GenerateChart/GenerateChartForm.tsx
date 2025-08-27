@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import "./GenerateChartForm.module.css";
 
 interface FormData {
-  firstName: string;
-  lastName: string;
+  name: string;
   date: string;
   time: string;
   place: string;
@@ -11,13 +10,13 @@ interface FormData {
 
 const GenerateChartForm: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
-    firstName: "",
-    lastName: "",
+    name: "",
     date: "",
     time: "",
     place: "",
   });
   const [chartUrl, setChartUrl] = useState<string | null>(null);
+  const [aspectsJson, setAspectsJson] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,28 +29,22 @@ const GenerateChartForm: React.FC = () => {
     setLoading(true);
     setError(null);
     setChartUrl(null);
+    setAspectsJson(null);
 
     try {
       const response = await fetch("https://albireo-daria-96.fly.dev/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: `${formData.firstName} ${formData.lastName}`,
-          date: formData.date,
-          time: formData.time,
-          place: formData.place,
-        }),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || "Помилка генерації карти");
       }
 
-      // ✅ Беремо готовий унікальний URL з бекенду
       setChartUrl(data.chart_url);
-
+      setAspectsJson(data.aspects_json);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -64,20 +57,11 @@ const GenerateChartForm: React.FC = () => {
       <form onSubmit={handleSubmit}>
         <input
           type="text"
-          name="firstName"
-          value={formData.firstName}
+          name="name"
+          value={formData.name}
           onChange={handleChange}
           className="formInput"
           placeholder="Ім'я"
-          required
-        />
-        <input
-          type="text"
-          name="lastName"
-          value={formData.lastName}
-          onChange={handleChange}
-          className="formInput"
-          placeholder="Прізвище"
           required
         />
         <input
@@ -116,6 +100,32 @@ const GenerateChartForm: React.FC = () => {
         <div className="chartContainer fadeInUpForm">
           <h3>Натальна карта</h3>
           <img src={chartUrl} alt="Натальна карта" />
+        </div>
+      )}
+
+      {aspectsJson && (
+        <div className="aspectsContainer fadeInUpForm">
+          <h3>Аспекти</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Об’єкт 1</th>
+                <th>Об’єкт 2</th>
+                <th>Тип</th>
+                <th>Кут</th>
+              </tr>
+            </thead>
+            <tbody>
+              {aspectsJson.map((asp: any, idx: number) => (
+                <tr key={idx}>
+                  <td>{asp.object1}</td>
+                  <td>{asp.object2}</td>
+                  <td>{asp.type}</td>
+                  <td>{asp.angle}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
