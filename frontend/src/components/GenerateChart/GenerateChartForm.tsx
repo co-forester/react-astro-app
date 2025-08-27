@@ -1,9 +1,10 @@
 // GenerateChartForm.tsx
-
 import React, { useState } from "react";
-import styles from "./GenerateChartForm.module.css";
+import css from './generateChartForm.module.css';
+import { useAppSelector } from '../../hooks/reduxHook';
 
 const GenerateChartForm: React.FC = () => {
+  const theme = useAppSelector((state: any) => state.theme.theme); // true = світла тема
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [place, setPlace] = useState("");
@@ -25,53 +26,32 @@ const GenerateChartForm: React.FC = () => {
   };
 
   return (
-    <div className={styles.container}>
-      <form onSubmit={handleSubmit}>
+    <div className={`${theme ? css.formLight : css.formDark}`}>
+      <form className={css.form} onSubmit={handleSubmit}>
         <label>
           Date:
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            className={styles.input}
-          />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className={css.input} />
         </label>
-        <br />
         <label>
           Time:
-          <input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            required
-            className={styles.input}
-          />
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required className={css.input} />
         </label>
-        <br />
         <label>
           Place:
-          <input
-            type="text"
-            value={place}
-            onChange={(e) => setPlace(e.target.value)}
-            required
-            className={styles.input}
-          />
+          <input type="text" value={place} onChange={(e) => setPlace(e.target.value)} required className={css.input} />
         </label>
-        <br />
-        <button type="submit" className={styles.button}>Generate Chart</button>
+        <button type="submit" className={css.button}>Generate Chart</button>
       </form>
 
       {chartUrl && (
-        <div className={styles.chartWrapper}>
+        <div className={css.chartContainer}>
           <h2>Natal Chart</h2>
-          <img src={chartUrl} alt="Natal Chart" style={{ maxWidth: "100%" }} />
+          <img src={chartUrl} alt="Natal Chart" className={css.chartImg} />
         </div>
       )}
 
       {chartData && (
-        <div className={`${styles.tableWrapper} ${styles.fadeIn}`}>
+        <div className={css.chartData}>
           <h3>Chart Data</h3>
           <pre>{JSON.stringify(chartData, null, 2)}</pre>
         </div>

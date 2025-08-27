@@ -1,82 +1,56 @@
-/* GenerateChartForm.module.css */
-
-.container {
-  max-width: 400px;
-  margin: 2rem auto;
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  background-color: #f8f8f8; /* світла тема */
-  color: #555555;
-  transition: all 0.3s ease;
-  font-family: Arial, sans-serif;
+.formLight {
+  background-color: #fdf7f7; /* світлий сіро-білий */
+  color: #4a0f1f; /* бордо */
+  padding: 1rem;
+  border-radius: 8px;
 }
 
-.dark .container {
-  background-color: #1c1c1c; /* темна тема */
-  color: #ddd;
+.formDark {
+  background-color: #2b2b2b; /* темний сірий */
+  color: #f7eaea; /* білий/світлий бордо */
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
 }
 
 .input {
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  margin: 0.5rem 0;
-  border: 1px solid #555555;
-  border-radius: 6px;
-  font-size: 1rem;
-  transition: border-color 0.3s;
-}
-
-.input:focus {
-  border-color: #800020; /* бордо */
-  outline: none;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #ccc;
 }
 
 .button {
-  width: 100%;
-  padding: 0.75rem;
-  margin-top: 1rem;
-  background-color: #800020;
-  color: #ffffff;
+  background-color: #4a0f1f; /* бордо */
+  color: #fff;
+  padding: 0.5rem 1rem;
   border: none;
   border-radius: 6px;
-  font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.3s;
 }
 
 .button:hover {
-  background-color: #a00030;
+  background-color: #6a1b2c;
 }
 
-.chartWrapper {
-  margin-top: 1.5rem;
-  text-align: center;
-}
-
-.tableWrapper {
+.chartContainer {
   margin-top: 1rem;
-  border-collapse: collapse;
-  width: 100%;
 }
 
-.tableWrapper table {
-  width: 100%;
-  border: 1px solid #555555;
+.chartImg {
+  max-width: 100%;
+  border: 1px solid #ccc;
+  border-radius: 6px;
 }
 
-.tableWrapper th,
-.tableWrapper td {
+.chartData {
+  margin-top: 1rem;
+  background-color: rgba(0,0,0,0.05);
   padding: 0.5rem;
-  border: 1px solid #555555;
-  text-align: center;
-}
-
-.fadeIn {
-  animation: fadeIn 0.5s ease forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px);}
-  to { opacity: 1; transform: translateY(0);}
+  border-radius: 4px;
+  overflow-x: auto;
 }
