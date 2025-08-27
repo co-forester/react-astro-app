@@ -142,13 +142,12 @@ def generate_chart():
         local_dt = tz.localize(naive_dt)
 
         # Отримуємо зсув від UTC у годинах
-        offset = local_dt.utcoffset().total_seconds() / 3600
-        offset_str = f"{int(offset):+03d}:00"
+        offset_hours = local_dt.utcoffset().total_seconds() / 3600
 
-        # Flatlib datetime
+        # Flatlib datetime (число годин)
         fdate = Datetime(local_dt.strftime("%Y/%m/%d"),
                         local_dt.strftime("%H:%M"),
-                        offset_str)
+                        offset_hours)
         pos = GeoPos(lat, lon)
         chart = Chart(fdate, pos, houses="Placidus")
 
