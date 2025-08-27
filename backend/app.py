@@ -152,7 +152,34 @@ def generate_chart():
         chart = Chart(fdate, pos, houses="Placidus")
 
         # Аспекти
-        aspect_list = compute_aspects(chart)
+        from flatlib import const
+        from flatlib import aspects as fl_aspects
+
+        def compute_aspects(chart):
+            aspect_list = []
+            aspect_types = {
+                const.CONJUNCTION: "conjunction",
+                const.SEXTILE: "sextile",
+                const.SQUARE: "square",
+                const.TRINE: "trine",
+                const.OPPOSITION: "opposition"
+            }
+            
+            for i, p1 in enumerate(chart.objects):
+                for j, p2 in enumerate(chart.objects):
+                    if i >= j:
+                        continue
+                    asp = fl_aspects.getAspect(p1, p2)
+                    if asp:
+                        type_str = aspect_types.get(asp.type, "unknown")
+                        aspect_list.append({
+                            "planet1": p1.id,
+                            "planet2": p2.id,
+                            "type": type_str,
+                            "color": ASPECT_COLORS.get(type_str, "#ccc"),
+                            "angle": round(asp.angle, 2)
+                        })
+            return aspect_list
 
         # Малюємо карту
         os.makedirs("cache", exist_ok=True)
