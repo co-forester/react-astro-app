@@ -139,7 +139,10 @@ def generate_chart():
         local_dt = tz.localize(naive_dt)
 
         # Flatlib datetime та позиція
-        fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), tz_str)
+        utc_offset_hours = local_dt.utcoffset().total_seconds() / 3600
+        date = Datetime(local_dt.strftime("%Y/%m/%d"),
+                 local_dt.strftime("%H:%M"),
+                 utc_offset_hours)
         pos = GeoPos(lat, lon)
         chart = Chart(fdate, pos, houses="Placidus")  # система домів Пласідус
 
