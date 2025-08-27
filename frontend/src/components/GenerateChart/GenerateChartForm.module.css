@@ -1,4 +1,3 @@
-/* ====================== Форми ====================== */
 .formContainer {
   display: flex;
   flex-direction: column;
@@ -9,19 +8,14 @@
 
 .formLight {
   background-color: #fdf7f7;
-  /* світлий сіро-білий */
   color: #4a0f1f;
-  /* бордо */
 }
 
 .formDark {
   background-color: #2b2b2b;
-  /* темний сірий */
   color: #f7eaea;
-  /* світлий/білий бордо */
 }
 
-/* ====================== Інпути ====================== */
 .formInput {
   padding: 0.5rem;
   border-radius: 4px;
@@ -30,23 +24,19 @@
   background-color: inherit;
 }
 
-/* ====================== Кнопка ====================== */
 .formButton {
   background-color: #4a0f1f;
-  /* бордо */
   color: #fff;
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.3s;
 }
 
 .formButton:hover {
   background-color: #6a1b2c;
 }
 
-/* ====================== Контейнер карти ====================== */
 .chartContainer {
   margin-top: 1rem;
 }
@@ -57,7 +47,6 @@
   border-radius: 6px;
 }
 
-/* ====================== Таблиця аспектів ====================== */
 .aspectsContainer {
   margin-top: 1rem;
   overflow-x: auto;
@@ -73,42 +62,4 @@
   padding: 0.5rem;
   border: 1px solid #ccc;
   text-align: center;
-}
-
-/* Світла тема */
-.formLight .aspectsContainer th,
-.formLight .aspectsContainer td {
-  background-color: #fdf7f7;
-  color: #4a0f1f;
-}
-
-/* Темна тема */
-.formDark .aspectsContainer th,
-.formDark .aspectsContainer td {
-  background-color: #2b2b2b;
-  color: #f7eaea;
-}
-
-/* ====================== Підсвітка типів аспектів ====================== */
-.aspectsContainer td.trine {
-  background-color: #d4a5a5;
-  /* світлий бордо */
-}
-
-.aspectsContainer td.square {
-  background-color: #8b8b8b;
-  /* сірий */
-  color: #fff;
-}
-
-.aspectsContainer td.opposition {
-  background-color: #4a0f1f;
-  /* темний бордо */
-  color: #fff;
-}
-
-.aspectsContainer td.sextile {
-  background-color: #f7eaea;
-  /* світлий бордо/білий */
-  color: #4a0f1f;
 }

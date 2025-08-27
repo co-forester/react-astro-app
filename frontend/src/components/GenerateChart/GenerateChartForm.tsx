@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import css from "./GenerateChartForm.module.css"; // <- змінено
+import css from "./GenerateChartForm.module.css";
 
 interface FormData {
   name: string;
@@ -15,14 +15,6 @@ const GenerateChartForm: React.FC = () => {
     time: "",
     place: "",
   });
-
-  const ASPECT_ROW_COLORS: Record<string, string> = {
-    trine: "#d4a5a5",       // світлий бордо
-    square: "#8b8b8b",      // сірий
-    opposition: "#4a0f1f",  // темний бордо
-    sextile: "#f7eaea"      // білий/світлий бордо
-  };
-
   const [chartUrl, setChartUrl] = useState<string | null>(null);
   const [aspectsJson, setAspectsJson] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -47,9 +39,7 @@ const GenerateChartForm: React.FC = () => {
       });
 
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "Помилка генерації карти");
-      }
+      if (!response.ok) throw new Error(data.error || "Помилка генерації карти");
 
       setChartUrl(data.chart_url);
       setAspectsJson(data.aspects_json);
@@ -61,7 +51,7 @@ const GenerateChartForm: React.FC = () => {
   };
 
   return (
-    <div className={`${css.formContainer} ${css.fadeInForm}`}>
+    <div className={`${css.formContainer} fadeInForm`}>
       <form onSubmit={handleSubmit}>
         <input
           type="text"
@@ -105,14 +95,14 @@ const GenerateChartForm: React.FC = () => {
       {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
 
       {chartUrl && (
-        <div className={`${css.chartContainer} ${css.fadeInUpForm}`}>
+        <div className={css.chartContainer}>
           <h3>Натальна карта</h3>
           <img src={chartUrl} alt="Натальна карта" />
         </div>
       )}
 
       {aspectsJson && (
-        <div className={`${css.aspectsContainer} ${css.fadeInUpForm}`}>
+        <div className={css.aspectsContainer}>
           <h3>Аспекти</h3>
           <table>
             <thead>
@@ -125,9 +115,9 @@ const GenerateChartForm: React.FC = () => {
             </thead>
             <tbody>
               {aspectsJson.map((asp: any, idx: number) => (
-                <tr key={idx} style={{ backgroundColor: ASPECT_ROW_COLORS[asp.type] || "transparent" }}>
-                  <td>{asp.object1}</td>
-                  <td>{asp.object2}</td>
+                <tr key={idx} style={{ color: asp.color }}>
+                  <td>{asp.planet1}</td>
+                  <td>{asp.planet2}</td>
                   <td>{asp.type}</td>
                   <td>{asp.angle}</td>
                 </tr>
