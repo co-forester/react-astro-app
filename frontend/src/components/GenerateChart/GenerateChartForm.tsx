@@ -15,6 +15,14 @@ const GenerateChartForm: React.FC = () => {
     time: "",
     place: "",
   });
+
+  const ASPECT_ROW_COLORS: Record<string, string> = {
+    trine: "#d4a5a5",       // світлий бордо
+    square: "#8b8b8b",      // сірий
+    opposition: "#4a0f1f",  // темний бордо
+    sextile: "#f7eaea"      // білий/світлий бордо
+  };
+
   const [chartUrl, setChartUrl] = useState<string | null>(null);
   const [aspectsJson, setAspectsJson] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -117,7 +125,7 @@ const GenerateChartForm: React.FC = () => {
             </thead>
             <tbody>
               {aspectsJson.map((asp: any, idx: number) => (
-                <tr key={idx}>
+                <tr key={idx} style={{ backgroundColor: ASPECT_ROW_COLORS[asp.type] || "transparent" }}>
                   <td>{asp.object1}</td>
                   <td>{asp.object2}</td>
                   <td>{asp.type}</td>
