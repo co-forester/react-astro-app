@@ -28,49 +28,45 @@ CORS(app)
 geolocator = Nominatim(user_agent="astro_app")
 tf = TimezoneFinder()
 
-# Папка для кешу
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
-# ====================== Кольори аспектів ======================
-ASPECT_COLORS = {
-    "trine": "#d4a5a5",       # світлий бордо
-    "square": "#8b8b8b",      # сірий
-    "opposition": "#4a0f1f",  # темний бордо
-    "sextile": "#f7eaea"      # світлий бордо/білий
-}
-
-# ====================== Символи планет ======================
+# Символи планет
 PLANET_SYMBOLS = {
-    'Sun': '☉',
-    'Moon': '☽',
-    'Mercury': '☿',
-    'Venus': '♀',
-    'Mars': '♂',
-    'Jupiter': '♃',
-    'Saturn': '♄',
-    'Uranus': '♅',
-    'Neptune': '♆',
-    'Pluto': '♇',
-    'Node': '☊',
-    'Chiron': '⚷',
+    "Sun": "☉",
+    "Moon": "☽",
+    "Mercury": "☿",
+    "Venus": "♀",
+    "Mars": "♂",
+    "Jupiter": "♃",
+    "Saturn": "♄",
+    "Uranus": "♅",
+    "Neptune": "♆",
+    "Pluto": "♇",
+    "Chiron": "⚷",
 }
 
-# ====================== Генерація ключа кешу ======================
+ASPECT_COLORS = {
+    "trine": "#d4a5a5",
+    "square": "#8b8b8b",
+    "opposition": "#4a0f1f",
+    "sextile": "#f7eaea",
+    "conjunction": "#f0f0f0"
+}
+
 def cache_key(name, date, time, place):
     key_str = f"{name}|{date}|{time}|{place}"
     return md5(key_str.encode()).hexdigest()
 
-# ====================== Малюємо натальну карту ======================
 def draw_natal_chart(chart, name="Person", save_path="static/chart.png"):
     fig, ax = plt.subplots(figsize=(8,8))
     ax.axis("off")
 
-    # Коло натальної карти
-    circle = plt.Circle((0, 0), 1, fill=False, color="#4a0f1f", lw=2)
+    # Коло карти
+    circle = plt.Circle((0,0),1,fill=False,color="#4a0f1f",lw=2)
     ax.add_artist(circle)
 
-    # Зодіакальні знаки
+    # Зодіак
     zodiac_signs = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
     for i, sign in enumerate(zodiac_signs):
         angle = 2*math.pi/12 * i
@@ -78,26 +74,25 @@ def draw_natal_chart(chart, name="Person", save_path="static/chart.png"):
         y = 1.05 * math.sin(angle)
         ax.text(x, y, sign, fontsize=14, ha="center", va="center", color="#4a0f1f")
 
-    # Домів Пласідус
+    # Планети
+    for obj in chart.objects:
+        angle = math.radians(obj.lon)
+        x = 0.85 * math.cos(angle)
+        y = 0.85 * math.sin(angle)
+        ax.plot(x, y, "o", color="#6a1b2c", markersize=8)
+        symbol = PLANET_SYMBOLS.get(obj.id, "?")
+        ax.text(x, y, symbol, fontsize=12, ha="center", va="center", color="#4a0f1f")
+
+    # Будинки Пласідус
     for i in range(12):
         angle = 2*math.pi/12 * i
         x = 0.9 * math.cos(angle)
         y = 0.9 * math.sin(angle)
         ax.text(x, y, str(i+1), fontsize=10, ha="center", va="center", color="#4a0f1f")
 
-    # Планети
-    for obj in chart.objects:
-        angle = math.radians(obj.lon)
-        x = 0.85 * math.cos(angle)
-        y = 0.85 * math.sin(angle)
-        symbol = PLANET_SYMBOLS.get(obj.name, '?')
-        ax.plot(x, y, "o", color="#6a1b2c", markersize=8)
-        ax.text(x, y, symbol, fontsize=10, ha="center", va="center", color="#4a0f1f")
-
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
-# ====================== Генерація аспектів ======================
 def compute_aspects(chart):
     aspect_list = []
     for i, p1 in enumerate(chart.objects):
@@ -109,27 +104,26 @@ def compute_aspects(chart):
                 if asp.isApplicable():
                     aspect_type = asp.__class__.__name__.lower()
                     aspect_list.append({
-                        "planet1": p1.name,
-                        "planet2": p2.name,
+                        "object1": p1.id,
+                        "object2": p2.id,
                         "type": aspect_type,
-                        "color": ASPECT_COLORS.get(aspect_type, "#ccc")
+                        "angle": round(asp.angle,2),
+                        "color": ASPECT_COLORS.get(aspect_type,"#ccc")
                     })
     return aspect_list
 
-# ====================== Генерація карти ======================
 @app.route("/generate", methods=["POST"])
 def generate_chart():
     try:
         data = request.json
-        name = data.get("name", "Person")
-        date_str = data.get("date")   # YYYY-MM-DD
-        time_str = data.get("time")   # HH:MM
-        place = data.get("place")     # Місто/адреса
+        name = data.get("name","Person")
+        date_str = data.get("date")
+        time_str = data.get("time")
+        place = data.get("place")
 
-        # Перевірка кешу
-        key = cache_key(name, date_str, time_str, place)
-        cache_path = os.path.join(CACHE_DIR, f"{key}.json")
-        chart_path = os.path.join(CACHE_DIR, f"{key}.png")
+        key = cache_key(name,date_str,time_str,place)
+        cache_path = os.path.join(CACHE_DIR,f"{key}.json")
+        chart_path = os.path.join(CACHE_DIR,f"{key}.png")
 
         if os.path.exists(cache_path) and os.path.exists(chart_path):
             with open(cache_path) as f:
@@ -139,46 +133,36 @@ def generate_chart():
                 "chart_url": f"/cache/{key}.png"
             })
 
-        # Геолокація
         location = geolocator.geocode(place)
         if not location:
-            return jsonify({"error": "Місце не знайдено"}), 400
+            return jsonify({"error":"Місце не знайдено"}),400
         lat, lon = location.latitude, location.longitude
 
-        # Таймзона
-        tz_str = tf.timezone_at(lat=lat, lng=lon) or "UTC"
+        tz_str = tf.timezone_at(lat=lat,lng=lon) or "UTC"
         tz = pytz.timezone(tz_str)
 
-        # Локальний час
-        naive_dt = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        naive_dt = dt.strptime(f"{date_str} {time_str}","%Y-%m-%d %H:%M")
         local_dt = tz.localize(naive_dt)
 
-        # Flatlib datetime та позиція
-        utc_offset_hours = local_dt.utcoffset().total_seconds() / 3600
-        fdate = Datetime(local_dt.strftime("%Y/%m/%d"),
-                         local_dt.strftime("%H:%M"),
-                         utc_offset_hours)
+        utc_offset_hours = local_dt.utcoffset().total_seconds()/3600
+        fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), utc_offset_hours)
         pos = GeoPos(lat, lon)
-        chart = Chart(fdate, pos, houses="Placidus")
+        chart = Chart(fdate,pos,houses="Placidus")
 
-        # Малюємо карту
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        draw_natal_chart(chart, name=name, save_path=chart_path)
-
-        # Аспекти
+        os.makedirs(CACHE_DIR,exist_ok=True)
+        draw_natal_chart(chart,name=name,save_path=chart_path)
         aspect_list = compute_aspects(chart)
 
-        # Зберігаємо кеш
         cache_data = {
             "name": name,
             "date": date_str,
             "time": time_str,
             "place": place,
             "timezone": tz_str,
-            "aspects": aspect_list
+            "aspects_json": aspect_list
         }
-        with open(cache_path, "w") as f:
-            json.dump(cache_data, f)
+        with open(cache_path,"w") as f:
+            json.dump(cache_data,f)
 
         return jsonify({
             **cache_data,
@@ -186,17 +170,15 @@ def generate_chart():
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}),500
 
-# ====================== Віддача файлів кешу ======================
 @app.route("/cache/<filename>")
 def get_cached_chart(filename):
     return send_from_directory(CACHE_DIR, filename)
 
-# ====================== Health ======================
 @app.route("/health")
 def health():
-    return "OK", 200
+    return "OK",200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
