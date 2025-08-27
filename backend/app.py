@@ -1,124 +1,97 @@
-from flask import Flask, request, jsonify
+import os
+import math
+from datetime import datetime as dt
+
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+
+import matplotlib
+matplotlib.use("Agg")  # headless рендер
+import matplotlib.pyplot as plt
+
+from geopy.geocoders import Nominatim
+from timezonefinder import TimezoneFinder
+import pytz
+
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
-from flatlib import const
-import matplotlib.pyplot as plt
-import os
-from geopy.geocoders import Nominatim
-from timezonefinder import TimezoneFinder
-from datetime import datetime, timedelta
-import math
-import pytz
+from flatlib import aspects
 
 app = Flask(__name__)
+CORS(app)
 
-STATIC_FOLDER = os.path.join(os.path.dirname(__file__), "static")
-if not os.path.exists(STATIC_FOLDER):
-    os.makedirs(STATIC_FOLDER)
+# --------- Функція для геокодування ----------
+def geocode_place(place: str):
+    geolocator = Nominatim(user_agent="astro_app")
+    location = geolocator.geocode(place)
+    if location:
+        return location.latitude, location.longitude
+    return 50.45, 30.523  # fallback Київ
 
-geolocator = Nominatim(user_agent="astro_app")
-tf = TimezoneFinder()
-
-def get_planet_positions(chart):
-    positions = {}
-    for obj in const.PLANETS:
-        body = chart.get(obj)
-        positions[obj] = float(body.lon)
-    return positions
-
-def draw_chart(planet_positions, place):
-    fig, ax = plt.subplots(figsize=(8, 8))
-    ax.set_xlim(-1.2, 1.2)
-    ax.set_ylim(-1.2, 1.2)
-    ax.axis("off")
-
-    circle = plt.Circle((0, 0), 1, fill=False, linewidth=2)
-    ax.add_artist(circle)
-
-    signs = const.SIGNS
-    for i, sign in enumerate(signs):
-        angle = math.radians(i * 30)
-        x = 1.05 * math.cos(angle)
-        y = 1.05 * math.sin(angle)
-        ax.text(x, y, sign, ha="center", va="center", fontsize=10, fontweight="bold")
-
-    for planet, lon in planet_positions.items():
-        angle = math.radians(lon)
-        x = 0.9 * math.cos(angle)
-        y = 0.9 * math.sin(angle)
-        ax.plot(x, y, 'o', markersize=10, label=planet)
-        ax.text(x, y, planet, fontsize=9, ha="center", va="center")
-
-    ax.legend(loc="upper right", fontsize=8)
-    ax.text(0, -1.1, f"Натальна карта — {place}", ha="center", va="center", fontsize=12, fontweight="bold")
-
-    chart_file = os.path.join(STATIC_FOLDER, "chart.png")
-    fig.savefig(chart_file, bbox_inches="tight")
-    plt.close(fig)
-    return chart_file
-
-def create_datetime(date_str: str, time_str: str, tz_offset_hours: float = 3.0):
-    """
-    Створює Flatlib Datetime із правильними аргументами без зайвих позиційних параметрів.
-    date_str: 'dd.mm.yyyy'
-    time_str: 'HH:MM'
-    tz_offset_hours: зсув від UTC
-    """
-    try:
-        day, month, year = map(int, date_str.split('.'))
-        hour, minute = map(int, time_str.split(':'))
-        local_dt = datetime(year, month, day, hour, minute)
-        utc_dt = local_dt - timedelta(hours=tz_offset_hours)
-        return Datetime(utc_dt.year, utc_dt.month, utc_dt.day, utc_dt.hour, utc_dt.minute)
-    except Exception as e:
-        raise ValueError(f"Error creating Datetime: {str(e)}")
-
+# --------- Генерація карти ----------
 @app.route("/generate", methods=["POST"])
 def generate_chart():
-    try:
-        data = request.json
-        date_str = data.get("date")
-        time_str = data.get("time")
-        place_str = data.get("place")
+    data = request.get_json()
+    date = data.get("date")   # формат YYYY-MM-DD
+    time = data.get("time")   # формат HH:MM
+    place = data.get("place")
 
-        # Геокодинг
-        location = geolocator.geocode(place_str)
-        if not location:
-            return jsonify({"error": f"Місто '{place_str}' не знайдено", "chart_image_url": "/static/chart.png", "status": "stub"}), 400
-        lat, lon = location.latitude, location.longitude
-        geopos = GeoPos(float(lat), float(lon))
+    # Геолокація
+    lat, lon = geocode_place(place)
 
-        # Часовий пояс
-        tz_name = tf.timezone_at(lat=lat, lng=lon)
-        if not tz_name:
-            tz_name = "UTC"
-        tz = pytz.timezone(tz_name)
-        now = datetime.utcnow()
-        offset_hours = tz.utcoffset(now).total_seconds() / 3600.0
+    # Часовий пояс
+    tf = TimezoneFinder()
+    timezone_str = tf.timezone_at(lng=lon, lat=lat)
+    if timezone_str is None:
+        timezone_str = "UTC"
+    tz = pytz.timezone(timezone_str)
 
-        # Створюємо Datetime для Flatlib
-        dt = create_datetime(date_str, time_str, tz_offset_hours=offset_hours)
+    # Формування flatlib datetime
+    naive_dt = dt.strptime(date + " " + time, "%Y-%m-%d %H:%M")
+    aware_dt = tz.localize(naive_dt)
+    fdate = Datetime(
+        aware_dt.strftime("%Y/%m/%d"),
+        aware_dt.strftime("%H:%M"),
+        aware_dt.utcoffset().total_seconds() / 3600
+    )
 
-        # Створюємо натальну карту
-        chart = Chart(dt, geopos)
+    pos = GeoPos(lat, lon)
+    chart = Chart(fdate, pos)
 
-        planet_positions = get_planet_positions(chart)
-        chart_file = draw_chart(planet_positions, place_str)
+    # --- Побудова графіка ---
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1, 1)
+    ax.axis("off")
 
-        return jsonify({
-            "chart_image_url": "/static/chart.png",
-            "error": None,
-            "status": "ok"
-        })
+    # Коло
+    circle = plt.Circle((0, 0), 0.9, fill=False, color="black")
+    ax.add_artist(circle)
 
-    except Exception as e:
-        return jsonify({"chart_image_url": "/static/chart.png", "error": str(e), "status": "stub"}), 500
+    # Планети
+    planets = chart.objects
+    for obj in planets:
+        angle = math.radians(obj.lon)
+        x = 0.8 * math.cos(angle)
+        y = 0.8 * math.sin(angle)
+        ax.plot(x, y, "o", label=obj)
+        ax.text(x, y, obj, fontsize=8, ha="center", va="center")
 
-@app.route('/health', methods=['GET'])
-def health():
-    return jsonify({"status": "ok"}), 200
+    # Збереження
+    output_path = os.path.join(os.getcwd(), "chart.png")
+    plt.savefig(output_path, dpi=150)
+    plt.close(fig)
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
+    return jsonify({
+        "message": "Chart generated successfully",
+        "chart_url": "/chart.png"
+    })
+
+# --------- Віддача збереженого файлу ----------
+@app.route("/chart.png")
+def get_chart():
+    return send_from_directory(os.getcwd(), "chart.png")
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
