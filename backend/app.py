@@ -41,20 +41,21 @@ def generate_chart():
         lat, lon = location.latitude, location.longitude
 
         # Таймзона
-        tz_str = tf.timezone_at(lat=lat, lng=lon)
-        if not tz_str:
-            tz_str = "UTC"
-
+        tz_str = tf.timezone_at(lat=lat, lng=lon) or "UTC"
         tz = pytz.timezone(tz_str)
 
         # Локальний час
         naive_dt = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         local_dt = tz.localize(naive_dt)
 
+        # Отримуємо зсув від UTC у годинах
+        offset = local_dt.utcoffset().total_seconds() / 3600
+        offset_str = f"{int(offset):+03d}:00"
+
         # Flatlib datetime
         fdate = Datetime(local_dt.strftime("%Y/%m/%d"),
-                         local_dt.strftime("%H:%M"),
-                         tz_str)
+                        local_dt.strftime("%H:%M"),
+                        offset_str)
         pos = GeoPos(lat, lon)
         chart = Chart(fdate, pos)
 
@@ -85,6 +86,10 @@ def generate_chart():
 @app.route("/chart.png")
 def get_chart():
     return send_from_directory("static", "chart.png")
+
+@app.route("/health")
+def health():
+    return "OK", 200
 
 
 if __name__ == "__main__":
