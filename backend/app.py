@@ -48,14 +48,17 @@ def cache_key(name, date, time, place):
 
 # ====================== Малюємо натальну карту ======================
 def draw_natal_chart(chart, name="Person", save_path="static/chart.png"):
-    fig, ax = plt.subplots(figsize=(8,8))
+    import matplotlib.pyplot as plt
+    import math
+
+    fig, ax = plt.subplots(figsize=(8, 8))
     ax.axis("off")
 
     # Коло натальної карти
     circle = plt.Circle((0, 0), 1, fill=False, color="#4a0f1f", lw=2)
     ax.add_artist(circle)
 
-    # Зодіакальні знаки
+    # Зодіакальні знаки по колу
     zodiac_signs = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
     for i, sign in enumerate(zodiac_signs):
         angle = 2*math.pi/12 * i
@@ -68,16 +71,21 @@ def draw_natal_chart(chart, name="Person", save_path="static/chart.png"):
         angle = math.radians(obj.lon)
         x = 0.85 * math.cos(angle)
         y = 0.85 * math.sin(angle)
+        symbol = const.SYMBOLS.get(obj.name, obj.name)  # коректний символ
         ax.plot(x, y, "o", color="#6a1b2c", markersize=8)
-        ax.text(x, y, obj.symbol, fontsize=10, ha="center", va="center", color="#4a0f1f")
+        ax.text(x, y, symbol, fontsize=10, ha="center", va="center", color="#4a0f1f")
 
-    # Домів Пласідус (орієнтовно)
+    # Домів Пласідус (орієнтовно по колу)
     for i in range(12):
         angle = 2*math.pi/12 * i
         x = 0.9 * math.cos(angle)
         y = 0.9 * math.sin(angle)
         ax.text(x, y, str(i+1), fontsize=10, ha="center", va="center", color="#4a0f1f")
 
+    # Заголовок
+    ax.set_title(f"Natal Chart - {name}", fontsize=16)
+
+    # Зберігаємо
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 

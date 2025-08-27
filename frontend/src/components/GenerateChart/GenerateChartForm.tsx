@@ -53,7 +53,7 @@ const GenerateChartForm: React.FC = () => {
   };
 
   return (
-    <div className="css.formContainer fadeInForm">
+    <div className="css.formContainer css.fadeInForm">
       <form onSubmit={handleSubmit}>
         <input
           type="text"
