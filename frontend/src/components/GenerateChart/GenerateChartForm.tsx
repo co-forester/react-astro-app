@@ -1,4 +1,7 @@
+// GenerateChartForm.tsx
+
 import React, { useState } from "react";
+import styles from "./GenerateChartForm.module.css";
 
 const GenerateChartForm: React.FC = () => {
   const [date, setDate] = useState("");
@@ -22,35 +25,53 @@ const GenerateChartForm: React.FC = () => {
   };
 
   return (
-    <div>
+    <div className={styles.container}>
       <form onSubmit={handleSubmit}>
         <label>
           Date:
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            required
+            className={styles.input}
+          />
         </label>
         <br />
         <label>
           Time:
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
+          <input
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            required
+            className={styles.input}
+          />
         </label>
         <br />
         <label>
           Place:
-          <input type="text" value={place} onChange={(e) => setPlace(e.target.value)} required />
+          <input
+            type="text"
+            value={place}
+            onChange={(e) => setPlace(e.target.value)}
+            required
+            className={styles.input}
+          />
         </label>
         <br />
-        <button type="submit">Generate Chart</button>
+        <button type="submit" className={styles.button}>Generate Chart</button>
       </form>
 
       {chartUrl && (
-        <div>
+        <div className={styles.chartWrapper}>
           <h2>Natal Chart</h2>
-          <img src={chartUrl} alt="Natal Chart" style={{ maxWidth: "500px" }} />
+          <img src={chartUrl} alt="Natal Chart" style={{ maxWidth: "100%" }} />
         </div>
       )}
 
       {chartData && (
-        <div>
+        <div className={`${styles.tableWrapper} ${styles.fadeIn}`}>
           <h3>Chart Data</h3>
           <pre>{JSON.stringify(chartData, null, 2)}</pre>
         </div>
@@ -59,4 +80,4 @@ const GenerateChartForm: React.FC = () => {
   );
 };
 
-export {GenerateChartForm};
+export { GenerateChartForm };

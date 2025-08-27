@@ -1,118 +1,82 @@
-/* Контейнер форми */
-.formContainer {
-  max-width: 450px;
+/* GenerateChartForm.module.css */
+
+.container {
+  max-width: 400px;
   margin: 2rem auto;
-  padding: 2rem;
-  background: #ffffff;
-  border-radius: 1rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Вхідні поля */
-.formInput {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.75rem;
-  font-size: 1rem;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  background-color: #f8f8f8; /* світла тема */
+  color: #555555;
   transition: all 0.3s ease;
+  font-family: Arial, sans-serif;
 }
 
-.formInput:focus {
+.dark .container {
+  background-color: #1c1c1c; /* темна тема */
+  color: #ddd;
+}
+
+.input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  margin: 0.5rem 0;
+  border: 1px solid #555555;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.input:focus {
+  border-color: #800020; /* бордо */
   outline: none;
-  border-color: #6c63ff;
-  box-shadow: 0 0 5px rgba(108, 99, 255, 0.5);
 }
 
-/* Кнопка форми */
-.formButton {
-  padding: 0.85rem 1.5rem;
-  background: #800020; /* бордо */
-  color: white;
+.button {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  background-color: #800020;
+  color: #ffffff;
   border: none;
-  border-radius: 0.75rem;
+  border-radius: 6px;
   font-size: 1rem;
   cursor: pointer;
-  transition: background 0.3s ease, transform 0.2s ease;
+  transition: background-color 0.3s;
 }
 
-.formButton:hover {
-  background: #a00030; /* світліше бордо при наведенні */
-  transform: translateY(-2px);
+.button:hover {
+  background-color: #a00030;
 }
 
-.formButton:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
-}
-
-/* Контейнер для зображення карти */
-.chartContainer {
+.chartWrapper {
   margin-top: 1.5rem;
   text-align: center;
 }
 
-.chartContainer img {
-  max-width: 100%;
-  border-radius: 1rem;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-}
-
-/* Таблиця аспектів */
-.aspectsTable {
+.tableWrapper {
   margin-top: 1rem;
-  overflow-x: auto;
-}
-
-.aspectsTable table {
-  width: 100%;
   border-collapse: collapse;
+  width: 100%;
 }
 
-.aspectsTable th,
-.aspectsTable td {
+.tableWrapper table {
+  width: 100%;
+  border: 1px solid #555555;
+}
+
+.tableWrapper th,
+.tableWrapper td {
   padding: 0.5rem;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-  font-size: 0.9rem;
+  border: 1px solid #555555;
+  text-align: center;
 }
 
-.aspectsTable th {
-  background: #f5f5f5;
-}
-
-/* Анімації появи */
-.fadeInForm {
-  animation: fadeIn 0.6s ease forwards;
-}
-
-.fadeInUpForm {
-  animation: fadeInUp 0.6s ease forwards;
+.fadeIn {
+  animation: fadeIn 0.5s ease forwards;
 }
 
 @keyframes fadeIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes fadeInUp {
-  0% {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-10px);}
+  to { opacity: 1; transform: translateY(0);}
 }
