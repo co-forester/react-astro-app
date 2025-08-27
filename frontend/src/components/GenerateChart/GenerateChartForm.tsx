@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import "./GenerateChartForm.module.css";
+import css from "./GenerateChartForm.module.css"; // <- змінено
 
 interface FormData {
   name: string;
@@ -53,14 +53,14 @@ const GenerateChartForm: React.FC = () => {
   };
 
   return (
-    <div className="css.formContainer css.fadeInForm">
+    <div className={`${css.formContainer} ${css.fadeInForm}`}>
       <form onSubmit={handleSubmit}>
         <input
           type="text"
           name="name"
           value={formData.name}
           onChange={handleChange}
-          className="css.formInput"
+          className={css.formInput}
           placeholder="Ім'я"
           required
         />
@@ -69,7 +69,7 @@ const GenerateChartForm: React.FC = () => {
           name="date"
           value={formData.date}
           onChange={handleChange}
-          className="css.formInput"
+          className={css.formInput}
           required
         />
         <input
@@ -77,7 +77,7 @@ const GenerateChartForm: React.FC = () => {
           name="time"
           value={formData.time}
           onChange={handleChange}
-          className="css.formInput"
+          className={css.formInput}
           required
         />
         <input
@@ -85,11 +85,11 @@ const GenerateChartForm: React.FC = () => {
           name="place"
           value={formData.place}
           onChange={handleChange}
-          className="css.formInput"
+          className={css.formInput}
           placeholder="Місто"
           required
         />
-        <button type="submit" className="css.formButton" disabled={loading}>
+        <button type="submit" className={css.formButton} disabled={loading}>
           {loading ? "Генерація..." : "Побудувати натальну карту"}
         </button>
       </form>
@@ -97,14 +97,14 @@ const GenerateChartForm: React.FC = () => {
       {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
 
       {chartUrl && (
-        <div className="css.chartContainer fadeInUpForm">
+        <div className={`${css.chartContainer} ${css.fadeInUpForm}`}>
           <h3>Натальна карта</h3>
           <img src={chartUrl} alt="Натальна карта" />
         </div>
       )}
 
       {aspectsJson && (
-        <div className="css.aspectsContainer fadeInUpForm">
+        <div className={`${css.aspectsContainer} ${css.fadeInUpForm}`}>
           <h3>Аспекти</h3>
           <table>
             <thead>
