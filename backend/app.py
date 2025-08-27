@@ -141,8 +141,14 @@ def generate_chart():
         naive_dt = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         local_dt = tz.localize(naive_dt)
 
+        # Отримуємо зсув від UTC у годинах
+        offset = local_dt.utcoffset().total_seconds() / 3600
+        offset_str = f"{int(offset):+03d}:00"
+
         # Flatlib datetime
-        fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), tz_str)
+        fdate = Datetime(local_dt.strftime("%Y/%m/%d"),
+                        local_dt.strftime("%H:%M"),
+                        offset_str)
         pos = GeoPos(lat, lon)
         chart = Chart(fdate, pos, houses="Placidus")
 
