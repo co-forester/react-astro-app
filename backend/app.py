@@ -144,6 +144,9 @@ def generate_chart():
                  local_dt.strftime("%H:%M"),
                  utc_offset_hours)
         pos = GeoPos(lat, lon)
+        fdate = Datetime(local_dt.strftime("%Y/%m/%d"),
+                 local_dt.strftime("%H:%M"),
+                 utc_offset_hours)
         chart = Chart(fdate, pos, houses="Placidus")  # система домів Пласідус
 
         # Малюємо карту
