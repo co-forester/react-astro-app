@@ -21,7 +21,7 @@
   /* світлий/білий бордо */
 }
 
-/* ====================== Інпуты ====================== */
+/* ====================== Інпути ====================== */
 .formInput {
   padding: 0.5rem;
   border-radius: 4px;
@@ -75,14 +75,40 @@
   text-align: center;
 }
 
+/* Світла тема */
 .formLight .aspectsContainer th,
 .formLight .aspectsContainer td {
   background-color: #fdf7f7;
   color: #4a0f1f;
 }
 
+/* Темна тема */
 .formDark .aspectsContainer th,
 .formDark .aspectsContainer td {
   background-color: #2b2b2b;
   color: #f7eaea;
+}
+
+/* ====================== Підсвітка типів аспектів ====================== */
+.aspectsContainer td.trine {
+  background-color: #d4a5a5;
+  /* світлий бордо */
+}
+
+.aspectsContainer td.square {
+  background-color: #8b8b8b;
+  /* сірий */
+  color: #fff;
+}
+
+.aspectsContainer td.opposition {
+  background-color: #4a0f1f;
+  /* темний бордо */
+  color: #fff;
+}
+
+.aspectsContainer td.sextile {
+  background-color: #f7eaea;
+  /* світлий бордо/білий */
+  color: #4a0f1f;
 }
