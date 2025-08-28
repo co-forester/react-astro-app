@@ -125,10 +125,14 @@ def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart
                      width=8, height=8):
     fig, ax = plt.subplots(figsize=(width, height))
     ax.axis("off")
-
-    fig.patch.set_facecolor("#2b2b2b")
-    ax.set_facecolor("#2b2b2b")
-
+    
+    # Фон
+    # fig.patch.set_facecolor("#2b2b2b")
+    # ax.set_facecolor("#2b2b2b")
+    # Фон — стандартний
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    
     # Визначаємо масштаби залежно від розміру
     font_size_zodiac = max(10, width*2)
     font_size_house = max(8, width*1.5)
