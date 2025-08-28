@@ -214,9 +214,9 @@ def compute_aspects(chart):
                 if abs(diff - angle) <= orb:
                     aspect_list.append({
                         "planet1": p1.id,
-                        "planet1_symbol": PLANET_SYMBOLS.get(p1.id, p1.abbrev),
+                        "planet1_symbol": PLANET_SYMBOLS.get(p1.id, p1.id),  # замість p1.abbrev
                         "planet2": p2.id,
-                        "planet2_symbol": PLANET_SYMBOLS.get(p2.id, p2.abbrev),
+                        "planet2_symbol": PLANET_SYMBOLS.get(p2.id, p2.id),  # замість p2.abbrev
                         "type": name,
                         "color": ASPECT_COLORS.get(name, "#ccc"),
                         "angle": round(diff, 2)
