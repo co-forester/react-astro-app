@@ -194,32 +194,39 @@ def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart
 def compute_aspects(chart):
     aspect_list = []
 
-    aspect_types = {
-        const.CONJUNCTION: "conjunction",
-        const.SEXTILE: "sextile",
-        const.SQUARE: "square",
-        const.TRINE: "trine",
-        const.OPPOSITION: "opposition"
-    }
+    aspect_classes = [
+        fl_aspects.Conjunction,
+        fl_aspects.Sextile,
+        fl_aspects.Square,
+        fl_aspects.Trine,
+        fl_aspects.Opposition
+    ]
 
-    aspList = list(aspect_types.keys())  # необхідно для getAspects
+    aspect_types = {
+        fl_aspects.Conjunction: "conjunction",
+        fl_aspects.Sextile: "sextile",
+        fl_aspects.Square: "square",
+        fl_aspects.Trine: "trine",
+        fl_aspects.Opposition: "opposition"
+    }
 
     for i, p1 in enumerate(chart.objects):
         for j, p2 in enumerate(chart.objects):
             if i >= j:
                 continue
-            # отримуємо всі застосовні аспекти
-            for asp in fl_aspects.getAspects(p1, p2, aspList):
-                type_str = aspect_types.get(asp.type, "unknown")
-                aspect_list.append({
-                    "planet1": p1.id,
-                    "planet1_symbol": PLANET_SYMBOLS.get(p1.id, p1.abbrev),
-                    "planet2": p2.id,
-                    "planet2_symbol": PLANET_SYMBOLS.get(p2.id, p2.abbrev),
-                    "type": type_str,
-                    "color": ASPECT_COLORS.get(type_str, "#ccc"),
-                    "angle": round(asp.angle, 2)
-                })
+            for cls in aspect_classes:
+                asp = cls(p1, p2)
+                if asp.isApplicable():
+                    type_str = aspect_types[cls]
+                    aspect_list.append({
+                        "planet1": p1.id,
+                        "planet1_symbol": PLANET_SYMBOLS.get(p1.id, p1.abbrev),
+                        "planet2": p2.id,
+                        "planet2_symbol": PLANET_SYMBOLS.get(p2.id, p2.abbrev),
+                        "type": type_str,
+                        "color": ASPECT_COLORS.get(type_str, "#ccc"),
+                        "angle": round(asp.angle, 2)
+                    })
 
     return aspect_list
 
