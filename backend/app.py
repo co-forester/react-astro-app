@@ -164,7 +164,7 @@ def generate_chart():
                 const.TRINE: "trine",
                 const.OPPOSITION: "opposition"
             }
-            
+
             for i, p1 in enumerate(chart.objects):
                 for j, p2 in enumerate(chart.objects):
                     if i >= j:
@@ -179,6 +179,7 @@ def generate_chart():
                             "color": ASPECT_COLORS.get(type_str, "#ccc"),
                             "angle": round(asp.angle, 2)
                         })
+
             return aspect_list
 
         # Малюємо карту
