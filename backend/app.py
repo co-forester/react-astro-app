@@ -123,7 +123,7 @@ def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart
         angle = math.radians(obj.lon)
         x = 0.75 * math.cos(angle)
         y = 0.75 * math.sin(angle)
-        label = PLANET_SYMBOLS.get(obj.id, obj.abbrev)
+        label = PLANET_SYMBOLS.get(obj.id, obj.id)  # замість obj.abbrev
         color = PLANET_COLORS.get(obj.id, "#6a1b2c")
 
         ax.plot(x, y, "o", color=color, markersize=12)
