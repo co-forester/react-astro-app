@@ -121,99 +121,116 @@ def compute_aspects(chart):
     return aspect_list
 
 # ====================== Малюємо натальну карту ======================
-def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart.png",
-                     width=8, height=8):
-    fig, ax = plt.subplots(figsize=(width, height))
+def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart.png"):
+    fig, ax = plt.subplots(figsize=(8, 8))
     ax.axis("off")
-    
-    # Фон
-    # fig.patch.set_facecolor("#2b2b2b")
-    # ax.set_facecolor("#2b2b2b")
-    # Фон — стандартний
-    fig.patch.set_facecolor("white")
-    ax.set_facecolor("white")
-    
-    # Визначаємо масштаби залежно від розміру
-    font_size_zodiac = max(10, width*2)
-    font_size_house = max(8, width*1.5)
-    font_size_planet = max(12, width*1.5)
-    marker_size = max(8, width*1.5)
-    logo_radius = 1.35 * (width/8)
 
-    # Коло карти
-    circle = plt.Circle((0,0), 1, fill=False, color="#4a0f1f", lw=2)
+    # Коло натальної карти
+    circle = plt.Circle((0, 0), 1, fill=False, color="#4a0f1f", lw=2)
     ax.add_artist(circle)
 
-    # Зодіакальні знаки
-    zodiac_signs = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
+    # Зодіакальні знаки по колу (з кольоровими дугами)
+    zodiac_signs = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]
+    zodiac_colors = ["#a83232","#a86f32","#a8a032","#32a832","#32a8a8","#326fa8",
+                     "#6f32a8","#a832a8","#a8326f","#3232a8","#32a86f","#6fa832"]
     for i, sign in enumerate(zodiac_signs):
-        angle = 2*math.pi/12*i
-        x, y = 1.1*math.cos(angle), 1.1*math.sin(angle)
-        ax.text(x, y, sign, fontsize=font_size_zodiac, ha="center", va="center", color="#f0f0f0")
+        start_angle = 360/12 * i
+        end_angle = start_angle + 360/12
+        theta1, theta2 = start_angle, end_angle
+        wedge = plt.matplotlib.patches.Wedge(center=(0,0), r=1.05, theta1=theta1, theta2=theta2,
+                                             width=0.05, facecolor=zodiac_colors[i], alpha=0.3)
+        ax.add_artist(wedge)
+
+        angle_rad = math.radians((theta1+theta2)/2)
+        x = 1.1 * math.cos(angle_rad)
+        y = 1.1 * math.sin(angle_rad)
+        ax.text(x, y, sign, fontsize=14, ha="center", va="center", color="white", fontweight="bold")
 
     # Домів Пласідус
-    for i in range(12):
-        angle = 2*math.pi/12*i
-        x, y = 0.9*math.cos(angle), 0.9*math.sin(angle)
-        ax.text(x, y, str(i+1), fontsize=font_size_house, ha="center", va="center", color="#6a1b2c")
+    houses = chart.houses
+    for i, house in enumerate(houses):
+        angle = math.radians(house.lon)
+        x = 0.9 * math.cos(angle)
+        y = 0.9 * math.sin(angle)
+        ax.text(x, y, str(i+1), fontsize=12, ha="center", va="center", color="#6a1b2c")
 
     # Планети
     for obj in chart.objects:
         angle = math.radians(obj.lon)
-        x, y = 0.75*math.cos(angle), 0.75*math.sin(angle)
+        x = 0.75 * math.cos(angle)
+        y = 0.75 * math.sin(angle)
         label = PLANET_SYMBOLS.get(obj.id, obj.id)
         color = PLANET_COLORS.get(obj.id, "#6a1b2c")
-        ax.plot(x, y, "o", color=color, markersize=marker_size)
-        ax.text(x, y, label, fontsize=font_size_planet, ha="center", va="center", color=color, fontweight="bold")
-        ax.text(x+0.07, y+0.07, obj.id, fontsize=max(7,width), ha="left", va="bottom", color=color)
+
+        ax.plot(x, y, "o", color=color, markersize=12)
+        ax.text(x, y, label, fontsize=14, ha="center", va="center", color=color, fontweight="bold")
+        ax.text(x + 0.07, y + 0.07, obj.id, fontsize=9, ha="left", va="bottom", color=color)
+
+    # Асцендент і MC
+    asc = next((o for o in chart.objects if o.id=="Asc"), None)
+    mc = next((o for o in chart.objects if o.id=="MC"), None)
+    if asc:
+        angle = math.radians(asc.lon)
+        x = 1.0 * math.cos(angle)
+        y = 1.0 * math.sin(angle)
+        ax.text(x, y, "Asc", fontsize=12, ha="center", va="center", color="white", fontweight="bold")
+    if mc:
+        angle = math.radians(mc.lon)
+        x = 1.0 * math.cos(angle)
+        y = 1.0 * math.sin(angle)
+        ax.text(x, y, "MC", fontsize=12, ha="center", va="center", color="white", fontweight="bold")
 
     # Аспекти
     for asp in aspects_list:
-        p1 = next(o for o in chart.objects if o.id==asp["planet1"])
-        p2 = next(o for o in chart.objects if o.id==asp["planet2"])
-        x1, y1 = 0.75*math.cos(math.radians(p1.lon)), 0.75*math.sin(math.radians(p1.lon))
-        x2, y2 = 0.75*math.cos(math.radians(p2.lon)), 0.75*math.sin(math.radians(p2.lon))
-        ax.plot([x1, x2], [y1, y2], color=asp["color"], lw=1.5, zorder=0)
+        p1 = next(o for o in chart.objects if o.id == asp["planet1"])
+        p2 = next(o for o in chart.objects if o.id == asp["planet2"])
+        x1, y1 = 0.75 * math.cos(math.radians(p1.lon)), 0.75 * math.sin(math.radians(p1.lon))
+        x2, y2 = 0.75 * math.cos(math.radians(p2.lon)), 0.75 * math.sin(math.radians(p2.lon))
+        ax.plot([x1, x2], [y1, y2], color=asp["color"], lw=1)
 
-    # Логотип Albireo Daria
-    logo_text = "Albireo Daria ♏"
-    start_angle, angle_step = 110, 6
-    for i, char in enumerate(logo_text):
-        theta = math.radians(start_angle - i*angle_step)
-        x, y = logo_radius*math.cos(theta), logo_radius*math.sin(theta)
-        rotation = start_angle - i*angle_step - 90
-        ax.text(x, y, char, fontsize=max(10,width*1.5), ha="center", va="center",
-                color="white", fontweight="bold", rotation=rotation)
-
-    # Легенди залишаються як раніше
-    ...
+    # Логотип Albireo Daria ♏ у секторі Скорпіона
+    scorpio_index = zodiac_signs.index("♏")
+    theta1 = 360/12 * scorpio_index
+    theta2 = theta1 + 360/12
+    angle_rad = math.radians((theta1+theta2)/2)
+    x_logo = 1.15 * math.cos(angle_rad)
+    y_logo = 1.15 * math.sin(angle_rad)
+    ax.text(x_logo, y_logo, "Albireo Daria ♏", fontsize=14, ha="center", va="center",
+            color="white", fontweight="bold")
 
     # Легенда планет
-    planet_handles, planet_labels = [], []
+    planet_handles = []
+    planet_labels = []
     for pid, symbol in PLANET_SYMBOLS.items():
         color = PLANET_COLORS.get(pid, "white")
-        planet_handles.append(plt.Line2D([0],[0], marker="o", color="w", markerfacecolor=color, markersize=8))
+        planet_handles.append(plt.Line2D([0], [0], marker="o", color="w",
+                                         markerfacecolor=color, markersize=8))
         planet_labels.append(f"{symbol} {pid}")
-    legend1 = ax.legend(planet_handles, planet_labels, loc="lower center", bbox_to_anchor=(0.5,-0.18),
-                        fontsize=8, ncol=4, frameon=False, title="Планети", title_fontsize=9)
+
+    legend1 = ax.legend(planet_handles, planet_labels, loc="lower center",
+                        bbox_to_anchor=(0.5, -0.18), fontsize=8, ncol=4, frameon=False,
+                        title="Планети", title_fontsize=9)
     legend1.get_title().set_color("white")
     for text in legend1.get_texts():
         text.set_color("white")
     ax.add_artist(legend1)
 
     # Легенда аспектів
-    aspect_handles, aspect_labels = [], []
+    aspect_handles = []
+    aspect_labels = []
     for atype, color in ASPECT_COLORS.items():
-        aspect_handles.append(plt.Line2D([0,1],[0,0], color=color, lw=2))
+        aspect_handles.append(plt.Line2D([0, 1], [0, 0], color=color, lw=2))
         aspect_labels.append(atype.capitalize())
-    legend2 = ax.legend(aspect_handles, aspect_labels, loc="lower center", bbox_to_anchor=(0.5,-0.28),
-                        fontsize=8, ncol=4, frameon=False, title="Аспекти", title_fontsize=9)
+
+    legend2 = ax.legend(aspect_handles, aspect_labels, loc="lower center",
+                        bbox_to_anchor=(0.5, -0.28), fontsize=8, ncol=4, frameon=False,
+                        title="Аспекти", title_fontsize=9)
     legend2.get_title().set_color("white")
     for text in legend2.get_texts():
         text.set_color("white")
     ax.add_artist(legend2)
 
-    plt.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 # ====================== Генерація карти ======================
