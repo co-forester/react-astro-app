@@ -121,13 +121,20 @@ def compute_aspects(chart):
     return aspect_list
 
 # ====================== Малюємо натальну карту ======================
-def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart.png"):
-    fig, ax = plt.subplots(figsize=(8, 8))
+def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart.png",
+                     width=8, height=8):
+    fig, ax = plt.subplots(figsize=(width, height))
     ax.axis("off")
 
-    # Фон
     fig.patch.set_facecolor("#2b2b2b")
     ax.set_facecolor("#2b2b2b")
+
+    # Визначаємо масштаби залежно від розміру
+    font_size_zodiac = max(10, width*2)
+    font_size_house = max(8, width*1.5)
+    font_size_planet = max(12, width*1.5)
+    marker_size = max(8, width*1.5)
+    logo_radius = 1.35 * (width/8)
 
     # Коло карти
     circle = plt.Circle((0,0), 1, fill=False, color="#4a0f1f", lw=2)
@@ -138,13 +145,13 @@ def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart
     for i, sign in enumerate(zodiac_signs):
         angle = 2*math.pi/12*i
         x, y = 1.1*math.cos(angle), 1.1*math.sin(angle)
-        ax.text(x, y, sign, fontsize=14, ha="center", va="center", color="#f0f0f0")
+        ax.text(x, y, sign, fontsize=font_size_zodiac, ha="center", va="center", color="#f0f0f0")
 
     # Домів Пласідус
     for i in range(12):
         angle = 2*math.pi/12*i
         x, y = 0.9*math.cos(angle), 0.9*math.sin(angle)
-        ax.text(x, y, str(i+1), fontsize=12, ha="center", va="center", color="#6a1b2c")
+        ax.text(x, y, str(i+1), fontsize=font_size_house, ha="center", va="center", color="#6a1b2c")
 
     # Планети
     for obj in chart.objects:
@@ -152,9 +159,9 @@ def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart
         x, y = 0.75*math.cos(angle), 0.75*math.sin(angle)
         label = PLANET_SYMBOLS.get(obj.id, obj.id)
         color = PLANET_COLORS.get(obj.id, "#6a1b2c")
-        ax.plot(x, y, "o", color=color, markersize=12)
-        ax.text(x, y, label, fontsize=14, ha="center", va="center", color=color, fontweight="bold")
-        ax.text(x+0.07, y+0.07, obj.id, fontsize=9, ha="left", va="bottom", color=color)
+        ax.plot(x, y, "o", color=color, markersize=marker_size)
+        ax.text(x, y, label, fontsize=font_size_planet, ha="center", va="center", color=color, fontweight="bold")
+        ax.text(x+0.07, y+0.07, obj.id, fontsize=max(7,width), ha="left", va="bottom", color=color)
 
     # Аспекти
     for asp in aspects_list:
@@ -164,14 +171,18 @@ def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart
         x2, y2 = 0.75*math.cos(math.radians(p2.lon)), 0.75*math.sin(math.radians(p2.lon))
         ax.plot([x1, x2], [y1, y2], color=asp["color"], lw=1.5, zorder=0)
 
-    # Логотип
+    # Логотип Albireo Daria
     logo_text = "Albireo Daria ♏"
-    radius, start_angle, angle_step = 1.35, 110, 6
+    start_angle, angle_step = 110, 6
     for i, char in enumerate(logo_text):
         theta = math.radians(start_angle - i*angle_step)
-        x, y = radius*math.cos(theta), radius*math.sin(theta)
+        x, y = logo_radius*math.cos(theta), logo_radius*math.sin(theta)
         rotation = start_angle - i*angle_step - 90
-        ax.text(x, y, char, fontsize=14, ha="center", va="center", color="white", fontweight="bold", rotation=rotation)
+        ax.text(x, y, char, fontsize=max(10,width*1.5), ha="center", va="center",
+                color="white", fontweight="bold", rotation=rotation)
+
+    # Легенди залишаються як раніше
+    ...
 
     # Легенда планет
     planet_handles, planet_labels = [], []
@@ -242,6 +253,8 @@ def generate_chart():
         aspect_list = compute_aspects(chart)
 
         os.makedirs(CACHE_DIR, exist_ok=True)
+        width = data.get("width", 8)
+        height = data.get("height", 8)
         draw_natal_chart(chart, aspect_list, name=name, save_path=chart_path)
 
         cache_data = {
