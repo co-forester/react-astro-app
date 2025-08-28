@@ -29,6 +29,20 @@ tf = TimezoneFinder()
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
+# ====================== Очистка старого кешу ======================
+import time
+
+def cleanup_cache(days=30):
+    now = time.time()
+    for fname in os.listdir(CACHE_DIR):
+        fpath = os.path.join(CACHE_DIR, fname)
+        if os.path.isfile(fpath):
+            if now - os.path.getmtime(fpath) > days*24*3600:
+                os.remove(fpath)
+
+# Викликаємо при старті сервера
+cleanup_cache()
+
 # Кольори аспектів
 ASPECT_COLORS = {
     "trine": "#d4a5a5",       # світлий бордо
@@ -188,13 +202,15 @@ def compute_aspects(chart):
         const.OPPOSITION: "opposition"
     }
 
+    aspList = list(aspect_types.keys())  # необхідно для getAspects
+
     for i, p1 in enumerate(chart.objects):
         for j, p2 in enumerate(chart.objects):
             if i >= j:
                 continue
-            asp = fl_aspects.getAspect(p1, p2)
-            if asp and asp.type in aspect_types:
-                type_str = aspect_types[asp.type]
+            # отримуємо всі застосовні аспекти
+            for asp in fl_aspects.getAspects(p1, p2, aspList):
+                type_str = aspect_types.get(asp.type, "unknown")
                 aspect_list.append({
                     "planet1": p1.id,
                     "planet1_symbol": PLANET_SYMBOLS.get(p1.id, p1.abbrev),
