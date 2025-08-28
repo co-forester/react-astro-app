@@ -42,7 +42,7 @@ def cleanup_cache(days=30):
 
 cleanup_cache()
 
-# ====================== Кольори та символи ======================
+# ====================== Кольори ======================
 ASPECT_COLORS = {
     "trine": "#d4a5a5",
     "square": "#8b8b8b",
@@ -52,43 +52,114 @@ ASPECT_COLORS = {
 }
 
 PLANET_SYMBOLS = {
-    const.SUN: "☉",
-    const.MOON: "☽",
-    const.MERCURY: "☿",
-    const.VENUS: "♀",
-    const.MARS: "♂",
-    const.JUPITER: "♃",
-    const.SATURN: "♄",
-    const.URANUS: "♅",
-    const.NEPTUNE: "♆",
-    const.PLUTO: "♇",
-    const.NORTH_NODE: "☊",
-    const.SOUTH_NODE: "☋",
-    const.ASC: "Asc",
-    const.MC: "MC"
+    const.SUN: "☉", const.MOON: "☽", const.MERCURY: "☿",
+    const.VENUS: "♀", const.MARS: "♂", const.JUPITER: "♃",
+    const.SATURN: "♄", const.URANUS: "♅", const.NEPTUNE: "♆",
+    const.PLUTO: "♇", const.NORTH_NODE: "☊", const.SOUTH_NODE: "☋",
+    const.ASC: "Asc", const.MC: "MC"
 }
 
 PLANET_COLORS = {
-    const.SUN: "gold",
-    const.MOON: "silver",
-    const.MERCURY: "darkorange",
-    const.VENUS: "deeppink",
-    const.MARS: "red",
-    const.JUPITER: "royalblue",
-    const.SATURN: "brown",
-    const.URANUS: "deepskyblue",
-    const.NEPTUNE: "mediumslateblue",
-    const.PLUTO: "purple",
-    const.ASC: "green",
-    const.MC: "black"
+    const.SUN: "gold", const.MOON: "silver", const.MERCURY: "darkorange",
+    const.VENUS: "deeppink", const.MARS: "red", const.JUPITER: "royalblue",
+    const.SATURN: "brown", const.URANUS: "deepskyblue", const.NEPTUNE: "mediumslateblue",
+    const.PLUTO: "purple", const.ASC: "green", const.MC: "black"
 }
 
-# ====================== Ключ кешу ======================
+# ====================== Кеш ======================
 def cache_key(name, date, time, place):
-    key_str = f"{name}|{date}|{time}|{place}"
-    return md5(key_str.encode()).hexdigest()
+    return md5(f"{name}|{date}|{time}|{place}".encode()).hexdigest()
 
-# ====================== Аспекти ======================
+# ====================== Малюємо карту ======================
+def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart.png"):
+    fig, ax = plt.subplots(figsize=(12, 12))
+    ax.axis("off")
+    
+    center = (0, 0)
+    zodiac_signs = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]
+    zodiac_colors = ["#ffcccc","#ffe6cc","#ffffcc","#e6ffcc","#ccffcc","#ccffe6",
+                     "#ccffff","#cce6ff","#ccccff","#e6ccff","#ffccff","#ffcce6"]
+    outer_radius = 1.3
+    planet_radius = 0.75
+    house_radius = 1.0
+
+    # ====================== Дуги знаків ======================
+    for i, sign in enumerate(zodiac_signs):
+        start_angle = i * 30
+        end_angle = start_angle + 30
+        ax.add_patch(plt.Circle(center, outer_radius, color=zodiac_colors[i], fill=False, lw=2))
+        theta = math.radians(start_angle + 15)
+        x = outer_radius * math.cos(theta)
+        y = outer_radius * math.sin(theta)
+        ax.text(x, y, sign, fontsize=18, ha="center", va="center", color="white", fontweight="bold")
+
+    # ====================== Домів коло ======================
+    for i in range(12):
+        angle = math.radians(i*30)
+        x = house_radius * math.cos(angle)
+        y = house_radius * math.sin(angle)
+        ax.plot([0, x], [0, y], color="grey", lw=1, linestyle="--")
+
+    # ====================== Градусна сітка ======================
+    for deg in range(0, 360, 10):
+        rad = math.radians(deg)
+        x = outer_radius * math.cos(rad)
+        y = outer_radius * math.sin(rad)
+        ax.text(x*1.05, y*1.05, f"{deg}°", fontsize=7, ha="center", va="center", color="white")
+
+    # ====================== Планети ======================
+    for obj in chart.objects:
+        angle = math.radians(obj.lon)
+        x = planet_radius * math.cos(angle)
+        y = planet_radius * math.sin(angle)
+        label = PLANET_SYMBOLS.get(obj.id, obj.id)
+        color = PLANET_COLORS.get(obj.id, "#6a1b2c")
+        ax.plot(x, y, "o", color=color, markersize=14)
+        ax.text(x, y, label, fontsize=14, ha="center", va="center", color=color, fontweight="bold")
+        ax.text(x + 0.05, y + 0.05, obj.id, fontsize=8, ha="left", va="bottom", color=color)
+
+    # ====================== Аспекти ======================
+    for asp in aspects_list:
+        p1 = next(o for o in chart.objects if o.id == asp["planet1"])
+        p2 = next(o for o in chart.objects if o.id == asp["planet2"])
+        x1, y1 = planet_radius * math.cos(math.radians(p1.lon)), planet_radius * math.sin(math.radians(p1.lon))
+        x2, y2 = planet_radius * math.cos(math.radians(p2.lon)), planet_radius * math.sin(math.radians(p2.lon))
+        ax.plot([x1, x2], [y1, y2], color=asp["color"], lw=1, alpha=0.6)
+
+    # ====================== Логотип Скорпіон ======================
+    scorpio_index = 7  # ♏
+    angle = math.radians(scorpio_index*30 + 15)
+    x = outer_radius * math.cos(angle)
+    y = outer_radius * math.sin(angle)
+    ax.text(x, y, "Albireo Daria ♏", fontsize=14, ha="center", va="center", color="white", fontweight="bold",
+            bbox=dict(facecolor="#4a0f1f", alpha=0.6, boxstyle="round,pad=0.3"))
+
+    # ====================== Легенди ======================
+    planet_handles = [plt.Line2D([0], [0], marker="o", color="w", markerfacecolor=PLANET_COLORS.get(pid, "white"), markersize=8)
+                      for pid in PLANET_SYMBOLS.keys()]
+    planet_labels = [f"{PLANET_SYMBOLS.get(pid,pid)} {pid}" for pid in PLANET_SYMBOLS.keys()]
+    legend1 = ax.legend(planet_handles, planet_labels, loc="lower center",
+                        bbox_to_anchor=(0.5, -0.18), fontsize=8, ncol=4, frameon=False,
+                        title="Планети", title_fontsize=9)
+    legend1.get_title().set_color("white")
+    for text in legend1.get_texts():
+        text.set_color("white")
+    ax.add_artist(legend1)
+
+    aspect_handles = [plt.Line2D([0, 1], [0, 0], color=color, lw=2) for color in ASPECT_COLORS.values()]
+    aspect_labels = [atype.capitalize() for atype in ASPECT_COLORS.keys()]
+    legend2 = ax.legend(aspect_handles, aspect_labels, loc="lower center",
+                        bbox_to_anchor=(0.5, -0.28), fontsize=8, ncol=4, frameon=False,
+                        title="Аспекти", title_fontsize=9)
+    legend2.get_title().set_color("white")
+    for text in legend2.get_texts():
+        text.set_color("white")
+    ax.add_artist(legend2)
+
+    plt.savefig(save_path, dpi=150, bbox_inches="tight", facecolor="black")
+    plt.close(fig)
+
+# ====================== Обчислення аспектів ======================
 def compute_aspects(chart):
     aspect_list = []
     aspects_def = [
@@ -98,7 +169,6 @@ def compute_aspects(chart):
         ("trine", 120, 8),
         ("opposition", 180, 8)
     ]
-
     objects = chart.objects
     for i, p1 in enumerate(objects):
         for j, p2 in enumerate(objects):
@@ -119,90 +189,6 @@ def compute_aspects(chart):
                     })
                     break
     return aspect_list
-
-# ====================== Малюємо натальну карту ======================
-def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart.png"):
-    fig, ax = plt.subplots(figsize=(12, 12))  # Збільшено розмір
-    ax.axis("off")
-
-    # Коло натальної карти
-    circle = plt.Circle((0, 0), 1, fill=False, color="#4a0f1f", lw=2)
-    ax.add_artist(circle)
-
-    # Зодіакальні знаки по колу (з кольоровими дугами)
-    zodiac_signs = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]
-    zodiac_colors = ["#a83232","#a86f32","#a8a032","#32a832","#32a8a8","#326fa8",
-                     "#6f32a8","#a832a8","#a8326f","#3232a8","#32a86f","#6fa832"]
-    for i, sign in enumerate(zodiac_signs):
-        start_angle = 360/12 * i
-        end_angle = start_angle + 360/12
-        theta1, theta2 = start_angle, end_angle
-        wedge = plt.matplotlib.patches.Wedge(center=(0,0), r=1.05, theta1=theta1, theta2=theta2,
-                                             width=0.05, facecolor=zodiac_colors[i], alpha=0.3)
-        ax.add_artist(wedge)
-
-        angle_rad = math.radians((theta1+theta2)/2)
-        x = 1.25 * math.cos(angle_rad)  # трохи далі від центру
-        y = 1.25 * math.sin(angle_rad)
-        ax.text(x, y, sign, fontsize=18, ha="center", va="center", color="white", fontweight="bold")
-
-    # Домів Пласідус
-    houses = chart.houses
-    for i, house in enumerate(houses):
-        angle = math.radians(house.lon)
-        x = 1.0 * math.cos(angle)
-        y = 1.0 * math.sin(angle)
-        ax.text(x, y, str(i+1), fontsize=14, ha="center", va="center", color="#6a1b2c")
-
-    # Планети
-    for obj in chart.objects:
-        angle = math.radians(obj.lon)
-        x = 0.8 * math.cos(angle)  # трохи далі від центру
-        y = 0.8 * math.sin(angle)
-        label = PLANET_SYMBOLS.get(obj.id, obj.id)
-        color = PLANET_COLORS.get(obj.id, "#6a1b2c")
-
-        ax.plot(x, y, "o", color=color, markersize=14)
-        ax.text(x, y, label, fontsize=16, ha="center", va="center", color=color, fontweight="bold")
-        ax.text(x + 0.08, y + 0.08, obj.id, fontsize=10, ha="left", va="bottom", color=color)
-
-    # Асцендент і MC
-    asc = next((o for o in chart.objects if o.id=="Asc"), None)
-    mc = next((o for o in chart.objects if o.id=="MC"), None)
-    if asc:
-        angle = math.radians(asc.lon)
-        x = 1.05 * math.cos(angle)
-        y = 1.05 * math.sin(angle)
-        ax.text(x, y, "Asc", fontsize=14, ha="center", va="center", color="white", fontweight="bold")
-    if mc:
-        angle = math.radians(mc.lon)
-        x = 1.05 * math.cos(angle)
-        y = 1.05 * math.sin(angle)
-        ax.text(x, y, "MC", fontsize=14, ha="center", va="center", color="white", fontweight="bold")
-
-    # Аспекти
-    for asp in aspects_list:
-        p1 = next(o for o in chart.objects if o.id == asp["planet1"])
-        p2 = next(o for o in chart.objects if o.id == asp["planet2"])
-        x1, y1 = 0.8 * math.cos(math.radians(p1.lon)), 0.8 * math.sin(math.radians(p1.lon))
-        x2, y2 = 0.8 * math.cos(math.radians(p2.lon)), 0.8 * math.sin(math.radians(p2.lon))
-        ax.plot([x1, x2], [y1, y2], color=asp["color"], lw=1.5)
-
-    # Логотип Albireo Daria ♏ у секторі Скорпіона
-    scorpio_index = zodiac_signs.index("♏")
-    theta1 = 360/12 * scorpio_index
-    theta2 = theta1 + 360/12
-    angle_rad = math.radians((theta1+theta2)/2)
-    x_logo = 1.4 * math.cos(angle_rad)
-    y_logo = 1.4 * math.sin(angle_rad)
-    ax.text(x_logo, y_logo, "Albireo Daria ♏", fontsize=18, ha="center", va="center",
-            color="white", fontweight="bold")
-
-    # Легенди планет та аспектів залишаємо як було
-    # ...
-
-    plt.savefig(save_path, dpi=150, bbox_inches="tight")
-    plt.close(fig)
 
 # ====================== Генерація карти ======================
 @app.route("/generate", methods=["POST"])
@@ -233,20 +219,15 @@ def generate_chart():
 
         naive_dt = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         local_dt = tz.localize(naive_dt)
-
         offset_hours = local_dt.utcoffset().total_seconds() / 3600
 
-        fdate = Datetime(local_dt.strftime("%Y/%m/%d"),
-                         local_dt.strftime("%H:%M"),
-                         offset_hours)
+        fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), offset_hours)
         pos = GeoPos(lat, lon)
         chart = Chart(fdate, pos, houses="Placidus")
 
         aspect_list = compute_aspects(chart)
 
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        width = data.get("width", 8)
-        height = data.get("height", 8)
+        os.makedirs("cache", exist_ok=True)
         draw_natal_chart(chart, aspect_list, name=name, save_path=chart_path)
 
         cache_data = {
@@ -260,20 +241,17 @@ def generate_chart():
         with open(cache_path, "w") as f:
             json.dump(cache_data, f)
 
-        chart_url = f"https://albireo-daria-96.fly.dev/cache/{key}.png"
-
-        return jsonify({
-            **cache_data,
-            "chart_url": chart_url
-        })
+        return jsonify({**cache_data, "chart_url": f"/cache/{key}.png"})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ====================== Кеш ======================
 @app.route("/cache/<filename>")
 def get_cached_chart(filename):
     return send_from_directory(CACHE_DIR, filename)
 
+# ====================== Health ======================
 @app.route("/health")
 def health():
     return "OK", 200
