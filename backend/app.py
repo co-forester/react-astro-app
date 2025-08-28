@@ -29,19 +29,18 @@ tf = TimezoneFinder()
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
-# ====================== Очистка старого кешу ======================
+# Очистка старого кешу
 import time
-
 def cleanup_cache(days=30):
     now = time.time()
     for fname in os.listdir(CACHE_DIR):
         fpath = os.path.join(CACHE_DIR, fname)
-        if os.path.isfile(fpath) and now - os.path.getmtime(fpath) > days*24*3600:
-            os.remove(fpath)
-
+        if os.path.isfile(fpath):
+            if now - os.path.getmtime(fpath) > days*24*3600:
+                os.remove(fpath)
 cleanup_cache()
 
-# ====================== Кольори та символи ======================
+# Кольори аспектів
 ASPECT_COLORS = {
     "trine": "#d4a5a5",
     "square": "#8b8b8b",
@@ -50,6 +49,7 @@ ASPECT_COLORS = {
     "conjunction": "#ccc"
 }
 
+# Символи та кольори планет
 PLANET_SYMBOLS = {
     const.SUN: "☉",
     const.MOON: "☽",
@@ -82,12 +82,12 @@ PLANET_COLORS = {
     const.MC: "black"
 }
 
-# ====================== Кеш ключ ======================
+# Ключ кешу
 def cache_key(name, date, time, place):
     key_str = f"{name}|{date}|{time}|{place}"
     return md5(key_str.encode()).hexdigest()
 
-# ====================== Обчислення аспектів ======================
+# Обчислення аспектів
 def compute_aspects(chart):
     aspect_list = []
     aspects_def = [
@@ -118,95 +118,100 @@ def compute_aspects(chart):
                     break
     return aspect_list
 
-# ====================== Малюємо карту ======================
-def draw_natal_chart(chart, aspects_list, name="Person", save_path="static/chart.png"):
-    fig, ax = plt.subplots(figsize=(8, 8))
+# Малюємо натальну карту
+def draw_natal_chart(chart, aspects_list, name="Person", save_path="cache/chart.png"):
+    fig, ax = plt.subplots(figsize=(12,12))
     ax.axis("off")
 
-    # Фон (тимчасово залишимо білим)
-    fig.patch.set_facecolor("white")
-    ax.set_facecolor("white")
-
     # Коло натальної карти
-    circle = plt.Circle((0, 0), 1, fill=False, color="#4a0f1f", lw=2)
+    circle = plt.Circle((0,0),1,fill=False, color="#4a0f1f", lw=2)
     ax.add_artist(circle)
 
-    # Зодіакальні знаки
+    # Зодіакальні знаки по колу
     zodiac_signs = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
     for i, sign in enumerate(zodiac_signs):
-        angle = 2 * math.pi / 12 * i
-        x = 1.1 * math.cos(angle)
-        y = 1.1 * math.sin(angle)
-        ax.text(x, y, sign, fontsize=14, ha="center", va="center", color="#000")
+        angle = 2*math.pi/12*i
+        x = 1.2*math.cos(angle)
+        y = 1.2*math.sin(angle)
+        ax.text(x,y,sign, fontsize=16, ha="center", va="center", color="white")
 
     # Домів Пласідус
-    for i in range(12):
-        angle = 2 * math.pi / 12 * i
-        x = 0.9 * math.cos(angle)
-        y = 0.9 * math.sin(angle)
-        ax.text(x, y, str(i + 1), fontsize=12, ha="center", va="center", color="#6a1b2c")
+    houses = chart.houses
+    for i, h in enumerate(houses):
+        angle = math.radians(h.lon)
+        x = 0.9*math.cos(angle)
+        y = 0.9*math.sin(angle)
+        ax.plot([0,x],[0,y], color=f"C{i}", lw=1)
+        ax.text(1.0*math.cos(angle),1.0*math.sin(angle), str(i+1), ha="center", va="center", fontsize=12, color=f"C{i}")
 
     # Планети
     for obj in chart.objects:
         angle = math.radians(obj.lon)
-        x = 0.75 * math.cos(angle)
-        y = 0.75 * math.sin(angle)
+        x = 0.75*math.cos(angle)
+        y = 0.75*math.sin(angle)
         label = PLANET_SYMBOLS.get(obj.id, obj.id)
         color = PLANET_COLORS.get(obj.id, "#6a1b2c")
-        ax.plot(x, y, "o", color=color, markersize=12)
-        ax.text(x, y, label, fontsize=14, ha="center", va="center", color=color, fontweight="bold")
-        ax.text(x + 0.07, y + 0.07, obj.id, fontsize=9, ha="left", va="bottom", color=color)
+        ax.plot(x,y,"o", color=color, markersize=12)
+        ax.text(x+0.03, y+0.03, label, color=color, fontsize=12, fontweight="bold")
 
     # Аспекти
     for asp in aspects_list:
         p1 = next(o for o in chart.objects if o.id == asp["planet1"])
         p2 = next(o for o in chart.objects if o.id == asp["planet2"])
-        x1, y1 = 0.75 * math.cos(math.radians(p1.lon)), 0.75 * math.sin(math.radians(p1.lon))
-        x2, y2 = 0.75 * math.cos(math.radians(p2.lon)), 0.75 * math.sin(math.radians(p2.lon))
-        ax.plot([x1, x2], [y1, y2], color=asp["color"], lw=1)
+        x1, y1 = 0.75*math.cos(math.radians(p1.lon)),0.75*math.sin(math.radians(p1.lon))
+        x2, y2 = 0.75*math.cos(math.radians(p2.lon)),0.75*math.sin(math.radians(p2.lon))
+        ax.plot([x1,x2],[y1,y2], color=asp["color"], lw=1)
 
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
     plt.savefig(save_path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
-# ====================== Генерація карти ======================
+# Генерація карти
 @app.route("/generate", methods=["POST"])
 def generate_chart():
     try:
         data = request.json
-        name = data.get("name", "Person")
+        name = data.get("name","Person")
         date_str = data.get("date")
         time_str = data.get("time")
         place = data.get("place")
 
-        key = cache_key(name, date_str, time_str, place)
-        cache_path = os.path.join(CACHE_DIR, f"{key}.json")
-        chart_path = os.path.join(CACHE_DIR, f"{key}.png")
+        # Кеш
+        key = cache_key(name,date_str,time_str,place)
+        cache_path = os.path.join(CACHE_DIR,f"{key}.json")
+        chart_path = os.path.join(CACHE_DIR,f"{key}.png")
 
         if os.path.exists(cache_path) and os.path.exists(chart_path):
             with open(cache_path) as f:
                 cached_data = json.load(f)
-            return jsonify({**cached_data, "chart_url": f"/cache/{key}.png"})
+            return jsonify({**cached_data,"chart_url":f"/cache/{key}.png"})
 
+        # Геолокація
         location = geolocator.geocode(place)
         if not location:
-            return jsonify({"error": "Місце не знайдено"}), 400
+            return jsonify({"error":"Місце не знайдено"}),400
         lat, lon = location.latitude, location.longitude
 
-        tz_str = tf.timezone_at(lat=lat, lng=lon) or "UTC"
+        # Таймзона
+        tz_str = tf.timezone_at(lat=lat,lng=lon) or "UTC"
         tz = pytz.timezone(tz_str)
 
-        naive_dt = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        # Локальний час
+        naive_dt = dt.strptime(f"{date_str} {time_str}","%Y-%m-%d %H:%M")
         local_dt = tz.localize(naive_dt)
-        offset_hours = local_dt.utcoffset().total_seconds() / 3600
+        offset_hours = local_dt.utcoffset().total_seconds()/3600
 
-        fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), offset_hours)
-        pos = GeoPos(lat, lon)
-        chart = Chart(fdate, pos, houses="Placidus")
+        # Flatlib datetime
+        fdate = Datetime(local_dt.strftime("%Y/%m/%d"),local_dt.strftime("%H:%M"), offset_hours)
+        pos = GeoPos(lat,lon)
+        chart = Chart(fdate,pos,houses="Placidus")
 
+        # Аспекти
         aspect_list = compute_aspects(chart)
-        draw_natal_chart(chart, aspect_list, name=name, save_path=chart_path)
 
+        # Малюємо карту
+        draw_natal_chart(chart,aspect_list,name=name,save_path=chart_path)
+
+        # Кешуємо JSON
         cache_data = {
             "name": name,
             "date": date_str,
@@ -215,21 +220,26 @@ def generate_chart():
             "timezone": tz_str,
             "aspects_json": aspect_list
         }
-        with open(cache_path, "w") as f:
-            json.dump(cache_data, f)
+        with open(cache_path,"w") as f:
+            json.dump(cache_data,f)
 
-        return jsonify({**cache_data, "chart_url": f"/cache/{key}.png"})
+        return jsonify({
+            **cache_data,
+            "chart_url": request.url_root.rstrip("/") + f"/cache/{key}.png"
+        })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e)}),500
 
+# Віддача кешованих карт
 @app.route("/cache/<filename>")
 def get_cached_chart(filename):
-    return send_from_directory(CACHE_DIR, filename)
+    return send_from_directory(CACHE_DIR,filename)
 
+# Health check
 @app.route("/health")
 def health():
-    return "OK", 200
+    return "OK",200
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+if __name__=="__main__":
+    app.run(host="0.0.0.0",port=8080)
