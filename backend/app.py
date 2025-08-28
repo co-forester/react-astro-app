@@ -268,7 +268,12 @@ def generate_chart():
         with open(cache_path, "w") as f:
             json.dump(cache_data, f)
 
-        return jsonify({**cache_data, "chart_url": f"/cache/{key}.png"})
+        chart_url = f"https://albireo-daria-96.fly.dev/cache/{key}.png"
+
+        return jsonify({
+            **cache_data,
+            "chart_url": chart_url
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

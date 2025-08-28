@@ -97,7 +97,7 @@ const GenerateChartForm: React.FC = () => {
       {chartUrl && (
         <div className={css.chartContainer}>
           <h3>Натальна карта</h3>
-          <img src={chartUrl} alt="Натальна карта" />
+          <img src={chartUrl} alt="Натальна карта" style={{ maxWidth: "100%", height: "auto" }} />
         </div>
       )}
 
