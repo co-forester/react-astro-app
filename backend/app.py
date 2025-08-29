@@ -28,7 +28,6 @@ CACHE_DIR = "cache"
 if not os.path.exists(CACHE_DIR):
     os.makedirs(CACHE_DIR)
 
-# Пастельні кольори для 12 домів
 HOUSE_COLORS = [
     "#fce4ec", "#e3f2fd", "#f3e5f5", "#e8f5e9",
     "#fff3e0", "#f9fbe7", "#ede7f6", "#fbe9e7",
@@ -74,13 +73,11 @@ def draw_chart(chart, save_path, logo_path=None):
         rad = (obj.signlon/180.0)*3.14159
         ax.plot(rad, 0.7, 'o', label=obj.id)
 
-    # Секундний/хвилинний формат для градусів
-    # Тут можна додати точні підписи градусів
+    # Легенда планет
+    ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1.1))
 
-    try:
-        plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
-    finally:
-        plt.close(fig)
+    plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    plt.close(fig)
 
 @app.route("/generate", methods=["POST"])
 def generate():
@@ -90,26 +87,21 @@ def generate():
     time_str = data.get("time")
     place = data.get("place")
 
-    # Кеш-файл
     key = f"{name}_{date_str}_{time_str}_{place}".replace(" ", "_")
     json_cache_path = os.path.join(CACHE_DIR, f"{key}.json")
     chart_path = os.path.join(CACHE_DIR, f"{key}.png")
 
-    # Якщо вже є актуальний кеш < 30 днів
     if os.path.exists(json_cache_path):
         mtime = datetime.fromtimestamp(os.path.getmtime(json_cache_path))
         if datetime.now() - mtime < timedelta(days=30):
             with open(json_cache_path, "r", encoding="utf-8") as f:
                 return jsonify(json.load(f))
 
-    # Час і місце
     lat, lon = geocode_place(place)
     if lat is None:
         return jsonify({"error": "Місце не знайдено"}), 400
 
-    tz_str = TimezoneFinder().timezone_at(lat=lat, lng=lon)
-    if not tz_str:
-        tz_str = "UTC"
+    tz_str = TimezoneFinder().timezone_at(lat=lat, lng=lon) or "UTC"
     tz = pytz.timezone(tz_str)
     dt_obj = tz.localize(datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M"))
 
@@ -117,10 +109,8 @@ def generate():
     location = GeoPos(lat, lon)
     chart = Chart(date, location, hsys="PLACIDUS")
 
-    # Зберігаємо картинку
     draw_chart(chart, chart_path, logo_path="logo.png")
 
-    # Аспекти
     aspect_list = []
     for asp in chart.aspects:
         aspect_list.append({
@@ -131,8 +121,11 @@ def generate():
         })
 
     out = {
-        "name": name, "date": date_str, "time": time_str,
-        "place": place, "timezone": tz_str,
+        "name": name,
+        "date": date_str,
+        "time": time_str,
+        "place": place,
+        "timezone": tz_str,
         "aspects_json": aspect_list,
         "chart_url": f"/cache/{key}.png"
     }
