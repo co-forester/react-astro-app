@@ -15,6 +15,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from geopy.geocoders import Nominatim
+
 from timezonefinder import TimezoneFinder
 import pytz
 
@@ -230,39 +231,39 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
 
         # Пастельні кольори секторів (12 тонів)
    # >>> Правильне малювання будинків по Пласідусу
-house_colors = [
-    "#fde0dc", "#f8bbd0", "#e1bee7", "#d1c4e9",
-    "#c5cae9", "#bbdefb", "#b3e5fc", "#b2ebf2",
-    "#b2dfdb", "#c8e6c9", "#dcedc8", "#f0f4c3"
-]
+        house_colors = [
+            "#fde0dc", "#f8bbd0", "#e1bee7", "#d1c4e9",
+            "#c5cae9", "#bbdefb", "#b3e5fc", "#b2ebf2",
+            "#b2dfdb", "#c8e6c9", "#dcedc8", "#f0f4c3"
+        ]
 
-for i in range(1, 13):  # House numbers 1..12
-    house1 = chart.houses.get(i)          # куспід дому i
-    house2 = chart.houses.get(i % 12 + 1)  # куспід наступного дому
-    if not (house1 and house2):
-        continue
+        for i in range(1, 13):  # House numbers 1..12
+            house1 = chart.houses.get(i)          # куспід дому i
+            house2 = chart.houses.get(i % 12 + 1)  # куспід наступного дому
+            if not (house1 and house2):
+                continue
 
-    cusp1 = house1.lon
-    cusp2 = house2.lon
-    theta1, theta2 = math.radians(90 - cusp1), math.radians(90 - cusp2)
+            cusp1 = house1.lon
+            cusp2 = house2.lon
+            theta1, theta2 = math.radians(90 - cusp1), math.radians(90 - cusp2)
 
-    wedge = plt.matplotlib.patches.Wedge(
-        center=(0, 0), r=1.0,
-        theta1=math.degrees(theta2),
-        theta2=math.degrees(theta1),
-        facecolor=house_colors[i-1],
-        alpha=0.3,
-        edgecolor="white",
-        linewidth=1.0
-    )
-    ax.add_patch(wedge)
+            wedge = plt.matplotlib.patches.Wedge(
+                center=(0, 0), r=1.0,
+                theta1=math.degrees(theta2),
+                theta2=math.degrees(theta1),
+                facecolor=house_colors[i-1],
+                alpha=0.3,
+                edgecolor="white",
+                linewidth=1.0
+            )
+            ax.add_patch(wedge)
 
-    mid_angle = (cusp1 + ((cusp2 - cusp1) % 360) / 2) % 360
-    x_text = 0.75 * math.cos(math.radians(90 - mid_angle))
-    y_text = 0.75 * math.sin(math.radians(90 - mid_angle))
-    ax.text(x_text, y_text, str(i), ha="center", va="center",
-            fontsize=10, color="black", weight="bold")
-            
+            mid_angle = (cusp1 + ((cusp2 - cusp1) % 360) / 2) % 360
+            x_text = 0.75 * math.cos(math.radians(90 - mid_angle))
+            y_text = 0.75 * math.sin(math.radians(90 - mid_angle))
+            ax.text(x_text, y_text, str(i), ha="center", va="center",
+                    fontsize=10, color="black", weight="bold")
+                    
         # --- Планети ---
         for obj in chart.objects:
             try:
