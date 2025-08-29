@@ -1,5 +1,6 @@
 import os
 import math
+import json
 import hashlib
 from datetime import datetime as dt, timedelta
 
@@ -19,7 +20,19 @@ from flatlib import const, aspects
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
 
-geolocator = Nominatim(user_agent="my_astrology_app")
+# --- Ініціалізація ---
+geolocator = Nominatim(user_agent="my_app")
+tf = TimezoneFinder()
+
+# --- Обчислення аспектів ---
+# Замість compute_aspects_manual(chart.objects)
+aspect_list = compute_aspects(chart)
+
+# --- Малювання карти ---
+# Замість draw_natal_chart(...)
+draw_chart(chart, png_cache_path)
+# Ініціалізація об'єкта для знаходження часового поясу
+
 
 app = Flask(__name__)
 CORS(app)
