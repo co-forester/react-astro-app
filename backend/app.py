@@ -1,12 +1,15 @@
+# app.py — робоча версія з поясненнями, обробкою помилок та "try" блоками
 import os
 import math
 import json
 import hashlib
+import traceback
 from datetime import datetime as dt, timedelta
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
+# matplotlib — безголовий режим для контейнера
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -16,47 +19,26 @@ from timezonefinder import TimezoneFinder
 import pytz
 
 from flatlib.chart import Chart
-from flatlib import const, aspects
+from flatlib import const
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
 
-# --- Ініціалізація ---
-geolocator = Nominatim(user_agent="my_app")
+# ----------------------------------------
+# Ініціалізація глобальних об'єктів
+# ----------------------------------------
+geolocator = Nominatim(user_agent="my_astrology_app")
 tf = TimezoneFinder()
-
-# --- Обчислення аспектів ---
-# Замість compute_aspects_manual(chart.objects)
-aspect_list = compute_aspects(chart)
-
-# --- Малювання карти ---
-# Замість draw_natal_chart(...)
-draw_chart(chart, png_cache_path)
-# Ініціалізація об'єкта для знаходження часового поясу
-
 
 app = Flask(__name__)
 CORS(app)
 
+# Папка для кешу (json + png)
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
-# Авт. очищення кешу
-def cleanup_cache():
-    now = dt.now()
-    for fname in os.listdir(CACHE_DIR):
-        fpath = os.path.join(CACHE_DIR, fname)
-        if os.path.isfile(fpath):
-            mtime = dt.fromtimestamp(os.path.getmtime(fpath))
-            if now - mtime > timedelta(days=30):
-                os.remove(fpath)
-                
-# Генерує MD5-хеш для кешування результатів запиту.
-# Використовує комбінацію: ім'я користувача, дата народження, час і місце.
-def cache_key(name, date_str, time_str, place):
-    raw = f"{name}_{date_str}_{time_str}_{place}"
-    return hashlib.md5(raw.encode("utf-8")).hexdigest()               
-
-# Символи та кольори планет
+# ----------------------------------------
+# Конфіг/параметри: символи, кольори, аспекти
+# ----------------------------------------
 PLANET_SYMBOLS = {
     "Sun":"☉","Moon":"☽","Mercury":"☿","Venus":"♀","Mars":"♂",
     "Jupiter":"♃","Saturn":"♄","Uranus":"♅","Neptune":"♆","Pluto":"♇",
@@ -70,126 +52,274 @@ PLANET_COLORS = {
     "Ascendant":"green","MC":"purple"
 }
 
-ASPECTS = {
-    "conjunction": (0, "#ccc", 8),
-    "opposition": (180, "#4a0f1f", 8),
-    "trine": (120, "#d4a5a5", 6),
-    "square": (90, "#f59ca9", 6),
-    "sextile": (60, "#f7eaea", 4)
+# Визначення аспектів: (кут, колір, орб)
+ASPECTS_DEF = {
+    "conjunction": {"angle": 0, "orb": 8, "color": "#cccccc"},
+    "sextile": {"angle": 60, "orb": 6, "color": "#f7eaea"},
+    "square": {"angle": 90, "orb": 6, "color": "#f59ca9"},
+    "trine": {"angle": 120, "orb": 8, "color": "#d4a5a5"},
+    "opposition": {"angle": 180, "orb": 8, "color": "#4a0f1f"},
 }
 
-# Конвертація градусів у DMS
+# ----------------------------------------
+# Утиліти
+# ----------------------------------------
+def cleanup_cache(days: int = 30):
+    """Видаляє файли в CACHE_DIR старші ніж days днів."""
+    now_ts = dt.now().timestamp()
+    for fname in os.listdir(CACHE_DIR):
+        fpath = os.path.join(CACHE_DIR, fname)
+        try:
+            if os.path.isfile(fpath):
+                if now_ts - os.path.getmtime(fpath) > days * 24 * 3600:
+                    os.remove(fpath)
+        except Exception:
+            # не губимося якщо файл зайнятий/вже видалено
+            pass
+
+def cache_key(name, date_str, time_str, place):
+    """Генерує MD5-хеш для кешування результатів запиту."""
+    raw = f"{name}_{date_str}_{time_str}_{place}"
+    return hashlib.md5(raw.encode("utf-8")).hexdigest()
+
 def deg_to_dms(angle):
+    """Конвертація десяткових градусів у рядок D°M'S\""""
     d = int(angle)
     m = int((angle - d) * 60)
     s = int(((angle - d) * 60 - m) * 60)
     return f"{d}°{m}'{s}\""
 
-# Обчислення аспектів
-def compute_aspects(chart):
+# ----------------------------------------
+# Обчислення аспектів (ручний, по довготам)
+# ----------------------------------------
+def compute_aspects_manual(objects):
+    """
+    Приймає список об'єктів (chart.objects) — обчислює аспекти між тими, що в PLANET_SYMBOLS.
+    Повертає список словників з planet1, planet2, type, angle (десятковий), color.
+    """
     results = []
-    objs = [o for o in chart.objects if o.id in PLANET_SYMBOLS]
-
+    objs = [o for o in objects if getattr(o, "id", None) in PLANET_SYMBOLS]
     for i in range(len(objs)):
         for j in range(i+1, len(objs)):
-            p1, p2 = objs[i], objs[j]
-            angle = abs(p1.lon - p2.lon)
-            if angle > 180:
-                angle = 360 - angle
-            for asp, (target, color, orb) in ASPECTS.items():
-                if abs(angle - target) <= orb:
+            p1 = objs[i]; p2 = objs[j]
+            # довгота планет (0-360)
+            a1 = getattr(p1, "lon", 0) % 360
+            a2 = getattr(p2, "lon", 0) % 360
+            diff = abs(a1 - a2)
+            if diff > 180:
+                diff = 360 - diff
+            for name, cfg in ASPECTS_DEF.items():
+                target = cfg["angle"]
+                orb = cfg["orb"]
+                if abs(diff - target) <= orb:
                     results.append({
-                        "planet1": p1.id,
-                        "planet1_symbol": PLANET_SYMBOLS.get(p1.id,p1.id),
-                        "planet2": p2.id,
-                        "planet2_symbol": PLANET_SYMBOLS.get(p2.id,p2.id),
-                        "type": asp,
-                        "angle": deg_to_dms(angle),
-                        "color": color
+                        "planet1": getattr(p1, "id", str(p1)),
+                        "planet1_symbol": PLANET_SYMBOLS.get(getattr(p1, "id", ""), getattr(p1, "id", "")),
+                        "planet2": getattr(p2, "id", str(p2)),
+                        "planet2_symbol": PLANET_SYMBOLS.get(getattr(p2, "id", ""), getattr(p2, "id", "")),
+                        "type": name,
+                        "angle": round(diff, 2),
+                        "angle_dms": deg_to_dms(round(diff, 2)),
+                        "color": cfg["color"]
                     })
+                    break
     return results
 
-# Малювання карти
-def draw_chart(chart, filepath):
-    fig, ax = plt.subplots(figsize=(12,12), subplot_kw={"projection":"polar"})
-    ax.set_facecolor("white")
-    ax.set_theta_direction(-1)
-    ax.set_theta_offset(math.pi/2)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    
-    unicode_font = "DejaVu Sans"  # для Unicode символів
-    plt.rcParams["font.family"] = unicode_font
+# ----------------------------------------
+# Малювання натальної карти (сектори, градуйровка, підписи, логотип-дуга)
+# ----------------------------------------
+def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria ♏"):
+    """
+    Малює колову карту з:
+    - пастельними секторами будинків (якщо будинки присутні)
+    - градуйровкою зовнішнього кола (0-30° по знаку)
+    - символами зодіаку (DejaVu Sans)
+    - символами планет + підписами
+    - лініями аспектів
+    - логотипом у вигляді дуги поруч зі знаком Скорпіона
+    """
+    try:
+        figsize = (12, 12)
+        fig = plt.figure(figsize=figsize)
+        ax = plt.subplot(111, polar=True)
+        ax.set_theta_direction(-1)
+        ax.set_theta_offset(math.pi/2)
+        ax.set_ylim(0, 1.4)
+        ax.set_xticks([]); ax.set_yticks([])
+        fig.patch.set_facecolor("white")
+        ax.set_facecolor("white")
 
-    # Сектори домов пастельні
-    for i, house in enumerate(chart.houses):
-        start = math.radians(house.lon)
-        end = math.radians(chart.houses[(i+1)%12].lon)
-        ax.barh(1, end-start, left=start, color=plt.cm.Pastel1(i/12), alpha=0.25)
+        # Шрифт для Unicode-символів (DejaVu Sans зазвичай присутній у matplotlib)
+        unicode_font = "DejaVu Sans"
+        plt.rcParams["font.family"] = unicode_font
 
-    # Планети
-    for o in chart.objects:
-        if o.id in PLANET_SYMBOLS:
-            angle = math.radians(o.lon)
-            ax.scatter(angle,0.9,color=PLANET_COLORS.get(o.id,"black"),s=120,zorder=5)
-            ax.text(angle,1.05,f"{PLANET_SYMBOLS[o.id]} {deg_to_dms(o.lon)}",
-                    ha="center",va="center",fontsize=12,color=PLANET_COLORS.get(o.id,"black"))
+        # Пастельні кольори секторів (12)
+        house_colors = [
+            "#ffe5e5", "#fff0cc", "#e6ffe6", "#e6f0ff", "#f9e6ff", "#e6ffff",
+            "#fff5e6", "#f0f0f0", "#ffe6f0", "#e6ffe6", "#e6f0ff", "#fff0e6"
+        ]
 
-    # Аспекти
-    aspects_data = compute_aspects(chart)
-    for asp in aspects_data:
-        p1 = chart.getObject(asp["planet1"])
-        p2 = chart.getObject(asp["planet2"])
-        a1,a2 = math.radians(p1.lon),math.radians(p2.lon)
-        ax.plot([a1,a2],[0.9,0.9],color=asp["color"],lw=1.5,alpha=0.7)
+        # Намалювати сектори будинків — перевіряємо, чи в chart є houses
+        try:
+            # flatlib Chart.houses повертає список об'єктів з lon
+            for i in range(12):
+                start_deg = chart.houses[i].lon % 360
+                end_deg = chart.houses[(i+1) % 12].lon % 360
+                # Привести до інтервалу, де end>start
+                if end_deg <= start_deg:
+                    end_deg += 360
+                theta_start = math.radians(90 - start_deg)
+                theta_end = math.radians(90 - end_deg)
+                width = abs(theta_end - theta_start)
+                # Бар з невеликою прозорістю (щоб не перекривати символи)
+                ax.bar(x=(theta_start + theta_end)/2, height=1.4, width=width,
+                       bottom=0, color=house_colors[i], edgecolor="none", linewidth=0, alpha=0.35, zorder=0)
+        except Exception:
+            # Якщо щось пішло не так з будинками — продовжуємо без них
+            pass
 
-    # Логотип у секторі Скорпіона
-    scorpio_start = math.radians(210)
-    ax.text(scorpio_start,1.15,"Albireo Daria ♏",
-            ha="center",va="center",fontsize=14,color="white",
-            bbox=dict(boxstyle="round,pad=0.5",fc="#6a1b2c",ec="none"))
+        # Знаки зодіаку + підписи (білими на бордовому фоні ми виводимо символи,
+        # але сам бордовий фон для логотипу робиться окремо)
+        zodiac_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
+        zodiac_names = ["Овен","Телець","Близнюки","Рак","Лев","Діва","Терези","Скорпіон","Стрілець","Козеріг","Водолій","Риби"]
+        for i, sym in enumerate(zodiac_symbols):
+            center_deg = (i * 30) + 15
+            theta = math.radians(90 - center_deg)
+            r = 1.22
+            # Символ знаку — білий
+            ax.text(theta, r, sym, fontsize=22, ha="center", va="center",
+                    color="white", fontfamily=unicode_font, fontweight="bold")
+            # Малий підпис назви під символом
+            ax.text(theta, r + 0.06, zodiac_names[i], fontsize=9, ha="center", va="center",
+                    color="white", fontfamily=unicode_font)
 
-    plt.savefig(filepath,bbox_inches="tight")
-    plt.close(fig)
+            # Градуйровка 0-30° (кожні 5°, з помітнішими кожні 10°)
+            for deg_mark in range(0, 31, 5):
+                theta_deg = i*30 + deg_mark
+                theta_rad = math.radians(90 - theta_deg)
+                r_start = 1.15
+                r_end = 1.18 if deg_mark % 10 == 0 else 1.16
+                ax.plot([theta_rad, theta_rad], [r_start, r_end], color="#6a1b2c", lw=1, zorder=2)
 
-# API: /generate
+        # Планети (символ + підпис)
+        for obj in chart.objects:
+            try:
+                oid = getattr(obj, "id", None)
+                if oid in PLANET_SYMBOLS:
+                    angle_deg = obj.lon % 360
+                    theta = math.radians(90 - angle_deg)
+                    r = 0.95
+                    symbol = PLANET_SYMBOLS.get(oid, "?")
+                    color = PLANET_COLORS.get(oid, "black")
+                    # Символ планети
+                    ax.text(theta, r, symbol, fontsize=16, ha="center", va="center",
+                            color=color, fontfamily=unicode_font, zorder=5)
+                    # Підпис під символом (назва + градуси)
+                    ax.text(theta, r - 0.06, f"{oid} {deg_to_dms(obj.lon)}", fontsize=8,
+                            ha="center", va="center", color=color, fontfamily=unicode_font, zorder=5)
+            except Exception:
+                continue
+
+        # Аспекти — лінії між позиціями планет
+        for asp in aspects_list:
+            try:
+                p1 = next(o for o in chart.objects if getattr(o, "id", None) == asp["planet1"])
+                p2 = next(o for o in chart.objects if getattr(o, "id", None) == asp["planet2"])
+                angle1 = p1.lon % 360
+                angle2 = p2.lon % 360
+                theta1 = math.radians(90 - angle1)
+                theta2 = math.radians(90 - angle2)
+                ax.plot([theta1, theta2], [0.95, 0.95], color=asp["color"], linewidth=1.2, zorder=3, alpha=0.9)
+            except Exception:
+                continue
+
+        # Логотип на бордовій дузі поруч зі знаком Скорпіона (підгон за градусом)
+        try:
+            # Центр приблизно на 210° як раніше — приведемо до системи 0..360 для зручності
+            sc_center_deg = 210
+            sc_theta = math.radians(90 - sc_center_deg)
+            ax.text(sc_theta, 1.27, logo_text, fontsize=14, ha="center", va="center",
+                    color="white", fontfamily=unicode_font, fontweight="bold",
+                    bbox=dict(facecolor="#6a1b2c", edgecolor="none", pad=5, boxstyle="round,pad=0.4"), zorder=6)
+        except Exception:
+            pass
+
+        # Збереження з захистом
+        try:
+            plt.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+        finally:
+            plt.close(fig)
+
+    except Exception as e:
+        # Лог помилки у консоль — допоможе у логах gunicorn/fly
+        print("Error in draw_natal_chart:", e)
+        traceback.print_exc()
+        # і піднімемо виключення далі, щоб виклик виконав обробку
+        raise
+
+# ----------------------------------------
+# Маршрут: /generate
+# ----------------------------------------
 @app.route("/generate", methods=["POST"])
 def generate():
     try:
+        # Почистити кеш (не обов'язково щохвилини)
         cleanup_cache()
+
         data = request.get_json() or {}
         name = data.get("name", data.get("firstName", "Person"))
-        date_str = data.get("date")
-        time_str = data.get("time")
+        date_str = data.get("date")    # очікуємо формат YYYY-MM-DD
+        time_str = data.get("time")    # очікуємо формат HH:MM (24h)
         place = data.get("place")
 
         if not (date_str and time_str and place):
-            return jsonify({"error": "Надішліть date, time, place (і бажано name)"}), 400
+            return jsonify({"error": "Надішліть date (YYYY-MM-DD), time (HH:MM) та place (рядок)"}), 400
 
+        # Підготовка кеш-шляхів
         key = cache_key(name, date_str, time_str, place)
         json_cache_path = os.path.join(CACHE_DIR, f"{key}.json")
         png_cache_path = os.path.join(CACHE_DIR, f"{key}.png")
 
+        # Якщо в кеші — повертати
         if os.path.exists(json_cache_path) and os.path.exists(png_cache_path):
-            mtime = dt.fromtimestamp(os.path.getmtime(json_cache_path))
-            if dt.now() - mtime <= timedelta(days=30):
-                with open(json_cache_path, "r", encoding="utf-8") as f:
-                    cached = json.load(f)
-                base_url = request.host_url.rstrip("/")
-                cached["chart_url"] = f"{base_url}/cache/{key}.png"
-                return jsonify(cached)
+            try:
+                mtime = dt.fromtimestamp(os.path.getmtime(json_cache_path))
+                if dt.now() - mtime <= timedelta(days=30):
+                    with open(json_cache_path, "r", encoding="utf-8") as f:
+                        cached = json.load(f)
+                    base_url = request.host_url.rstrip("/")
+                    cached["chart_url"] = f"{base_url}/cache/{key}.png"
+                    return jsonify(cached)
+            except Exception:
+                # Якщо кеш пошкоджений — продовжимо робити заново
+                pass
 
-        location = geolocator.geocode(place, language="en")
-        if not location:
-            return jsonify({"error": "Місце не знайдено (геокодер)"}), 400
-        lat, lon = location.latitude, location.longitude
+        # Геокодування: place -> lat, lon
+        try:
+            location = geolocator.geocode(place, language="en")
+            if not location:
+                return jsonify({"error": "Місце не знайдено (геокодер)"}), 400
+            lat, lon = location.latitude, location.longitude
+        except Exception as e:
+            return jsonify({"error": f"Помилка геокодування: {str(e)}"}), 500
 
-        tz_str = tf.timezone_at(lat=lat, lng=lon) or "UTC"
-        tz = pytz.timezone(tz_str)
-        naive = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-        local_dt = tz.localize(naive)
-        offset_hours = local_dt.utcoffset().total_seconds() / 3600.0
+        # Знайти часовий пояс за координатами
+        try:
+            tz_str = tf.timezone_at(lat=lat, lng=lon) or "UTC"
+            tz = pytz.timezone(tz_str)
+        except Exception:
+            tz_str = "UTC"
+            tz = pytz.timezone("UTC")
 
+        # Парсимо local datetime
+        try:
+            naive = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            local_dt = tz.localize(naive)
+            offset_hours = local_dt.utcoffset().total_seconds() / 3600.0
+        except Exception as e:
+            return jsonify({"error": f"Невірний формат date/time: {str(e)}"}), 400
+
+        # Побудова Chart (flatlib)
         fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), offset_hours)
         pos = GeoPos(lat, lon)
         try:
@@ -197,21 +327,25 @@ def generate():
         except Exception:
             chart = Chart(fdate, pos)
 
+        # Обчислення аспектів (вручну)
         aspect_list = compute_aspects_manual(chart.objects)
 
+        # Малюємо та зберігаємо картинку
         try:
             draw_natal_chart(chart, aspect_list, png_cache_path)
         except Exception as e:
+            # Якщо картинка не згенерувалась — все одно повернемо JSON з warning
             result = {
                 "name": name, "date": date_str, "time": time_str,
                 "place": place, "timezone": tz_str,
                 "aspects_json": aspect_list, "chart_url": None,
-                "warning": f"Помилка при малюванні картинки: {e}"
+                "warning": f"Помилка при малюванні картинки: {str(e)}"
             }
             with open(json_cache_path, "w", encoding="utf-8") as f:
                 json.dump(result, f, ensure_ascii=False, indent=2)
             return jsonify(result), 200
 
+        # Підготувати результат і кешувати JSON
         base_url = request.host_url.rstrip("/")
         out = {
             "name": name, "date": date_str, "time": time_str,
@@ -223,9 +357,14 @@ def generate():
             json.dump(out, f, ensure_ascii=False, indent=2)
 
         return jsonify(out)
+
     except Exception as e:
+        # Загальний catch — логування і відправка помилки
+        print("Unhandled error in /generate:", e)
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+# Файловий ендпоінт для картинок
 @app.route("/cache/<path:filename>")
 def cached_file(filename):
     return send_from_directory(CACHE_DIR, filename)
@@ -235,4 +374,7 @@ def health():
     return "OK", 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    # Для деплоя на fly.io ми використовуємо PORT з оточення (або 8080 локально)
+    port = int(os.environ.get("PORT", 8080))
+    # debug=False у production; при локальному тесті можна ставити True
+    app.run(host="0.0.0.0", port=port, debug=False)
