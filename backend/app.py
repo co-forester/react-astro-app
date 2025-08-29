@@ -305,14 +305,18 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
         except Exception:
             pass
 
+        # в кінці draw_natal_chart()
         try:
             plt.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
-            chart_url = f"{request.host_url}cache/{key}.png"  # формуємо URL
+            chart_url = f"{request.host_url.rstrip('/')}/cache/{os.path.basename(save_path)}"
+            warning = None
         except Exception as e:
             chart_url = None
             warning = f"Помилка при малюванні картинки: {e}"
         finally:
             plt.close(fig)
+
+        return chart_url, warning
 
     except Exception as e:
         # Лог помилки у консоль — допоможе у логах gunicorn/fly
@@ -423,7 +427,7 @@ def generate():
             }
             if warning:
                 out["warning"] = warning
-            
+
             with open(json_cache_path, "w", encoding="utf-8") as f:
                 json.dump(out, f, ensure_ascii=False, indent=2)
 
