@@ -409,6 +409,8 @@ def generate():
             return jsonify(result), 200
 
             # Підготувати результат і кешувати JSON
+            chart_url = f"{request.host_url}cache/{key}.png"
+
             out = {
                 "name": name,
                 "date": date_str,
@@ -416,8 +418,9 @@ def generate():
                 "place": place,
                 "timezone": tz_str,
                 "aspects_json": aspect_list,
-                "chart_url": f"https://albireo-daria-96.fly.dev/cache/{key}.png"
+                "chart_url": chart_url
             }
+            
             with open(json_cache_path, "w", encoding="utf-8") as f:
                 json.dump(out, f, ensure_ascii=False, indent=2)
 
