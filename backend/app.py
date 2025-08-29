@@ -305,9 +305,11 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
         except Exception:
             pass
 
-        # Збереження з захистом
         try:
             plt.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+        except Exception as e:
+            print("Помилка при малюванні карти:", e)
+            warning_msg = str(e)
         finally:
             plt.close(fig)
 
