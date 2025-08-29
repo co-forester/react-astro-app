@@ -1,147 +1,124 @@
 import os
 import math
-import hashlib
-from datetime import datetime as dt, timedelta
-
+from datetime import datetime
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-
 import matplotlib
-matplotlib.use("Agg")  # headless
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
 
 from flatlib.chart import Chart
-from flatlib.datetime import Datetime
-from flatlib.geopos import GeoPos
-from flatlib import const, aspects
+from flatlib import aspects
+from flatlib import const
 
-# ---------------- Flask ----------------
 app = Flask(__name__)
 CORS(app)
 
-CHART_DIR = "charts"
-if not os.path.exists(CHART_DIR):
-    os.makedirs(CHART_DIR)
+CHARTS_DIR = "charts"
+os.makedirs(CHARTS_DIR, exist_ok=True)
 
-# ---------------- Helpers ----------------
-def parse_date(date_str, time_str, tz_str):
-    """Parse date+time with timezone into flatlib Datetime"""
-    year, month, day = map(int, date_str.split("-"))
-    hour, minute = map(int, time_str.split(":"))
-    tz = pytz.timezone(tz_str)
-    dt_local = tz.localize(dt(year, month, day, hour, minute))
-    return Datetime(dt_local.strftime("%Y/%m/%d"), dt_local.strftime("%H:%M"), tz_str)
+# ----- Функції -----
+def get_timezone(lat, lon):
+    try:
+        tz_str = TimezoneFinder().timezone_at(lat=lat, lng=lon)
+        if not tz_str:
+            tz_str = "UTC"
+        return pytz.timezone(tz_str)
+    except:
+        return pytz.UTC
 
-def generate_chart_filename(data):
-    """Create hash from input to use as cache filename"""
-    key = f"{data['date']}_{data['time']}_{data['location']}"
-    return hashlib.md5(key.encode()).hexdigest() + ".png"
-
-def draw_natal_chart(chart, filename):
-    """Draw natal chart with houses, planets, aspects, labels, logo"""
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': 'polar'})
-    ax.set_facecolor("white")
-    ax.set_xticks([]); ax.set_yticks([])
-    ax.set_ylim(0, 1)
-
-    # --- Houses (pastel sectors) ---
-    house_colors = ["#fde2e4", "#e2f0cb", "#bee1e6", "#f1f7b5",
-                    "#d7e3fc", "#fce2db", "#d6eadf", "#fff1e6",
-                    "#e4c1f9", "#fcd5ce", "#caffbf", "#bdb2ff"]
-
-    for i, cusp in enumerate(chart.houses):
-        start = math.radians(cusp.lon)
-        end = math.radians(chart.houses[(i+1) % 12].lon)
-        ax.barh(1, end - start, left=start, height=0.5,
-                color=house_colors[i], edgecolor="none")
-
-    # --- Planets ---
-    for obj in chart.objects:
-        lon = math.radians(obj.lon)
-        r = 0.75
-        deg = int(obj.lon)
-        minutes = int((obj.lon - deg) * 60)
-        seconds = int(((obj.lon - deg) * 3600) % 60)
-        label = f"{obj} {deg}°{minutes}'{seconds}\""
-        ax.plot(lon, r, "o", color="black")
-        ax.text(lon, r+0.05, label, ha="center", va="center", fontsize=8)
-
-    # --- Aspects ---
-    planet_names = [o for o in chart.objects if o in const.MAIN_PLANETS]
-    asp_colors = {
-        const.CONJUNCTION: "black",
-        const.OPPOSITION: "red",
-        const.TRINE: "green",
-        const.SQUARE: "orange",
-        const.SEXTILE: "blue"
-    }
-    for i, p1 in enumerate(planet_names):
-        for p2 in planet_names[i+1:]:
-            asp = aspects.getAspect(chart.get(p1), chart.get(p2))
+def get_aspects_json(chart):
+    aspect_list = []
+    objs = chart.objects
+    for i, p1 in enumerate(objs):
+        for p2 in objs[i + 1:]:
+            asp = aspects.getAspect(p1, p2)
             if asp:
-                lon1 = math.radians(chart.get(p1).lon)
-                lon2 = math.radians(chart.get(p2).lon)
-                ax.plot([lon1, lon2], [0.75, 0.75],
-                        color=asp_colors.get(asp.type, "gray"), lw=1)
+                aspect_list.append({
+                    "p1": p1.id,
+                    "p2": p2.id,
+                    "type": asp.type,
+                    "orb": round(asp.orb, 2)
+                })
+    return aspect_list
 
-    # --- Logo (center circle) ---
-    ax.text(0, 0, "MyAstro\nLogo", ha="center", va="center",
-            fontsize=12, weight="bold")
+def draw_aspects(ax, chart):
+    objs = chart.objects
+    for i, p1 in enumerate(objs):
+        for p2 in objs[i + 1:]:
+            asp = aspects.getAspect(p1, p2)
+            if asp:
+                a1 = math.radians(p1.lon)
+                a2 = math.radians(p2.lon)
+                x1, y1 = 0.9 * math.cos(a1), 0.9 * math.sin(a1)
+                x2, y2 = 0.9 * math.cos(a2), 0.9 * math.sin(a2)
+                ax.plot([x1, x2], [y1, y2], color="red", lw=0.5)
 
-    plt.savefig(filename, dpi=150, bbox_inches="tight")
+def draw_chart(chart, filename):
+    fig, ax = plt.subplots(figsize=(6,6))
+    ax.set_xlim(-1,1)
+    ax.set_ylim(-1,1)
+    ax.axis("off")
+
+    # Сектори домів
+    for house in chart.houses:
+        angle_start = math.radians(house.lon)
+        ax.plot([0, math.cos(angle_start)], [0, math.sin(angle_start)], color="gray", lw=1)
+
+    # Планети
+    for p in chart.objects:
+        angle = math.radians(p.lon)
+        x, y = 0.8 * math.cos(angle), 0.8 * math.sin(angle)
+        ax.plot(x, y, "o", color="blue")
+        # Додаємо градуси
+        ax.text(x*1.05, y*1.05, f"{p.id} {p.lon:.2f}°", fontsize=8, ha="center", va="center")
+
+    # Аспекти
+    draw_aspects(ax, chart)
+
+    # Логотип у центрі
+    ax.text(0, 0, "SerGio", fontsize=12, ha="center", va="center", weight="bold", color="darkred")
+
+    plt.savefig(filename)
     plt.close(fig)
 
-# ---------------- Routes ----------------
+# ----- Ендпоінт -----
 @app.route("/generate", methods=["POST"])
-def generate():
-    data = request.get_json()
-    location_name = data["location"]
-    date = data["date"]
-    time = data["time"]
+def generate_chart():
+    data = request.json
+    dt_str = data.get("datetime")          # формат "YYYY-MM-DD HH:MM"
+    city = data.get("city")
+    country = data.get("country")
 
-    # Geocoding
     geolocator = Nominatim(user_agent="astro_app")
-    loc = geolocator.geocode(location_name)
-    if not loc:
-        return jsonify({"error": "Location not found"}), 400
+    location = geolocator.geocode(f"{city}, {country}")
+    if not location:
+        return jsonify({"error": "Cannot find location"}), 400
 
-    tf = TimezoneFinder()
-    tz_str = tf.timezone_at(lng=loc.longitude, lat=loc.latitude)
-    if not tz_str:
-        tz_str = "UTC"
+    tz = get_timezone(location.latitude, location.longitude)
 
-    # Build filename for caching
-    filename = generate_chart_filename(data)
-    filepath = os.path.join(CHART_DIR, filename)
+    dt_obj = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+    dt_obj = tz.localize(dt_obj)
 
-    # If already exists & <30 days old → return cached
-    if os.path.exists(filepath):
-        mtime = dt.fromtimestamp(os.path.getmtime(filepath))
-        if dt.now() - mtime < timedelta(days=30):
-            return jsonify({"chart_url": f"/charts/{filename}"})
+    chart = Chart(dt_obj, location.latitude, location.longitude, hsys="P")  # Placidus
 
-    # New chart
-    fdate = parse_date(date, time, tz_str)
-    fpos = GeoPos(loc.latitude, loc.longitude)
-    chart = Chart(fdate, fpos, hsys="PLACIDUS")
+    filename = f"{CHARTS_DIR}/chart_{dt_obj.strftime('%Y%m%d%H%M')}.png"
+    draw_chart(chart, filename)
 
-    draw_natal_chart(chart, filepath)
+    # JSON дані
+    planets = [{"id": p.id, "lon": round(p.lon,2)} for p in chart.objects]
+    aspects_json = get_aspects_json(chart)
 
-    return jsonify({"chart_url": f"/charts/{filename}"})
+    return jsonify({
+        "chartUrl": filename,
+        "planets": planets,
+        "aspects": aspects_json
+    })
 
-@app.route("/charts/<path:filename>")
-def charts(filename):
-    return send_from_directory(CHART_DIR, filename)
-
-
-@app.route("/health")
-def health():
-    return "OK", 200
-
+# ----- Запуск -----
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=True)
