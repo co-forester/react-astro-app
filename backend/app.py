@@ -15,7 +15,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from geopy.geocoders import Nominatim
-
+import numpy as np
 from timezonefinder import TimezoneFinder
 import pytz
 
@@ -406,18 +406,20 @@ def generate():
                 json.dump(result, f, ensure_ascii=False, indent=2)
             return jsonify(result), 200
 
-        # Підготувати результат і кешувати JSON
-        base_url = request.host_url.rstrip("/")
-        out = {
-            "name": name, "date": date_str, "time": time_str,
-            "place": place, "timezone": tz_str,
-            "aspects_json": aspect_list,
-            "chart_url": f"{base_url}/cache/{key}.png"
-        }
-        with open(json_cache_path, "w", encoding="utf-8") as f:
-            json.dump(out, f, ensure_ascii=False, indent=2)
+            out = {
+                "name": name,
+                "date": date_str,
+                "time": time_str,
+                "place": place,
+                "timezone": tz_str,
+                "aspects_json": aspect_list,
+                "chart_url": f"/cache/{key}.png" if success else None
+            }
 
-        return jsonify(out)
+            with open(json_cache_path, "w", encoding="utf-8") as f:
+                json.dump(out, f, ensure_ascii=False, indent=2)
+
+            return jsonify(out)
 
     except Exception as e:
         # Загальний catch — логування і відправка помилки
