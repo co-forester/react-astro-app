@@ -139,23 +139,74 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
 
-    # Знаки зодіаку
+    unicode_font = "DejaVu Sans"  # для Unicode символів
+
+    # --- Сектори будинків у пастельних тонах ---
+    house_colors = [
+        "#ffe5e5", "#fff0cc", "#e6ffe6", "#e6f0ff", "#f9e6ff", "#e6ffff",
+        "#fff5e6", "#f0f0f0", "#ffe6f0", "#e6ffe6", "#e6f0ff", "#fff0e6"
+    ]
+    try:
+        for i in range(12):
+            house = chart.houses[i]
+            start_deg = house.lon % 360
+            end_deg = chart.houses[(i+1)%12].lon % 360
+            if end_deg <= start_deg:
+                end_deg += 360
+            theta_start = math.radians(90 - start_deg)
+            theta_end = math.radians(90 - end_deg)
+            ax.bar(x=(theta_start+theta_end)/2, height=1.4, width=abs(theta_end-theta_start),
+                   bottom=0, color=house_colors[i], edgecolor="none", linewidth=0, alpha=0.3, zorder=0)
+    except Exception:
+        pass  # якщо будинки не обчислилися, не малюємо
+
+    # --- Знаки зодіаку ---
     zodiac_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
     for i, sym in enumerate(zodiac_symbols):
         center_deg = (i * 30) + 15
         theta = math.radians(90 - center_deg)
-        r = 1.22  # ширше зовнішнє кільце
+        r = 1.22
         ax.text(theta, r, sym, fontsize=22, ha="center", va="center",
-                color="#6a1b2c", fontfamily="serif", fontweight="bold")
+                color="#6a1b2c", fontfamily=unicode_font, fontweight="bold")
 
-    # ... (весь код для будинків, планет, аспектів без змін)
+        # --- Градуйровка для знаку (0–30°) ---
+        for deg_mark in range(0, 31, 5):
+            theta_deg = i*30 + deg_mark
+            theta_rad = math.radians(90 - theta_deg)
+            r_start = 1.15
+            r_end = 1.18 if deg_mark % 10 == 0 else 1.16
+            ax.plot([theta_rad, theta_rad], [r_start, r_end], color="#6a1b2c", lw=1)
 
-    # Логотип
+    # --- Планети ---
+    for obj in chart.objects:
+        if hasattr(obj, "lon") and hasattr(obj, "id"):
+            angle_deg = obj.lon % 360
+            theta = math.radians(90 - angle_deg)
+            r = 0.95
+            symbol = PLANET_SYMBOLS.get(getattr(obj, "id", ""), "?")
+            color = PLANET_COLORS.get(getattr(obj, "id", ""), "black")
+            ax.text(theta, r, symbol, fontsize=16, ha="center", va="center",
+                    color=color, fontfamily=unicode_font)
+
+    # --- Аспекти ---
+    for asp in aspects_list:
+        try:
+            p1 = next(o for o in chart.objects if getattr(o, "id", None) == asp["planet1"])
+            p2 = next(o for o in chart.objects if getattr(o, "id", None) == asp["planet2"])
+            angle1 = p1.lon % 360
+            angle2 = p2.lon % 360
+            theta1 = math.radians(90 - angle1)
+            theta2 = math.radians(90 - angle2)
+            ax.plot([theta1, theta2], [0.95, 0.95], color=asp["color"], linewidth=1.2, zorder=1)
+        except Exception:
+            continue
+
+    # --- Логотип ---
     try:
         sc_center_deg = 210
         sc_theta = math.radians(90 - sc_center_deg)
         ax.text(sc_theta, 1.27, logo_text, fontsize=14, ha="center", va="center",
-                color="white", fontfamily="serif", fontweight="bold",
+                color="white", fontfamily=unicode_font, fontweight="bold",
                 bbox=dict(facecolor="#6a1b2c", edgecolor="none", pad=5, boxstyle="round,pad=0.4"), zorder=6)
     except Exception:
         pass
@@ -164,7 +215,6 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
         plt.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
     finally:
         plt.close(fig)
-
 # API: /generate
 @app.route("/generate", methods=["POST"])
 def generate():
