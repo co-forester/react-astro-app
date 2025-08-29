@@ -19,6 +19,8 @@ from flatlib import const, aspects
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
 
+geolocator = Nominatim(user_agent="my_astrology_app")
+
 app = Flask(__name__)
 CORS(app)
 
