@@ -15,6 +15,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from geopy.geocoders import Nominatim
+import numpy as np
 from timezonefinder import TimezoneFinder
 import pytz
 
@@ -411,7 +412,7 @@ def generate():
             "name": name, "date": date_str, "time": time_str,
             "place": place, "timezone": tz_str,
             "aspects_json": aspect_list,
-            "chart_url": f"{base_url}/cache/{key}.png"
+            "chart_url": f"/cache/{key}.png"
         }
         with open(json_cache_path, "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, indent=2)
