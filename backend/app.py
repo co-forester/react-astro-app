@@ -14,13 +14,29 @@ from timezonefinder import TimezoneFinder
 import pytz
 
 from flatlib.chart import Chart
-from flatlib import aspects
-from flatlib import const
+from flatlib import const, aspects
+from flatlib.datetime import Datetime
+from flatlib.geopos import GeoPos
 
 app = Flask(__name__)
 CORS(app)
 
-# --- Допоміжні функції ---
+# Директория для збереження PNG
+CHART_FILE = "chart.png"
+
+def get_timezone(lat, lon):
+    tf = TimezoneFinder()
+    tz_name = tf.timezone_at(lat=lat, lng=lon)
+    if tz_name:
+        return pytz.timezone(tz_name)
+    return pytz.UTC
+
+def to_dms(deg):
+    d = int(deg)
+    m = int((deg - d) * 60)
+    s = round((deg - d - m / 60) * 3600, 2)
+    return f"{d}°{m}'{s}\""
+
 def get_aspects(chart):
     aspect_list = []
     objs = chart.objects
@@ -36,109 +52,98 @@ def get_aspects(chart):
                 })
     return aspect_list
 
-def deg_to_dms(deg):
-    d = int(deg)
-    m = int((deg - d) * 60)
-    s = round((deg - d - m/60) * 3600)
-    return f"{d}°{m}'{s}\""
+def generate_chart(date_str, time_str, city):
+    # Геокод
+    geolocator = Nominatim(user_agent="astro_app")
+    location = geolocator.geocode(city)
+    if not location:
+        return None, "City not found"
+    lat, lon = location.latitude, location.longitude
+    tz = get_timezone(lat, lon)
 
-def get_timezone(lat, lon):
-    try:
-        tf = TimezoneFinder()
-        tz_str = tf.timezone_at(lat=lat, lng=lon)
-        if not tz_str:
-            tz_str = "UTC"
-    except:
-        tz_str = "UTC"
-    return pytz.timezone(tz_str)
+    dt_obj = dt.strptime(f"{date_str} {time_str}", "%d.%m.%Y %H:%M")
+    dt_obj = tz.localize(dt_obj)
+    fdt = Datetime(dt_obj.strftime("%Y-%m-%d"), dt_obj.strftime("%H:%M"), tz.zone)
+    pos = GeoPos(lat, lon)
+    chart = Chart(fdt, pos)
 
-def plot_chart(chart, filename="chart.png"):
+    # Малювання карти
     fig, ax = plt.subplots(figsize=(8,8))
-    ax.set_xlim(-1, 1)
-    ax.set_ylim(-1, 1)
-    ax.axis("off")
-    fig.patch.set_facecolor("#800000")  # бордовий фон
+    ax.set_xlim(-1,1)
+    ax.set_ylim(-1,1)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    fig.patch.set_facecolor('#4B0000')  # бордовий фон
 
-    # --- Лого в центрі ---
-    ax.text(0, 0, "♏", fontsize=40, ha="center", va="center", color="gold")
+    # Дома кольори
+    house_colors = ['#FF9999','#FFCC99','#FFFF99','#CCFF99','#99FF99','#99FFFF',
+                    '#99CCFF','#9999FF','#CC99FF','#FF99FF','#FF99CC','#FF6666']
 
-    # --- Планети та градуси ---
+    for i, house in enumerate(chart.houses):
+        start = math.radians(house.lon)
+        end = math.radians(chart.houses[i+1].lon if i+1 < 12 else chart.houses[0].lon + 360)
+        ax.fill_between([0, math.cos(start), math.cos(end)],
+                        [0, math.sin(start), math.sin(end)],
+                        color=house_colors[i], alpha=0.3)
+
+    # Планети
     for obj in chart.objects:
-        angle = math.radians(obj.lon)
-        x, y = 0.8 * math.cos(angle), 0.8 * math.sin(angle)
-        ax.plot(x, y, "o", color="cyan", markersize=8)
-        ax.text(1.05*x, 1.05*y, f"{obj.id}\n{deg_to_dms(obj.lon)}",
-                ha="center", va="center", fontsize=10, color="white")
+        lon = math.radians(obj.lon)
+        x, y = 0.8 * math.cos(lon), 0.8 * math.sin(lon)
+        ax.plot(x, y, 'o', label=obj.id, markersize=10)
+        ax.text(x*1.1, y*1.1, f"{obj.id} {to_dms(obj.lon)}", color='white', fontsize=8, ha='center', va='center')
 
-    # --- Будинки (сектора) ---
-    for i in range(12):
-        start = math.radians(i * 30)
-        end = math.radians((i + 1) * 30)
-        ax.plot([0.9*math.cos(start), 0.9*math.cos(start)],
-                [0.9*math.sin(start), 0.9*math.sin(start)], color="yellow", lw=2)
-        mid_angle = (start + end)/2
-        ax.text(1.05*math.cos(mid_angle), 1.05*math.sin(mid_angle),
-                f"{i+1}", color="yellow", fontsize=12, ha="center", va="center")
+    # Аспекти
+    aspects_list = get_aspects(chart)
+    for asp in aspects_list:
+        p1 = chart.get(asp['p1'])
+        p2 = chart.get(asp['p2'])
+        a1 = math.radians(p1.lon)
+        a2 = math.radians(p2.lon)
+        x1, y1 = 0.9 * math.cos(a1), 0.9 * math.sin(a1)
+        x2, y2 = 0.9 * math.cos(a2), 0.9 * math.sin(a2)
+        ax.plot([x1, x2], [y1, y2], color="red", lw=0.5)
 
-    # --- Аспекти ---
-    aspect_list = get_aspects(chart)
-    aspect_colors = {
-        const.CONJ: "red",
-        const.SEXT: "green",
-        const.SQUARE: "blue",
-        const.TRINE: "orange",
-        const.OPP: "purple"
-    }
-    for asp in aspect_list:
-        p1 = chart.get(asp["p1"])
-        p2 = chart.get(asp["p2"])
-        a1, a2 = math.radians(p1.lon), math.radians(p2.lon)
-        x1, y1 = 0.9*math.cos(a1), 0.9*math.sin(a1)
-        x2, y2 = 0.9*math.cos(a2), 0.9*math.sin(a2)
-        color = aspect_colors.get(asp["type"], "white")
-        ax.plot([x1, x2], [y1, y2], color=color, lw=0.8)
+    # Лого в центр (замість тексту)
+    ax.text(0,0,"♏", fontsize=40, color='gold', ha='center', va='center')
 
-    plt.savefig(filename, facecolor=fig.get_facecolor(), dpi=150)
-    plt.close()
-    return aspect_list
+    plt.savefig(CHART_FILE, dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    plt.close(fig)
+    return chart, aspects_list
 
-# --- API ---
 @app.route("/generate", methods=["POST"])
 def generate():
     data = request.json
-    date_str = data.get("date")
-    time_str = data.get("time")
-    city = data.get("city")
+    date_str = data.get("date")  # формат: "29.08.2025"
+    time_str = data.get("time")  # формат: "14:30"
+    city = data.get("city")       # наприклад: "Mykolaiv, Ukraine"
 
-    geolocator = Nominatim(user_agent="astro_app")
-    loc = geolocator.geocode(city)
-    if not loc:
-        return jsonify({"error": "City not found"}), 400
+    chart, aspects_list = generate_chart(date_str, time_str, city)
+    if chart is None:
+        return jsonify({"error": aspects_list}), 400
 
-    tz = get_timezone(loc.latitude, loc.longitude)
-
-    dt_obj = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-    dt_obj = tz.localize(dt_obj)
-
-    chart = Chart(dt_obj, loc.latitude, loc.longitude, hsys="P")  # P = Placidus
-
-    aspects_list = plot_chart(chart, "chart.png")
+    # Планети з градусами
+    planets_data = []
+    for obj in chart.objects:
+        planets_data.append({
+            "name": obj.id,
+            "lon": obj.lon,
+            "lon_dms": to_dms(obj.lon)
+        })
 
     return jsonify({
-        "chart": "/chart.png",
-        "aspects": aspects_list,
-        "planets": [
-            {
-                "name": obj.id,
-                "lon": round(obj.lon, 4),
-                "deg": deg_to_dms(obj.lon)
-            } for obj in chart.objects
-        ]
+        "chart": f"/{CHART_FILE}",
+        "planets": planets_data,
+        "aspects": aspects_list
     })
 
-@app.route("/chart.png")
-def chart_png():
-    return send_from_directory(os.getcwd(), "chart.png")
+@app.route(f"/{CHART_FILE}")
+def get_chart_file():
+    return send_from_directory(os.getcwd(), CHART_FILE)
+
+@app.route("/health")
+def health():
+    return "OK", 200
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
