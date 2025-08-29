@@ -1,230 +1,136 @@
-# app.py — робоча, обережна та сумісна версія
 import os
 import math
-import json
-import time
 import hashlib
 from datetime import datetime as dt, timedelta
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
-# headless matplotlib
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-
-# optional interactive cursor (if installed)
-try:
-    import mplcursors
-    HAS_MPLCURSORS = True
-except Exception:
-    HAS_MPLCURSORS = False
 
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
 
-# flatlib
 from flatlib.chart import Chart
+from flatlib import const, aspects
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
-# const and aspects usage – будемо використовувати мінімально, вручну обчислюємо аспекти
-from flatlib import const
 
 app = Flask(__name__)
 CORS(app)
 
-# Кеш
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
-# Очистка кешу старше 30 днів
-def cleanup_cache(days: int = 30):
-    now_ts = time.time()
+# Авт. очищення кешу
+def cleanup_cache():
+    now = dt.now()
     for fname in os.listdir(CACHE_DIR):
         fpath = os.path.join(CACHE_DIR, fname)
         if os.path.isfile(fpath):
-            if now_ts - os.path.getmtime(fpath) > days * 24 * 3600:
-                try:
-                    os.remove(fpath)
-                except Exception:
-                    pass
+            mtime = dt.fromtimestamp(os.path.getmtime(fpath))
+            if now - mtime > timedelta(days=30):
+                os.remove(fpath)
 
-# Викликаємо на старті
-cleanup_cache()
-
-# Геокодер + timezone finder (реюзимо інстанси)
-geolocator = Nominatim(user_agent="astro_app_v1")
-tf = TimezoneFinder()
-
-# Кольори аспектів
-ASPECTS_DEF = {
-    "conjunction": {"angle": 0, "orb": 8, "color": "#cccccc"},
-    "sextile": {"angle": 60, "orb": 6, "color": "#f7eaea"},
-    "square": {"angle": 90, "orb": 6, "color": "#8b8b8b"},
-    "trine": {"angle": 120, "orb": 8, "color": "#d4a5a5"},
-    "opposition": {"angle": 180, "orb": 8, "color": "#4a0f1f"},
-}
-
-# Символи планет / імена, кольори
+# Символи та кольори планет
 PLANET_SYMBOLS = {
-    "Sun": "☉", "Moon": "☽", "Mercury": "☿", "Venus": "♀", "Mars": "♂",
-    "Jupiter": "♃", "Saturn": "♄", "Uranus": "♅", "Neptune": "♆",
-    "Pluto": "♇", "North Node": "☊", "South Node": "☋",
-    "Ascendant": "ASC", "MC": "MC", "Pars Fortuna": "⚶", "Syzygy": "☌"
+    "Sun":"☉","Moon":"☽","Mercury":"☿","Venus":"♀","Mars":"♂",
+    "Jupiter":"♃","Saturn":"♄","Uranus":"♅","Neptune":"♆","Pluto":"♇",
+    "North Node":"☊","South Node":"☋","Ascendant":"ASC","MC":"MC",
+    "Pars Fortuna":"⚶"
 }
 PLANET_COLORS = {
-    "Sun": "gold", "Moon": "silver", "Mercury": "darkorange", "Venus": "deeppink",
-    "Mars": "red", "Jupiter": "royalblue", "Saturn": "brown", "Uranus": "deepskyblue",
-    "Neptune": "mediumslateblue", "Pluto": "purple", "Ascendant": "green", "MC": "black"
+    "Sun":"gold","Moon":"silver","Mercury":"darkgray","Venus":"palevioletred",
+    "Mars":"red","Jupiter":"orange","Saturn":"brown",
+    "Uranus":"deepskyblue","Neptune":"blue","Pluto":"black",
+    "Ascendant":"green","MC":"purple"
 }
 
-# Допоміжні функції
-def cache_key(name, date_str, time_str, place):
-    key = f"{name}|{date_str}|{time_str}|{place}"
-    return hashlib.md5(key.encode()).hexdigest()
+ASPECTS = {
+    "conjunction": (0, "#ccc", 8),
+    "opposition": (180, "#4a0f1f", 8),
+    "trine": (120, "#d4a5a5", 6),
+    "square": (90, "#f59ca9", 6),
+    "sextile": (60, "#f7eaea", 4)
+}
 
-def decdeg_to_dms(deg):
-    """Перетворює десяткові градуси в (deg, min, sec)"""
-    sign = 1 if deg >= 0 else -1
-    deg_abs = abs(deg)
-    d = int(deg_abs)
-    m = int((deg_abs - d) * 60)
-    s = round((deg_abs - d - m/60) * 3600, 2)
-    d = d * sign
-    return d, m, s
+# Конвертація градусів у DMS
+def deg_to_dms(angle):
+    d = int(angle)
+    m = int((angle - d) * 60)
+    s = int(((angle - d) * 60 - m) * 60)
+    return f"{d}°{m}'{s}\""
 
-def deg_to_str_dms(deg):
-    d, m, s = decdeg_to_dms(deg)
-    return f"{d}°{m:02d}'{int(s):02d}\""
-
-# Обчислення аспектів вручну (по довготам)
-def compute_aspects_manual(objects):
+# Обчислення аспектів
+def compute_aspects(chart):
     results = []
-    objs = [o for o in objects if hasattr(o, "lon") and hasattr(o, "id")]
+    objs = [o for o in chart.objects if o.id in PLANET_SYMBOLS]
+
     for i in range(len(objs)):
         for j in range(i+1, len(objs)):
-            p1 = objs[i]; p2 = objs[j]
-            a1 = p1.lon % 360
-            a2 = p2.lon % 360
-            diff = abs(a1 - a2)
-            if diff > 180:
-                diff = 360 - diff
-            for name, cfg in ASPECTS_DEF.items():
-                target = cfg["angle"]
-                orb = cfg["orb"]
-                if abs(diff - target) <= orb:
+            p1, p2 = objs[i], objs[j]
+            angle = abs(p1.lon - p2.lon)
+            if angle > 180:
+                angle = 360 - angle
+            for asp, (target, color, orb) in ASPECTS.items():
+                if abs(angle - target) <= orb:
                     results.append({
-                        "planet1": getattr(p1, "id", str(p1)),
-                        "planet1_symbol": PLANET_SYMBOLS.get(getattr(p1, "id", ""), getattr(p1, "id", "")),
-                        "planet2": getattr(p2, "id", str(p2)),
-                        "planet2_symbol": PLANET_SYMBOLS.get(getattr(p2, "id", ""), getattr(p2, "id", "")),
-                        "type": name,
-                        "angle": round(diff, 2),
-                        "color": cfg["color"]
+                        "planet1": p1.id,
+                        "planet1_symbol": PLANET_SYMBOLS.get(p1.id,p1.id),
+                        "planet2": p2.id,
+                        "planet2_symbol": PLANET_SYMBOLS.get(p2.id,p2.id),
+                        "type": asp,
+                        "angle": deg_to_dms(angle),
+                        "color": color
                     })
-                    break
     return results
 
-# Малюємо натальну карту
-def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria ♏"):
-    figsize = (12, 12)
-    fig = plt.figure(figsize=figsize)
-    ax = plt.subplot(111, polar=True)
+# Малювання карти
+def draw_chart(chart, filepath):
+    fig, ax = plt.subplots(figsize=(12,12), subplot_kw={"projection":"polar"})
+    ax.set_facecolor("white")
     ax.set_theta_direction(-1)
     ax.set_theta_offset(math.pi/2)
-    ax.set_ylim(0, 1.4)
-    ax.set_xticks([]); ax.set_yticks([])
-    fig.patch.set_facecolor("white")
-    ax.set_facecolor("white")
-
+    ax.set_xticks([])
+    ax.set_yticks([])
+    
     unicode_font = "DejaVu Sans"  # для Unicode символів
+    plt.rcParams["font.family"] = unicode_font
 
-    # --- Сектори будинків у пастельних тонах ---
-    house_colors = [
-        "#ffe5e5", "#fff0cc", "#e6ffe6", "#e6f0ff", "#f9e6ff", "#e6ffff",
-        "#fff5e6", "#f0f0f0", "#ffe6f0", "#e6ffe6", "#e6f0ff", "#fff0e6"
-    ]
-    try:
-        for i in range(12):
-            house = chart.houses[i]
-            start_deg = house.lon % 360
-            end_deg = chart.houses[(i+1)%12].lon % 360
-            if end_deg <= start_deg:
-                end_deg += 360
-            theta_start = math.radians(90 - start_deg)
-            theta_end = math.radians(90 - end_deg)
-            ax.bar(x=(theta_start+theta_end)/2, height=1.4, width=abs(theta_end-theta_start),
-                   bottom=0, color=house_colors[i], edgecolor="none", linewidth=0, alpha=0.4, zorder=0)
-    except Exception:
-        pass
+    # Сектори домов пастельні
+    for i, house in enumerate(chart.houses):
+        start = math.radians(house.lon)
+        end = math.radians(chart.houses[(i+1)%12].lon)
+        ax.barh(1, end-start, left=start, color=plt.cm.Pastel1(i/12), alpha=0.25)
 
-    # --- Знаки зодіаку з підписами ---
-    zodiac_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
-    zodiac_names = ["Овен","Телець","Близнюки","Рак","Лев","Діва","Терези","Скорпіон","Стрілець","Козеріг","Водолій","Риби"]
-    for i, sym in enumerate(zodiac_symbols):
-        center_deg = (i * 30) + 15
-        theta = math.radians(90 - center_deg)
-        r = 1.22
-        ax.text(theta, r, sym, fontsize=22, ha="center", va="center",
-                color="white", fontfamily=unicode_font, fontweight="bold")
+    # Планети
+    for o in chart.objects:
+        if o.id in PLANET_SYMBOLS:
+            angle = math.radians(o.lon)
+            ax.scatter(angle,0.9,color=PLANET_COLORS.get(o.id,"black"),s=120,zorder=5)
+            ax.text(angle,1.05,f"{PLANET_SYMBOLS[o.id]} {deg_to_dms(o.lon)}",
+                    ha="center",va="center",fontsize=12,color=PLANET_COLORS.get(o.id,"black"))
 
-        # підпис під знаком
-        ax.text(theta, r+0.06, zodiac_names[i], fontsize=9, ha="center", va="center",
-                color="white", fontfamily=unicode_font)
+    # Аспекти
+    aspects_data = compute_aspects(chart)
+    for asp in aspects_data:
+        p1 = chart.getObject(asp["planet1"])
+        p2 = chart.getObject(asp["planet2"])
+        a1,a2 = math.radians(p1.lon),math.radians(p2.lon)
+        ax.plot([a1,a2],[0.9,0.9],color=asp["color"],lw=1.5,alpha=0.7)
 
-        # --- Градуйровка 0–30° ---
-        for deg_mark in range(0, 31, 5):
-            theta_deg = i*30 + deg_mark
-            theta_rad = math.radians(90 - theta_deg)
-            r_start = 1.15
-            r_end = 1.18 if deg_mark % 10 == 0 else 1.16
-            ax.plot([theta_rad, theta_rad], [r_start, r_end], color="#6a1b2c", lw=1)
+    # Логотип у секторі Скорпіона
+    scorpio_start = math.radians(210)
+    ax.text(scorpio_start,1.15,"Albireo Daria ♏",
+            ha="center",va="center",fontsize=14,color="white",
+            bbox=dict(boxstyle="round,pad=0.5",fc="#6a1b2c",ec="none"))
 
-    # --- Планети з підписами ---
-    for obj in chart.objects:
-        if hasattr(obj, "lon") and hasattr(obj, "id"):
-            angle_deg = obj.lon % 360
-            theta = math.radians(90 - angle_deg)
-            r = 0.95
-            symbol = PLANET_SYMBOLS.get(getattr(obj, "id", ""), "?")
-            color = PLANET_COLORS.get(getattr(obj, "id", ""), "white")
-            ax.text(theta, r, symbol, fontsize=16, ha="center", va="center",
-                    color=color, fontfamily=unicode_font)
+    plt.savefig(filepath,bbox_inches="tight")
+    plt.close(fig)
 
-            # підпис планети
-            ax.text(theta, r-0.06, getattr(obj,"id",""), fontsize=8, ha="center", va="center",
-                    color=color, fontfamily=unicode_font)
-
-    # --- Аспекти ---
-    for asp in aspects_list:
-        try:
-            p1 = next(o for o in chart.objects if getattr(o, "id", None) == asp["planet1"])
-            p2 = next(o for o in chart.objects if getattr(o, "id", None) == asp["planet2"])
-            angle1 = p1.lon % 360
-            angle2 = p2.lon % 360
-            theta1 = math.radians(90 - angle1)
-            theta2 = math.radians(90 - angle2)
-            ax.plot([theta1, theta2], [0.95, 0.95], color=asp["color"], linewidth=1.2, zorder=1)
-        except Exception:
-            continue
-
-    # --- Логотип дугою поруч із Скорпіоном ---
-    try:
-        sc_deg = 210  # центр Скорпіона
-        sc_theta = math.radians(90 - sc_deg)
-        ax.text(sc_theta, 1.27, logo_text, fontsize=14, ha="center", va="center",
-                color="white", fontfamily=unicode_font, fontweight="bold",
-                rotation=-30, rotation_mode="anchor",
-                bbox=dict(facecolor="#6a1b2c", edgecolor="none", pad=5, boxstyle="round,pad=0.4"), zorder=6)
-    except Exception:
-        pass
-
-    try:
-        plt.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
-    finally:
-        plt.close(fig)
 # API: /generate
 @app.route("/generate", methods=["POST"])
 def generate():
