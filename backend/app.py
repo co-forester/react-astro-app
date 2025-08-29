@@ -224,7 +224,45 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
         for deg in range(0, 360, 30):
             theta = math.radians(90 - deg)
             ax.text(theta, 1.15, str(deg), fontsize=8, ha="center", va="center", color="black")
+        # >>> Додано: малювання домів по Пласідусу
+       
+        houses = chart.houses
 
+        # Пастельні кольори секторів (12 тонів)
+        house_colors = [
+            "#fde0dc", "#f8bbd0", "#e1bee7", "#d1c4e9",
+            "#c5cae9", "#bbdefb", "#b3e5fc", "#b2ebf2",
+            "#b2dfdb", "#c8e6c9", "#dcedc8", "#f0f4c3"
+        ]
+
+        # малюємо сектори домів
+        for i in range(12):
+            cusp1 = houses[i].lon
+            cusp2 = houses[(i+1) % 12].lon
+            theta1, theta2 = math.radians(90 - cusp1), math.radians(90 - cusp2)
+
+            # сектор-дом (заливка)
+            wedge = plt.matplotlib.patches.Wedge(
+                center=(0, 0), r=1.0,
+                theta1=math.degrees(theta2),
+                theta2=math.degrees(theta1),
+                facecolor=house_colors[i],
+                alpha=0.3,
+                edgecolor="white",
+                linewidth=1.0
+            )
+            ax.add_patch(wedge)
+
+            # підпис дому по центру сектора
+            mid_angle = (cusp1 + ((cusp2 - cusp1) % 360) / 2) % 360
+            x_text = 0.75 * math.cos(math.radians(90 - mid_angle))
+            y_text = 0.75 * math.sin(math.radians(90 - mid_angle))
+            ax.text(
+                x_text, y_text, str(i+1),
+                ha="center", va="center",
+                fontsize=10, color="black", weight="bold"
+            )
+            
         # --- Планети ---
         for obj in chart.objects:
             try:
