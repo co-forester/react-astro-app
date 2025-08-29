@@ -156,20 +156,25 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
             theta_start = math.radians(90 - start_deg)
             theta_end = math.radians(90 - end_deg)
             ax.bar(x=(theta_start+theta_end)/2, height=1.4, width=abs(theta_end-theta_start),
-                   bottom=0, color=house_colors[i], edgecolor="none", linewidth=0, alpha=0.3, zorder=0)
+                   bottom=0, color=house_colors[i], edgecolor="none", linewidth=0, alpha=0.4, zorder=0)
     except Exception:
-        pass  # якщо будинки не обчислилися, не малюємо
+        pass
 
-    # --- Знаки зодіаку ---
+    # --- Знаки зодіаку з підписами ---
     zodiac_symbols = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
+    zodiac_names = ["Овен","Телець","Близнюки","Рак","Лев","Діва","Терези","Скорпіон","Стрілець","Козеріг","Водолій","Риби"]
     for i, sym in enumerate(zodiac_symbols):
         center_deg = (i * 30) + 15
         theta = math.radians(90 - center_deg)
         r = 1.22
         ax.text(theta, r, sym, fontsize=22, ha="center", va="center",
-                color="#6a1b2c", fontfamily=unicode_font, fontweight="bold")
+                color="white", fontfamily=unicode_font, fontweight="bold")
 
-        # --- Градуйровка для знаку (0–30°) ---
+        # підпис під знаком
+        ax.text(theta, r+0.06, zodiac_names[i], fontsize=9, ha="center", va="center",
+                color="white", fontfamily=unicode_font)
+
+        # --- Градуйровка 0–30° ---
         for deg_mark in range(0, 31, 5):
             theta_deg = i*30 + deg_mark
             theta_rad = math.radians(90 - theta_deg)
@@ -177,15 +182,19 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
             r_end = 1.18 if deg_mark % 10 == 0 else 1.16
             ax.plot([theta_rad, theta_rad], [r_start, r_end], color="#6a1b2c", lw=1)
 
-    # --- Планети ---
+    # --- Планети з підписами ---
     for obj in chart.objects:
         if hasattr(obj, "lon") and hasattr(obj, "id"):
             angle_deg = obj.lon % 360
             theta = math.radians(90 - angle_deg)
             r = 0.95
             symbol = PLANET_SYMBOLS.get(getattr(obj, "id", ""), "?")
-            color = PLANET_COLORS.get(getattr(obj, "id", ""), "black")
+            color = PLANET_COLORS.get(getattr(obj, "id", ""), "white")
             ax.text(theta, r, symbol, fontsize=16, ha="center", va="center",
+                    color=color, fontfamily=unicode_font)
+
+            # підпис планети
+            ax.text(theta, r-0.06, getattr(obj,"id",""), fontsize=8, ha="center", va="center",
                     color=color, fontfamily=unicode_font)
 
     # --- Аспекти ---
@@ -201,12 +210,13 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
         except Exception:
             continue
 
-    # --- Логотип ---
+    # --- Логотип дугою поруч із Скорпіоном ---
     try:
-        sc_center_deg = 210
-        sc_theta = math.radians(90 - sc_center_deg)
+        sc_deg = 210  # центр Скорпіона
+        sc_theta = math.radians(90 - sc_deg)
         ax.text(sc_theta, 1.27, logo_text, fontsize=14, ha="center", va="center",
                 color="white", fontfamily=unicode_font, fontweight="bold",
+                rotation=-30, rotation_mode="anchor",
                 bbox=dict(facecolor="#6a1b2c", edgecolor="none", pad=5, boxstyle="round,pad=0.4"), zorder=6)
     except Exception:
         pass
