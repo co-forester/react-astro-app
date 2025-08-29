@@ -414,7 +414,7 @@ def generate():
                 "place": place,
                 "timezone": tz_str,
                 "aspects_json": aspect_list,
-                "chart_url": f"/cache/{key}.png"  # відносний шлях
+                "chart_url": f"https://albireo-daria-96.fly.dev/cache/{key}.png"
             }
             with open(json_cache_path, "w", encoding="utf-8") as f:
                 json.dump(out, f, ensure_ascii=False, indent=2)
