@@ -1,16 +1,14 @@
 import os
-import json
-from datetime import datetime, timedelta
+import math
+import hashlib
+from datetime import datetime as dt, timedelta
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use("Agg")  # headless
 import matplotlib.pyplot as plt
-from matplotlib.patches import Wedge, Circle
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-from matplotlib.cbook import get_sample_data
 
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
@@ -19,125 +17,126 @@ import pytz
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
-from flatlib import const
+from flatlib import const, aspects
 
+# ---------------- Flask ----------------
 app = Flask(__name__)
 CORS(app)
 
-CACHE_DIR = "cache"
-if not os.path.exists(CACHE_DIR):
-    os.makedirs(CACHE_DIR)
+CHART_DIR = "charts"
+if not os.path.exists(CHART_DIR):
+    os.makedirs(CHART_DIR)
 
-HOUSE_COLORS = [
-    "#fce4ec", "#e3f2fd", "#f3e5f5", "#e8f5e9",
-    "#fff3e0", "#f9fbe7", "#ede7f6", "#fbe9e7",
-    "#e0f7fa", "#f1f8e9", "#fffde7", "#fce4d6"
-]
+# ---------------- Helpers ----------------
+def parse_date(date_str, time_str, tz_str):
+    """Parse date+time with timezone into flatlib Datetime"""
+    year, month, day = map(int, date_str.split("-"))
+    hour, minute = map(int, time_str.split(":"))
+    tz = pytz.timezone(tz_str)
+    dt_local = tz.localize(dt(year, month, day, hour, minute))
+    return Datetime(dt_local.strftime("%Y/%m/%d"), dt_local.strftime("%H:%M"), tz_str)
 
-def geocode_place(place_name):
-    geolocator = Nominatim(user_agent="astro_app")
-    location = geolocator.geocode(place_name)
-    if location:
-        return location.latitude, location.longitude
-    return None, None
+def generate_chart_filename(data):
+    """Create hash from input to use as cache filename"""
+    key = f"{data['date']}_{data['time']}_{data['location']}"
+    return hashlib.md5(key.encode()).hexdigest() + ".png"
 
-def draw_chart(chart, save_path, logo_path=None):
-    fig, ax = plt.subplots(figsize=(8,8), subplot_kw={'polar': True})
-    ax.set_theta_offset(3.14159/2)
-    ax.set_theta_direction(-1)
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_facecolor("#ffffff")
+def draw_natal_chart(chart, filename):
+    """Draw natal chart with houses, planets, aspects, labels, logo"""
+    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': 'polar'})
+    ax.set_facecolor("white")
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_ylim(0, 1)
 
-    # Домы
-    for i in range(12):
-        start = i*30
-        wedge = Wedge(center=(0,0), r=1.0, theta1=start, theta2=start+30,
-                      facecolor=HOUSE_COLORS[i], alpha=0.5)
-        ax.add_patch(wedge)
+    # --- Houses (pastel sectors) ---
+    house_colors = ["#fde2e4", "#e2f0cb", "#bee1e6", "#f1f7b5",
+                    "#d7e3fc", "#fce2db", "#d6eadf", "#fff1e6",
+                    "#e4c1f9", "#fcd5ce", "#caffbf", "#bdb2ff"]
 
-    # Центр кола з лого
-    if logo_path and os.path.exists(logo_path):
-        with get_sample_data(logo_path) as file:
-            img = plt.imread(file)
-            im = OffsetImage(img, zoom=0.2)
-            ab = AnnotationBbox(im, (0,0), frameon=False)
-            ax.add_artist(ab)
-    else:
-        circle = Circle((0,0), 0.1, color="gold", zorder=5)
-        ax.add_patch(circle)
+    for i, cusp in enumerate(chart.houses):
+        start = math.radians(cusp.lon)
+        end = math.radians(chart.houses[(i+1) % 12].lon)
+        ax.barh(1, end - start, left=start, height=0.5,
+                color=house_colors[i], edgecolor="none")
 
-    # Планети
+    # --- Planets ---
     for obj in chart.objects:
-        deg = obj.signlon % 30
-        rad = (obj.signlon/180.0)*3.14159
-        ax.plot(rad, 0.7, 'o', label=obj.id)
+        lon = math.radians(obj.lon)
+        r = 0.75
+        deg = int(obj.lon)
+        minutes = int((obj.lon - deg) * 60)
+        seconds = int(((obj.lon - deg) * 3600) % 60)
+        label = f"{obj} {deg}°{minutes}'{seconds}\""
+        ax.plot(lon, r, "o", color="black")
+        ax.text(lon, r+0.05, label, ha="center", va="center", fontsize=8)
 
-    # Легенда планет
-    ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1.1))
+    # --- Aspects ---
+    planet_names = [o for o in chart.objects if o in const.MAIN_PLANETS]
+    asp_colors = {
+        const.CONJUNCTION: "black",
+        const.OPPOSITION: "red",
+        const.TRINE: "green",
+        const.SQUARE: "orange",
+        const.SEXTILE: "blue"
+    }
+    for i, p1 in enumerate(planet_names):
+        for p2 in planet_names[i+1:]:
+            asp = aspects.getAspect(chart.get(p1), chart.get(p2))
+            if asp:
+                lon1 = math.radians(chart.get(p1).lon)
+                lon2 = math.radians(chart.get(p2).lon)
+                ax.plot([lon1, lon2], [0.75, 0.75],
+                        color=asp_colors.get(asp.type, "gray"), lw=1)
 
-    plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor=fig.get_facecolor())
+    # --- Logo (center circle) ---
+    ax.text(0, 0, "MyAstro\nLogo", ha="center", va="center",
+            fontsize=12, weight="bold")
+
+    plt.savefig(filename, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
+# ---------------- Routes ----------------
 @app.route("/generate", methods=["POST"])
 def generate():
-    data = request.json
-    name = data.get("name", "Anonymous")
-    date_str = data.get("date")
-    time_str = data.get("time")
-    place = data.get("place")
+    data = request.get_json()
+    location_name = data["location"]
+    date = data["date"]
+    time = data["time"]
 
-    key = f"{name}_{date_str}_{time_str}_{place}".replace(" ", "_")
-    json_cache_path = os.path.join(CACHE_DIR, f"{key}.json")
-    chart_path = os.path.join(CACHE_DIR, f"{key}.png")
+    # Geocoding
+    geolocator = Nominatim(user_agent="astro_app")
+    loc = geolocator.geocode(location_name)
+    if not loc:
+        return jsonify({"error": "Location not found"}), 400
 
-    if os.path.exists(json_cache_path):
-        mtime = datetime.fromtimestamp(os.path.getmtime(json_cache_path))
-        if datetime.now() - mtime < timedelta(days=30):
-            with open(json_cache_path, "r", encoding="utf-8") as f:
-                return jsonify(json.load(f))
+    tf = TimezoneFinder()
+    tz_str = tf.timezone_at(lng=loc.longitude, lat=loc.latitude)
+    if not tz_str:
+        tz_str = "UTC"
 
-    lat, lon = geocode_place(place)
-    if lat is None:
-        return jsonify({"error": "Місце не знайдено"}), 400
+    # Build filename for caching
+    filename = generate_chart_filename(data)
+    filepath = os.path.join(CHART_DIR, filename)
 
-    tz_str = TimezoneFinder().timezone_at(lat=lat, lng=lon) or "UTC"
-    tz = pytz.timezone(tz_str)
-    dt_obj = tz.localize(datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M"))
+    # If already exists & <30 days old → return cached
+    if os.path.exists(filepath):
+        mtime = dt.fromtimestamp(os.path.getmtime(filepath))
+        if dt.now() - mtime < timedelta(days=30):
+            return jsonify({"chart_url": f"/charts/{filename}"})
 
-    date = Datetime(dt_obj.strftime("%Y-%m-%d"), dt_obj.strftime("%H:%M"), tz_str)
-    location = GeoPos(lat, lon)
-    chart = Chart(date, location, hsys="PLACIDUS")
+    # New chart
+    fdate = parse_date(date, time, tz_str)
+    fpos = GeoPos(loc.latitude, loc.longitude)
+    chart = Chart(fdate, fpos, hsys="PLACIDUS")
 
-    draw_chart(chart, chart_path, logo_path="logo.png")
+    draw_natal_chart(chart, filepath)
 
-    aspect_list = []
-    for asp in chart.aspects:
-        aspect_list.append({
-            "type": asp.type,
-            "from": asp.obj1.id,
-            "to": asp.obj2.id,
-            "orb": asp.orb
-        })
+    return jsonify({"chart_url": f"/charts/{filename}"})
 
-    out = {
-        "name": name,
-        "date": date_str,
-        "time": time_str,
-        "place": place,
-        "timezone": tz_str,
-        "aspects_json": aspect_list,
-        "chart_url": f"/cache/{key}.png"
-    }
+@app.route("/charts/<path:filename>")
+def charts(filename):
+    return send_from_directory(CHART_DIR, filename)
 
-    with open(json_cache_path, "w", encoding="utf-8") as f:
-        json.dump(out, f, ensure_ascii=False, indent=2)
-
-    return jsonify(out)
-
-@app.route("/cache/<filename>")
-def serve_cache(filename):
-    return send_from_directory(CACHE_DIR, filename)
 
 @app.route("/health")
 def health():
