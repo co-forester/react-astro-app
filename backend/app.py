@@ -36,7 +36,7 @@ CORS(app)
 # Папка для кешу (json + png)
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
-
+save_path = os.path.join(cache_dir, f"{key}.png")
 # ----------------------------------------
 # Конфіг/параметри: символи, кольори, аспекти
 # ----------------------------------------
@@ -307,9 +307,10 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
 
         try:
             plt.savefig(save_path, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+            chart_url = f"{request.host_url}cache/{key}.png"  # формуємо URL
         except Exception as e:
-            print("Помилка при малюванні карти:", e)
-            warning_msg = str(e)
+            chart_url = None
+            warning = f"Помилка при малюванні картинки: {e}"
         finally:
             plt.close(fig)
 
@@ -420,6 +421,8 @@ def generate():
                 "aspects_json": aspect_list,
                 "chart_url": chart_url
             }
+            if warning:
+                out["warning"] = warning
             
             with open(json_cache_path, "w", encoding="utf-8") as f:
                 json.dump(out, f, ensure_ascii=False, indent=2)
