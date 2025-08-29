@@ -34,6 +34,12 @@ def cleanup_cache():
             mtime = dt.fromtimestamp(os.path.getmtime(fpath))
             if now - mtime > timedelta(days=30):
                 os.remove(fpath)
+                
+# Генерує MD5-хеш для кешування результатів запиту.
+# Використовує комбінацію: ім'я користувача, дата народження, час і місце.
+def cache_key(name, date_str, time_str, place):
+    raw = f"{name}_{date_str}_{time_str}_{place}"
+    return hashlib.md5(raw.encode("utf-8")).hexdigest()               
 
 # Символи та кольори планет
 PLANET_SYMBOLS = {
