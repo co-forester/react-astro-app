@@ -406,6 +406,7 @@ def generate():
                 json.dump(result, f, ensure_ascii=False, indent=2)
             return jsonify(result), 200
 
+            # Підготувати результат і кешувати JSON
             out = {
                 "name": name,
                 "date": date_str,
@@ -413,9 +414,8 @@ def generate():
                 "place": place,
                 "timezone": tz_str,
                 "aspects_json": aspect_list,
-                "chart_url": f"/cache/{key}.png" if success else None
+                "chart_url": f"/cache/{key}.png"  # відносний шлях
             }
-
             with open(json_cache_path, "w", encoding="utf-8") as f:
                 json.dump(out, f, ensure_ascii=False, indent=2)
 
