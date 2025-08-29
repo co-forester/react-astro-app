@@ -159,24 +159,46 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
             "#fff5e6", "#f0f0f0", "#ffe6f0", "#e6ffe6", "#e6f0ff", "#fff0e6"
         ]
 
-        # Намалювати сектори будинків — перевіряємо, чи в chart є houses
+                # --- Сектори будинків у пастельних тонах (Placidus) ---
         try:
-            # flatlib Chart.houses повертає список об'єктів з lon
             for i in range(12):
                 start_deg = chart.houses[i].lon % 360
                 end_deg = chart.houses[(i+1) % 12].lon % 360
-                # Привести до інтервалу, де end>start
                 if end_deg <= start_deg:
                     end_deg += 360
+
                 theta_start = math.radians(90 - start_deg)
                 theta_end = math.radians(90 - end_deg)
                 width = abs(theta_end - theta_start)
-                # Бар з невеликою прозорістю (щоб не перекривати символи)
-                ax.bar(x=(theta_start + theta_end)/2, height=1.4, width=width,
-                       bottom=0, color=house_colors[i], edgecolor="none", linewidth=0, alpha=0.35, zorder=0)
-        except Exception:
-            # Якщо щось пішло не так з будинками — продовжуємо без них
-            pass
+
+                ax.bar(
+                    x=(theta_start + theta_end) / 2,
+                    height=1.4,
+                    width=width,
+                    bottom=0,
+                    color=house_colors[i % len(house_colors)],
+                    edgecolor="white",
+                    linewidth=0.5,
+                    alpha=0.35,
+                    zorder=0
+                )
+        except Exception as e:
+            print("House draw error:", e)
+
+        # --- Градуйровка по колу ---
+        for deg in range(0, 360, 10):
+            theta = math.radians(90 - deg)
+            r_start = 1.15
+            r_end = 1.18 if deg % 30 == 0 else 1.16
+            ax.plot([theta, theta], [r_start, r_end], color="black", lw=0.7, zorder=2)
+
+            # цифри кожні 30°
+            if deg % 30 == 0:
+                ax.text(
+                    theta, 1.21, str(deg),
+                    fontsize=8, ha="center", va="center",
+                    color="black", fontfamily=unicode_font, zorder=2
+                )
 
         # Знаки зодіаку + підписи (білими на бордовому фоні ми виводимо символи,
         # але сам бордовий фон для логотипу робиться окремо)
