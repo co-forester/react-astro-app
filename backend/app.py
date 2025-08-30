@@ -280,9 +280,10 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 ax.text(th_mid, 0.14, str(i+1), fontsize=9, ha="center", va="center",
                         color="#6a1b2c", fontweight="bold", zorder=7)
 
-        # 6) ASC/MC/DSC/IC маркери
+        # 6) ASC/MC/DSC/IC маркери зовні кола
         angle_markers = ["ASC", "MC", "DSC", "IC"]
-        r_outer = 1.05  # трохи за межами кола зодіаку
+        r_base = 1.0    # радіус кола зодіаку
+        r_outer = 1.15  # позиція маркера зовні кола
         for mark in angle_markers:
             try:
                 obj = chart.getObject(mark)
@@ -293,10 +294,14 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     continue
 
                 th = np.deg2rad(float(lon) % 360)
-                # точка маркера
-                ax.plot([th], [r_outer], marker='o', markersize=10, color="#FFD700", zorder=6)
 
-                # форматування градуси-хвилини-секунди
+                # лінія від кола до маркера
+                ax.plot([th, th], [r_base, r_outer], color="#FFD700", lw=2, zorder=6)
+
+                # маркер точка
+                ax.plot([th], [r_outer], marker='o', markersize=8, color="#FFD700", zorder=7)
+
+                # формат градуси-хвилини-секунди
                 deg = int(lon)
                 min = int((lon - deg) * 60)
                 sec = int(((lon - deg) * 60 - min) * 60)
@@ -366,18 +371,19 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 # Прямі лінії між планетами
                 ax.plot([th1, th2], [r_planet, r_planet],
                         color=aspect_colors.get(asp["type"], "#777777"),
-                        lw=1.6, alpha=0.95, zorder=5)
+                        lw=1.8, alpha=0.9, zorder=5)
 
-                legend_items.append((asp["type"], aspect_colors.get(asp["type"], "#777777")))
+                # Додаємо до легенди (кожен тип аспекта лише один раз)
+                if (asp["type"], aspect_colors.get(asp["type"], "#777777")) not in legend_items:
+                    legend_items.append((asp["type"], aspect_colors.get(asp["type"], "#777777")))
+
             except Exception:
                 continue
 
-        # Унікальна легенда
-        legend_items = list({(n, c) for n, c in legend_items})
+        # Легенда під картою
         for name, color in legend_items:
             ax.plot([], [], color=color, lw=3, label=name)
-        ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=len(legend_items))
-
+        ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=len(legend_items), frameon=False, fontsize=9)
         # Акцент на Асцендент
         try:
             asc_obj = chart.getObject("ASC")
