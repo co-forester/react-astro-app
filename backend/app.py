@@ -321,7 +321,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             except Exception:
                 continue
 
-        # ---  Аспекти з кольорами та легендою ---
+        # 8) Класичні аспекти — прямі лінії + легенда + точні градуси
         r_planet = 0.75
         legend_items = []
 
@@ -332,6 +332,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             "Trine": "#00CC00",
             "Opposition": "#9900FF",
         }
+
+        aspects_table = []
 
         for asp in aspects_list:
             try:
@@ -346,30 +348,48 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 if lon1 is None or lon2 is None:
                     continue
 
+                # Конвертуємо градуси у градуси-хвилини-секунди
+                def dms(lon):
+                    deg = int(lon)
+                    min = int((lon - deg) * 60)
+                    sec = int(((lon - deg) * 60 - min) * 60)
+                    return f"{deg}°{min}'{sec}''"
+
                 th1 = np.deg2rad(float(lon1) % 360)
                 th2 = np.deg2rad(float(lon2) % 360)
 
-                # Лінії аспектів
+                # Малюємо лінії аспектів
                 ax.plot([th1, th2], [r_planet, r_planet],
                         color=aspect_colors.get(asp["type"], "#777777"),
-                        lw=1.8, alpha=0.95, zorder=5)
+                        lw=1.8, alpha=0.9, zorder=5)
 
                 legend_items.append((asp["type"], aspect_colors.get(asp["type"], "#777777")))
+
+                # Записуємо у таблицю
+                aspects_table.append({
+                    "planet1": getattr(p1_obj, "id"),
+                    "lon1": dms(lon1),
+                    "planet2": getattr(p2_obj, "id"),
+                    "lon2": dms(lon2),
+                    "type": asp["type"],
+                    "color": aspect_colors.get(asp["type"], "#777777")
+                })
             except Exception:
                 continue
 
-        # Легенда аспектів під картою
+        # Унікальна легенда під картою
         legend_items = list({(n, c) for n, c in legend_items})
         for name, color in legend_items:
             ax.plot([], [], color=color, lw=3, label=name)
         ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=len(legend_items))
-
+        
         # ---  Логотип Скорпіона по дузі всередині кола ---
         theta_logo = np.linspace(np.pi*0.25, np.pi*0.75, 1)
         r_logo = 0.55
         for th in theta_logo:
             ax.text(th, r_logo, "♏", fontsize=14, ha='center', va='center', color="#444444")
-            ax.text(th, r_logo - 0.05, "Serjio", fontsize=9, ha='center', va='center', color="#444444")
+            ax.text(th, r_logo - 0.05, "Albireo Daria", fontsize=9, ha='center', va='center', color="#444444")
+        
         # Акцент на Асцендент
         try:
             asc_obj = chart.getObject("ASC")
