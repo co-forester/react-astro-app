@@ -2,11 +2,11 @@ import os
 import math
 from datetime import datetime as dt
 
-from flask import Flask, request, jsonify, send_from_directory, Response
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 import matplotlib
-matplotlib.use("Agg")  # headless rendering
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 from matplotlib.lines import Line2D
@@ -16,76 +16,57 @@ from timezonefinder import TimezoneFinder
 import pytz
 
 from flatlib.chart import Chart
-from flatlib import const
-from flatlib.aspect import Aspect
+from flatlib.datetime import Datetime
+from flatlib.geopos import GeoPos
+from flatlib import aspects, const
 
+# ----------------- App -----------------
 app = Flask(__name__)
 CORS(app)
 
-# ----------------- Основні функції -----------------
-def geocode_location(location_name):
+# ----------------- Helper functions -----------------
+def get_chart_data(date, time, city, country):
     geolocator = Nominatim(user_agent="astro_app")
-    loc = geolocator.geocode(location_name)
-    if loc:
-        return loc.latitude, loc.longitude
-    return None, None
-
-def get_timezone(lat, lon, date):
+    location = geolocator.geocode(f"{city}, {country}")
+    if not location:
+        raise ValueError("Місто не знайдено")
     tf = TimezoneFinder()
-    tzname = tf.timezone_at(lat=lat, lng=lon)
-    tz = pytz.timezone(tzname) if tzname else pytz.utc
-    return tz
+    tz_str = tf.timezone_at(lng=location.longitude, lat=location.latitude)
+    tz = pytz.timezone(tz_str)
+
+    dt_obj = dt.strptime(f"{date} {time}", "%d-%m-%Y %H:%M")
+    dt_obj = tz.localize(dt_obj)
+    fdt = Datetime(dt_obj.strftime("%Y-%m-%d"), dt_obj.strftime("%H:%M"), tz_str)
+    pos = GeoPos(location.latitude, location.longitude)
+    chart = Chart(fdt, pos)
+    return chart
 
 def draw_natal_chart(chart, filename="chart.png"):
     fig, ax = plt.subplots(figsize=(10,10))
-    ax.set_xlim(-1.2,1.2)
-    ax.set_ylim(-1.2,1.2)
+    ax.set_xlim(-1.1,1.1)
+    ax.set_ylim(-1.1,1.1)
     ax.axis('off')
 
-    # ----------------- Zodiac circle -----------------
-    zodiac_colors = ['#FFDDC1','#FFE4B5','#FFFACD','#E0FFFF','#F0E68C','#FAFAD2',
-                     '#D8BFD8','#E6E6FA','#F5DEB3','#FFE4E1','#F0FFF0','#F5F5DC']
-    zodiac = ['♈','♉','♊','♋','♌','♍','♎', None,'♐','♑','♒','♓']  # None для Скорпіона
+    # Zodiac circle
+    circle = Circle((0,0),1,fill=False,edgecolor='black',linewidth=2)
+    ax.add_patch(circle)
 
-    for i in range(12):
-        angle_start = math.radians(i*30)
-        angle_end = math.radians((i+1)*30)
-        wedge = matplotlib.patches.Wedge(center=(0,0), r=1.0, theta1=math.degrees(angle_start),
-                                         theta2=math.degrees(angle_end), facecolor=zodiac_colors[i], alpha=0.3)
-        ax.add_patch(wedge)
+    # Zodiac signs
+    zodiac = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓']
+    for i,s in enumerate(zodiac):
+        angle = math.radians(i*30 + 15)
+        x = 0.9 * math.cos(angle)
+        y = 0.9 * math.sin(angle)
+        ax.text(x,y,s,fontsize=18,fontweight='bold',ha='center',va='center')
 
-        # Символи знаків
-        angle_mid = math.radians(i*30 + 15)
-        x = 0.9 * math.cos(angle_mid)
-        y = 0.9 * math.sin(angle_mid)
-        if zodiac[i]:
-            ax.text(x, y, zodiac[i], fontsize=18, fontweight='bold', ha='center', va='center')
-        else:
-            # Логотип для Скорпіона
-            logo_circle = Circle((x,y), 0.05, color='darkred', ec='black', lw=1.5)
-            ax.add_patch(logo_circle)
-            ax.text(x, y, "LOGO", fontsize=10, fontweight='bold', ha='center', va='center', color='white')
-
-    # ----------------- Degrees -----------------
+    # Degrees
     for deg in range(0,360,10):
         angle = math.radians(deg)
-        x = 1.02 * math.cos(angle)
-        y = 1.02 * math.sin(angle)
-        ax.text(x, y, f"{deg}°", fontsize=8, ha='center', va='center', color='gray')
+        x = math.cos(angle)
+        y = math.sin(angle)
+        ax.text(1.02*x,1.02*y,str(deg)+'°',fontsize=8,ha='center',va='center')
 
-    # ----------------- Houses -----------------
-    house_colors = plt.cm.tab20c.colors
-    for i in range(12):
-        angle = math.radians(i*30)
-        x = [0, math.cos(angle)]
-        y = [0, math.sin(angle)]
-        ax.plot(x, y, color=house_colors[i%len(house_colors)], lw=2)
-        # Підписи домів
-        x_text = 1.05 * math.cos(angle + math.radians(15))
-        y_text = 1.05 * math.sin(angle + math.radians(15))
-        ax.text(x_text, y_text, f"House {i+1}", fontsize=10, ha='center', va='center', color=house_colors[i%len(house_colors)], fontweight='bold')
-
-    # ----------------- Planets -----------------
+    # Planets
     planet_symbols = {
         const.SUN:'☉', const.MOON:'☽', const.MERCURY:'☿', const.VENUS:'♀',
         const.MARS:'♂', const.JUPITER:'♃', const.SATURN:'♄',
@@ -97,60 +78,40 @@ def draw_natal_chart(chart, filename="chart.png"):
         angle = math.radians(obj.signlon)
         x = 0.7 * math.cos(angle)
         y = 0.7 * math.sin(angle)
-        ax.text(x, y, sym, fontsize=22, fontweight='bold', ha='center', va='center', color='navy')
+        ax.text(x,y,sym,fontsize=22,fontweight='bold',ha='center',va='center')
         planet_positions[p] = (x,y)
 
-    # ----------------- Aspects -----------------
+    # Aspects
     aspect_colors = {
         'Conjunction':'red','Opposition':'blue','Trine':'green','Square':'orange','Sextile':'purple'
     }
-    for a in chart.getAspects():
+    for a in aspects.getAspects(chart):
         x1,y1 = planet_positions.get(a.p1)
         x2,y2 = planet_positions.get(a.p2)
         color = aspect_colors.get(a.type,'gray')
-        lw = 2 if a.type in ['Conjunction','Opposition'] else 1.2
-        ax.add_line(Line2D([x1,x2],[y1,y2],color=color,linewidth=lw,alpha=0.7))
+        ax.add_line(Line2D([x1,x2],[y1,y2],color=color,linewidth=1.5,alpha=0.7))
 
-    # ----------------- Central Logo -----------------
-    central_circle = Circle((0,0), 0.12, color='darkred', ec='black', lw=2)
-    ax.add_patch(central_circle)
-    ax.text(0,0,"ASTRO\nLOGO", fontsize=16, fontweight='bold', ha='center', va='center', color='white')
+    # Center logo
+    ax.text(0,0,"ASTRO\nLOGO",fontsize=14,fontweight='bold',ha='center',va='center',color='darkred')
 
     fig.savefig(filename, bbox_inches='tight')
     plt.close(fig)
 
 # ----------------- Routes -----------------
 @app.route("/generate", methods=["POST"])
-def generate_chart():
-    data = request.json
-    date_str = data.get("date")  # 'YYYY-MM-DD'
-    time_str = data.get("time")  # 'HH:MM'
-    location = data.get("location")  # місто
+def generate():
+    try:
+        data = request.json
+        date = data.get("date")
+        time = data.get("time")
+        city = data.get("city")
+        country = data.get("country")
 
-    lat, lon = geocode_location(location)
-    if lat is None:
-        return jsonify({"error":"Location not found"}), 400
-
-    tz = get_timezone(lat, lon, date_str)
-    dt_utc = tz.localize(dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")).astimezone(pytz.utc)
-    chart = Chart(dt_utc, lat, lon, hsys='P')  # Placidus
-
-    draw_natal_chart(chart, filename="chart.png")
-
-    return jsonify({
-        "planets": {p:str(chart.get(p).sign) for p in [
-            const.SUN,const.MOON,const.MERCURY,const.VENUS,const.MARS,
-            const.JUPITER,const.SATURN,const.URANUS,const.NEPTUNE,const.PLUTO
-        ]},
-        "chart_image": "/chart.png"
-    })
-
-@app.route("/chart.png")
-def serve_chart():
-    return send_from_directory(os.getcwd(), "chart.png")
-
-
-
+        chart = get_chart_data(date,time,city,country)
+        draw_natal_chart(chart,"chart.png")
+        return jsonify({"chart":"chart.png"})
+    except Exception as e:
+        return jsonify({"error":str(e)}), 500
 
 @app.route("/health")
 def health():
@@ -159,4 +120,4 @@ def health():
 # ----------------- Run -----------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
