@@ -48,7 +48,7 @@ HOUSE_COLORS = [
     "#b2dfdb", "#c8e6c9", "#dcedc8", "#f0f4c3"
 ]
 
-# Планети, символи, кольори (світлі, контрастні)
+# Планети, символи, кольори
 PLANET_SYMBOLS = {
     "Sun":"☉","Moon":"☽","Mercury":"☿","Venus":"♀","Mars":"♂",
     "Jupiter":"♃","Saturn":"♄","Uranus":"♅","Neptune":"♆","Pluto":"♇",
@@ -61,7 +61,7 @@ PLANET_COLORS = {
     "Ascendant":"#2ecc71","MC":"#8e44ad"
 }
 
-# Аспекти (кут, орб, колір — світлі, читабельні)
+# Аспекти
 ASPECTS_DEF = {
     "conjunction": {"angle": 0,   "orb": 8, "color": "#bbbbbb"},
     "sextile":     {"angle": 60,  "orb": 6, "color": "#a7d6a7"},
@@ -112,22 +112,15 @@ def geocode_place(place, retries=2, timeout=10):
     return None, None
 
 def get_house_lon(chart, i):
-    """Отримати довготу вершини дому i (1..12) з різних можливих API flatlib."""
-    try:
-        return chart.houses[i-1].lon
-    except Exception:
-        pass
-    try:
-        return chart.houses[i].lon
-    except Exception:
-        pass
-    try:
-        return chart.houses.get(i).lon
-    except Exception:
-        pass
+    try: return chart.houses[i-1].lon
+    except Exception: pass
+    try: return chart.houses[i].lon
+    except Exception: pass
+    try: return chart.houses.get(i).lon
+    except Exception: pass
     return None
 
-# ----------------- Аспекти (ручний розрахунок) -----------------
+# ----------------- Аспекти -----------------
 def compute_aspects_manual(objects):
     results = []
     objs = [o for o in objects if getattr(o, "id", None) in PLANET_SYMBOLS]
@@ -137,8 +130,7 @@ def compute_aspects_manual(objects):
             a1 = getattr(p1, "lon", 0) % 360
             a2 = getattr(p2, "lon", 0) % 360
             diff = abs(a1 - a2)
-            if diff > 180:
-                diff = 360 - diff
+            if diff > 180: diff = 360 - diff
             for name, cfg in ASPECTS_DEF.items():
                 if abs(diff - cfg["angle"]) <= cfg["orb"]:
                     results.append({
@@ -155,306 +147,151 @@ def compute_aspects_manual(objects):
     return results
 
 # ----------------- Малювання карти -----------------
-def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_text="Albireo Daria^"):
+def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None):
+    fig = plt.figure(figsize=(12, 12))
+    ax = plt.subplot(111, polar=True)
+    ax.set_theta_zero_location("W")
+    ax.set_theta_direction(-1)
+    ax.set_ylim(0, 1.35)
+    ax.set_xticks([]); ax.set_yticks([])
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    plt.rcParams["font.family"] = "DejaVu Sans"
+
+    # --- Будинки (Placidus) ---
     try:
-        # Полярний графік: 0° зліва (Овен), оберт за год. стрілкою
-        fig = plt.figure(figsize=(12, 12))
-        ax = plt.subplot(111, polar=True)
-        ax.set_theta_zero_location("W")  # нуль зліва
-        ax.set_theta_direction(-1)       # за годинниковою
-        ax.set_ylim(0, 1.35)
-        ax.set_xticks([]); ax.set_yticks([])
-        fig.patch.set_facecolor("white")
-        ax.set_facecolor("white")
-        plt.rcParams["font.family"] = "DejaVu Sans"
+        for i in range(1, 13):
+            cusp1 = get_house_lon(chart, i)
+            cusp2 = get_house_lon(chart, (i % 12) + 1)
+            if cusp1 is None or cusp2 is None: raise RuntimeError
+            start_deg = cusp1 % 360
+            end_deg   = cusp2 % 360
+            if (end_deg - start_deg) <= 0: end_deg += 360
+            theta_start, theta_end = np.deg2rad(start_deg), np.deg2rad(end_deg)
+            ax.bar((theta_start+theta_end)/2, 1.10, abs(theta_end-theta_start), bottom=0,
+                   color=HOUSE_COLORS[(i-1)%12], alpha=0.28, edgecolor="white", linewidth=0.6, zorder=0)
+            ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)], [0.15,1.18], color="#888888", lw=0.8, zorder=2)
+    except Exception:
+        pass
 
-        # 1) Пастельні сектори домів (Placidus), + лінії вершин
-        drew_houses = False
-        try:
-            for i in range(1, 13):
-                cusp1 = get_house_lon(chart, i)
-                cusp2 = get_house_lon(chart, (i % 12) + 1)
-                if cusp1 is None or cusp2 is None:
-                    raise RuntimeError("house cusps not available")
-                start_deg = cusp1 % 360
-                end_deg = cusp2 % 360
-                if (end_deg - start_deg) <= 0:
-                    end_deg += 360
-                theta_start = np.deg2rad(start_deg)
-                theta_end   = np.deg2rad(end_deg)
-                width = abs(theta_end - theta_start)
-                ax.bar(
-                    x=(theta_start + theta_end) / 2,
-                    height=1.10, width=width, bottom=0.00,
-                    color=HOUSE_COLORS[(i-1) % 12], alpha=0.28,
-                    edgecolor="white", linewidth=0.6, zorder=0
-                )
-                # лінія вершини дому
-                ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)], [0.15, 1.18], color="#888888", lw=0.8, zorder=2)
-            drew_houses = True
-        except Exception:
-            # fallback: рівні 30° сектори
-            for i in range(12):
-                start = i * 30
-                theta_start = np.deg2rad(start)
-                theta_end   = np.deg2rad(start + 30)
-                width = abs(theta_end - theta_start)
-                ax.bar(
-                    x=(theta_start + theta_end) / 2,
-                    height=1.10, width=width, bottom=0.00,
-                    color=HOUSE_COLORS[i % 12], alpha=0.22,
-                    edgecolor="white", linewidth=0.6, zorder=0
-                )
-                ax.plot([np.deg2rad(start), np.deg2rad(start)], [0.15, 1.18], color="#888888", lw=0.8, zorder=2)
+    # --- Зодіакальне кільце ---
+    for i, sym in enumerate(ZODIAC_SYMBOLS):
+        start = i * 30
+        theta_start, theta_end = np.deg2rad(start), np.deg2rad(start+30)
+        ax.bar((theta_start+theta_end)/2, 0.12, abs(theta_end-theta_start), bottom=1.18,
+               color="#6a1b2c", edgecolor="white", linewidth=1.2, zorder=3)
+        ax.plot([theta_start, theta_start], [1.18, 1.30], color="white", lw=1.2, zorder=4)
 
-        # 2) Бордове кільце Зодіаку (1.18..1.30), білі межі, знаки + назви дугою
-        for i, sym in enumerate(ZODIAC_SYMBOLS):
-            start = i * 30
-            theta_start = np.deg2rad(start)
-            theta_end   = np.deg2rad(start + 30)
-            width = abs(theta_end - theta_start)
+        center_deg = start + 15
+        theta_c = np.deg2rad(center_deg)
+        text_rot = -(center_deg)
 
-            # бордовий сегмент
-            ax.bar(
-                x=(theta_start + theta_end) / 2,
-                height=0.12, width=width, bottom=1.18,
-                color="#6a1b2c", edgecolor="white", linewidth=1.2, zorder=3
-            )
-            # біла межа сегменту
-            ax.plot([theta_start, theta_start], [1.18, 1.30], color="white", lw=1.2, zorder=4)
-
-            # дугові підписи: символ + назва вздовж внутрішнього краю кільця
-            center_deg = start + 15
-            theta_c = np.deg2rad(center_deg)
-            # орієнтація вздовж дуги
-            text_rot = -(center_deg)
+        if sym == "♏":  # Скорпіон → Лого
+            ax.text(theta_c, 1.225, "Albireo Daria^", fontsize=13, ha="center", va="center",
+                    color="#FFD700", fontweight="bold", rotation=text_rot, rotation_mode="anchor", zorder=6)
+        else:
             ax.text(theta_c, 1.205, sym, fontsize=20, ha="center", va="center",
                     color="white", fontweight="bold", rotation=text_rot, rotation_mode="anchor", zorder=5)
             ax.text(theta_c, 1.24, ZODIAC_NAMES[i], fontsize=9, ha="center", va="center",
                     color="white", rotation=text_rot, rotation_mode="anchor", zorder=5)
 
-        # 3) Лого на дузі в секторі Скорпіона (~210°)
-        sc_deg = 210
-        theta_sc = np.deg2rad(sc_deg)
-        ax.text(theta_sc, 1.225, "Albireo Daria^", fontsize=11, ha="center", va="center",
-                color="white", fontweight="bold", rotation=-(sc_deg), rotation_mode="anchor",
-                bbox=dict(facecolor="#6a1b2c", edgecolor="none", pad=2), zorder=6)
+    # --- Центральне коло ---
+    ax.add_artist(plt.Circle((0,0), 0.14, color="#f5f5f5", zorder=1, fill=True, ec="#dddddd", lw=0.5))
+    ax.add_artist(plt.Circle((0,0), 0.10, color="#800000", zorder=10))
+    if name_for_center:
+        ax.text(0,0,name_for_center,color="white",ha="center",va="center",
+                fontsize=10,fontweight="bold",zorder=11)
 
-        # 4) Зовнішня градуйовка: кожні 30° цифри, кожні 10° риски
-        for deg in range(0, 360, 10):
-            th = np.deg2rad(deg)
-            r0 = 1.15
-            r1 = 1.18 if deg % 30 == 0 else 1.165
-            ax.plot([th, th], [r0, r1], color="black", lw=1.0 if deg % 30 == 0 else 0.6, zorder=4)
-            if deg % 30 == 0:
-                ax.text(th, 1.205, str(deg), fontsize=8, ha="center", va="center", color="black")
+    # --- Номери домів ---
+    try:
+        for i in range(1,13):
+            cusp1 = get_house_lon(chart,i)
+            cusp2 = get_house_lon(chart,(i%12)+1)
+            if cusp1 is None or cusp2 is None: raise RuntimeError
+            diff=(cusp2-cusp1)%360; mid=(cusp1+diff/2)%360
+            th_mid=np.deg2rad(mid)
+            ax.text(th_mid,0.14,str(i),fontsize=9,ha="center",va="center",
+                    color="#6a1b2c",fontweight="bold",zorder=7)
+    except Exception:
+        pass
 
-        # 5) Центральні кільця + маленьке бордове коло з ім’ям
-        # внутрішнє коло як фон для номерів домів
-        inner_ring = plt.Circle((0, 0), 0.14, color="#f5f5f5", zorder=1, fill=True, ec="#dddddd", lw=0.5)
-        ax.add_artist(inner_ring)
-        # маленьке бордове коло
-        center_circle = plt.Circle((0, 0), 0.10, color="#800000", zorder=10)
-        ax.add_artist(center_circle)
-        # ім’я в центрі
-        if name_for_center:
-            ax.text(0, 0, name_for_center, color="white", ha="center", va="center",
-                    fontsize=10, fontweight="bold", zorder=11)
-
-        # 6) Номери домів на внутрішньому кільці (по секторам)
+    # --- Планети ---
+    for obj in chart.objects:
         try:
-            for i in range(1, 13):
-                cusp1 = get_house_lon(chart, i)
-                cusp2 = get_house_lon(chart, (i % 12) + 1)
-                if cusp1 is None or cusp2 is None:
-                    raise RuntimeError
-                start = cusp1 % 360
-                end   = cusp2 % 360
-                # коректний середній кут з урах. переходу 360->0
-                diff = (end - start) % 360
-                mid  = (start + diff / 2.0) % 360
-                th_mid = np.deg2rad(mid)
-                ax.text(th_mid, 0.14, str(i), fontsize=9, ha="center", va="center",
-                        color="#6a1b2c", fontweight="bold", zorder=7)
-        except Exception:
-            # якщо нема домів — рівні 30°
-            for i in range(12):
-                th_mid = np.deg2rad(i*30 + 15)
-                ax.text(th_mid, 0.14, str(i+1), fontsize=9, ha="center", va="center",
-                        color="#6a1b2c", fontweight="bold", zorder=7)
+            oid=getattr(obj,"id",None)
+            if oid in PLANET_SYMBOLS:
+                lon=obj.lon%360; th=np.deg2rad(lon); r=0.90
+                sym=PLANET_SYMBOLS[oid]; col=PLANET_COLORS.get(oid,"black")
+                ax.text(th,r,sym,fontsize=16,ha="center",va="center",color=col,zorder=8)
+                ax.text(th,r-0.06,f"{oid} {deg_to_dms(obj.lon)}",fontsize=8,
+                        ha="center",va="center",color=col,zorder=8)
+        except: continue
 
-        # 7) Маркери ASC / MC / DSC / IC
+    # --- Аспекти ---
+    r_line=0.82
+    for asp in aspects_list:
         try:
-            asc = chart.get(const.ASC).lon % 360
-            mc  = chart.get(const.MC).lon  % 360
-            dsc = (asc + 180) % 360
-            ic  = (mc  + 180) % 360
-            angles = [("ASC", asc, "#2ecc71"), ("MC", mc, "#8e44ad"),
-                      ("DSC", dsc, "#2ecc71"), ("IC", ic, "#8e44ad")]
-            for lab, ang, col in angles:
-                th = np.deg2rad(ang)
-                ax.plot([th, th], [1.00, 1.15], color=col, lw=2.0, zorder=6)
-                ax.text(th, 1.02, lab, fontsize=9, ha="center", va="center",
-                        color=col, fontweight="bold", zorder=6, rotation=-ang, rotation_mode="anchor")
-        except Exception:
-            pass
+            p1=next(o for o in chart.objects if getattr(o,"id",None)==asp["planet1"])
+            p2=next(o for o in chart.objects if getattr(o,"id",None)==asp["planet2"])
+            th1,th2=np.deg2rad(p1.lon%360),np.deg2rad(p2.lon%360)
+            d=((th2-th1+math.pi)%(2*math.pi))-math.pi
+            steps=max(10,int(abs(d)/(math.pi/180)*2))
+            thetas=np.linspace(th1,th1+d,steps); rs=np.full_like(thetas,r_line)
+            ax.plot(thetas,rs,color=asp["color"],lw=1.4,alpha=0.95,zorder=5)
+        except: continue
 
-        # 8) Планети: символ + DMS підпис
-        for obj in chart.objects:
-            try:
-                oid = getattr(obj, "id", None)
-                if oid in PLANET_SYMBOLS:
-                    lon = obj.lon % 360
-                    th = np.deg2rad(lon)
-                    r = 0.90
-                    sym = PLANET_SYMBOLS[oid]
-                    col = PLANET_COLORS.get(oid, "black")
-                    ax.text(th, r, sym, fontsize=16, ha="center", va="center", color=col, zorder=8)
-                    ax.text(th, r - 0.06, f"{oid} {deg_to_dms(obj.lon)}", fontsize=8,
-                            ha="center", va="center", color=col, zorder=8)
-            except Exception:
-                continue
-
-        # 9) Аспекти: плавні дуги на радіусі 0.82
-        r_line = 0.82
-        for asp in aspects_list:
-            try:
-                p1 = next(o for o in chart.objects if getattr(o, "id", None) == asp["planet1"])
-                p2 = next(o for o in chart.objects if getattr(o, "id", None) == asp["planet2"])
-                th1 = np.deg2rad(p1.lon % 360)
-                th2 = np.deg2rad(p2.lon % 360)
-                # малюємо дугу між кутами, йдемо короткою стороною
-                d = ((th2 - th1 + np.pi) % (2*np.pi)) - np.pi
-                steps = max(10, int(abs(d) / (np.pi/180) * 2))
-                thetas = np.linspace(th1, th1 + d, steps)
-                rs = np.full_like(thetas, r_line)
-                ax.plot(thetas, rs, color=asp["color"], lw=1.4, alpha=0.95, zorder=5)
-            except Exception:
-                continue
-
-        # Збереження
-        try:
-            plt.savefig(save_path, dpi=160, bbox_inches="tight", facecolor=fig.get_facecolor())
-        finally:
-            plt.close(fig)
-
-    except Exception as e:
-        print("Error in draw_natal_chart:", e)
-        traceback.print_exc()
-        raise
+    plt.savefig(save_path,dpi=160,bbox_inches="tight",facecolor=fig.get_facecolor())
+    plt.close(fig)
 
 # ----------------- /generate -----------------
 @app.route("/generate", methods=["POST"])
 def generate():
     try:
         cleanup_cache()
+        data=request.get_json() or {}
+        name=data.get("name") or "Person"
+        date_str=data.get("date"); time_str=data.get("time")
+        place=data.get("place") or data.get("city")
+        if not(date_str and time_str and place):
+            return jsonify({"error":"Надішліть date (YYYY-MM-DD), time (HH:MM) та place"}),400
 
-        data = request.get_json() or {}
-        # Підтримка альтернативних ключів (city -> place)
-        name = data.get("name") or data.get("firstName") or "Person"
-        date_str = data.get("date")
-        time_str = data.get("time")
-        place = data.get("place") or data.get("city")
+        key=cache_key(name,date_str,time_str,place)
+        json_path=os.path.join(CACHE_DIR,f"{key}.json")
+        png_path=os.path.join(CACHE_DIR,f"{key}.png")
 
-        if not (date_str and time_str and place):
-            return jsonify({"error": "Надішліть date (YYYY-MM-DD), time (HH:MM) та place (рядок)"}), 400
-
-        key = cache_key(name, date_str, time_str, place)
-        json_path = os.path.join(CACHE_DIR, f"{key}.json")
-        png_path  = os.path.join(CACHE_DIR, f"{key}.png")
-
-        # Кеш-хіт
         if os.path.exists(json_path) and os.path.exists(png_path):
-            try:
-                mtime = dt.fromtimestamp(os.path.getmtime(json_path))
-                if dt.now() - mtime <= timedelta(days=CACHE_TTL_DAYS):
-                    with open(json_path, "r", encoding="utf-8") as f:
-                        cached = json.load(f)
-                    base_url = request.host_url.rstrip("/")
-                    cached["chart_url"] = f"{base_url}/cache/{key}.png"
-                    return jsonify(cached)
-            except Exception:
-                pass
+            with open(json_path,"r",encoding="utf-8") as f: cached=json.load(f)
+            base_url=request.host_url.rstrip("/")
+            cached["chart_url"]=f"{base_url}/cache/{key}.png"
+            return jsonify(cached)
 
-        # Геокодування
-        lat, lon = geocode_place(place)
-        if lat is None:
-            return jsonify({"error": "Місце не знайдено (геокодер)"}), 400
+        lat,lon=geocode_place(place)
+        if lat is None: return jsonify({"error":"Місце не знайдено"}),400
 
-        # Таймзона
-        try:
-            tz_str = tf.timezone_at(lat=lat, lng=lon) or "UTC"
-            tz = pytz.timezone(tz_str)
-        except Exception:
-            tz_str = "UTC"
-            tz = pytz.timezone("UTC")
+        tz_str=tf.timezone_at(lat=lat,lng=lon) or "UTC"; tz=pytz.timezone(tz_str)
+        naive=dt.strptime(f"{date_str} {time_str}","%Y-%m-%d %H:%M")
+        local_dt=tz.localize(naive); offset_hours=local_dt.utcoffset().total_seconds()/3600.0
+        fdate=Datetime(local_dt.strftime("%Y/%m/%d"),local_dt.strftime("%H:%M"),offset_hours)
+        pos=GeoPos(lat,lon); chart=Chart(fdate,pos,hsys='P')
 
-        # Local datetime -> flatlib Datetime (offset у годинах!)
-        try:
-            naive = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-            local_dt = tz.localize(naive)
-            offset_hours = (local_dt.utcoffset().total_seconds() / 3600.0) if local_dt.utcoffset() else 0.0
-        except Exception as e:
-            return jsonify({"error": f"Невірний формат date/time: {str(e)}"}), 400
+        aspects_json=compute_aspects_manual(chart.objects)
+        draw_natal_chart(chart,aspects_json,png_path,name_for_center=name)
 
-        fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), offset_hours)
-        pos = GeoPos(lat, lon)
-
-        # Placidus (hsys='P'), fallback — як є
-        try:
-            chart = Chart(fdate, pos, hsys='P')
-        except Exception:
-            chart = Chart(fdate, pos)
-
-        # Аспекти
-        aspects_json = compute_aspects_manual(chart.objects)
-
-        # Малювання PNG
-        try:
-            draw_natal_chart(chart, aspects_json, png_path, name_for_center=name, logo_text="Albireo Daria^")
-        except Exception as e:
-            # навіть якщо картинка не вийшла — повертаємо JSON з аспектами
-            base_url = request.host_url.rstrip("/")
-            out = {
-                "name": name, "date": date_str, "time": time_str,
-                "place": place, "timezone": tz_str,
-                "aspects_json": aspects_json,
-                "chart_url": None,
-                "warning": f"Помилка при малюванні картинки: {str(e)}"
-            }
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(out, f, ensure_ascii=False, indent=2)
-            return jsonify(out), 200
-
-        # JSON-відповідь + кеш JSON
-        base_url = request.host_url.rstrip("/")
-        out = {
-            "name": name, "date": date_str, "time": time_str,
-            "place": place, "timezone": tz_str,
-            "aspects_json": aspects_json,
-            "chart_url": f"{base_url}/cache/{key}.png"
-        }
-        with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(out, f, ensure_ascii=False, indent=2)
-
+        base_url=request.host_url.rstrip("/")
+        out={"name":name,"date":date_str,"time":time_str,"place":place,"timezone":tz_str,
+             "aspects_json":aspects_json,"chart_url":f"{base_url}/cache/{key}.png"}
+        with open(json_path,"w",encoding="utf-8") as f: json.dump(out,f,ensure_ascii=False,indent=2)
         return jsonify(out)
 
     except Exception as e:
-        print("Unhandled error in /generate:", e)
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        traceback.print_exc(); return jsonify({"error":str(e)}),500
 
-# ----------------- Статика кешу -----------------
 @app.route("/cache/<path:filename>")
-def cached_file(filename):
-    return send_from_directory(CACHE_DIR, filename)
+def cached_file(filename): return send_from_directory(CACHE_DIR,filename)
 
-# ----------------- Health -----------------
 @app.route("/health")
-def health():
-    return "OK", 200
+def health(): return "OK",200
 
-# ----------------- Run -----------------
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=True)
+if __name__=="__main__":
+    port=int(os.environ.get("PORT",8080))
+    app.run(host="0.0.0.0",port=port,debug=True)
