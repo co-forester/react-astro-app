@@ -327,29 +327,58 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             except Exception:
                 continue
 
-        # 8) Аспекти: дуги (коротка сторона між кутами) — кольори з ASPECTS_DEF
-        r_line = 0.82
-        for asp in aspects_list:
-            try:
-                # знайдемо об'єкти по id
-                p1_obj = next((o for o in chart.objects if getattr(o, "id", None) == asp["planet1"]), None)
-                p2_obj = next((o for o in chart.objects if getattr(o, "id", None) == asp["planet2"]), None)
-                if p1_obj is None or p2_obj is None:
-                    continue
-                lon1 = getattr(p1_obj, "lon", None) or getattr(p1_obj, "signlon", None)
-                lon2 = getattr(p2_obj, "lon", None) or getattr(p2_obj, "signlon", None)
-                if lon1 is None or lon2 is None:
-                    continue
-                th1 = np.deg2rad(float(lon1) % 360)
-                th2 = np.deg2rad(float(lon2) % 360)
-                # коротка дуга (мінімальна різниця)
-                d = ((th2 - th1 + np.pi) % (2*np.pi)) - np.pi
-                steps = max(12, int(abs(d) / (np.pi/180) * 2))
-                thetas = np.linspace(th1, th1 + d, steps)
-                rs = np.full_like(thetas, r_line)
-                ax.plot(thetas, rs, color=asp.get("color", "#777777"), lw=1.6, alpha=0.95, zorder=5)
-            except Exception:
-                continue
+        # 8) Аспекти: класичні астрологічні
+r_aspect = 0.82  # радіус дуг для аспектів
+ASPECTS_DEF = {
+    "Conjunction": {"angle": 0, "orb": 8, "color": "#FF0000"},
+    "Sextile": {"angle": 60, "orb": 6, "color": "#00FF00"},
+    "Square": {"angle": 90, "orb": 6, "color": "#FF9900"},
+    "Trine": {"angle": 120, "orb": 6, "color": "#0000FF"},
+    "Opposition": {"angle": 180, "orb": 8, "color": "#9900FF"}
+}
+
+# Генеруємо список аспектів між планетами
+aspects_to_draw = []
+planets = [o for o in chart.objects if hasattr(o, "lon")]
+for i, p1 in enumerate(planets):
+    for j, p2 in enumerate(planets):
+        if j <= i:
+            continue
+        lon1 = float(p1.lon)
+        lon2 = float(p2.lon)
+        diff = (lon2 - lon1) % 360
+        for asp_name, asp_data in ASPECTS_DEF.items():
+            angle = asp_data["angle"]
+            orb = asp_data["orb"]
+            # Перевірка попадання в орб
+            if abs(diff - angle) <= orb or abs(diff - angle + 360) <= orb:
+                aspects_to_draw.append({
+                    "planet1": p1.id,
+                    "planet2": p2.id,
+                    "type": asp_name,
+                    "color": asp_data["color"]
+                })
+
+# Малюємо дуги аспектів
+for asp in aspects_to_draw:
+    try:
+        p1_obj = next(o for o in chart.objects if getattr(o, "id", None) == asp["planet1"])
+        p2_obj = next(o for o in chart.objects if getattr(o, "id", None) == asp["planet2"])
+        th1 = np.deg2rad(float(p1_obj.lon) % 360)
+        th2 = np.deg2rad(float(p2_obj.lon) % 360)
+        # Малюємо дугу між планетами по колу
+        steps = max(50, int(abs(th2 - th1) / (2*np.pi) * 360))
+        thetas = np.linspace(th1, th2, steps)
+        rs = np.full_like(thetas, r_aspect)
+        ax.plot(thetas, rs, color=asp["color"], lw=2, alpha=0.9, zorder=5)
+    except Exception:
+        continue
+
+# Легенда під картою
+from matplotlib.patches import Patch
+legend_elements = [Patch(facecolor=v["color"], label=v_name) for v_name, v in ASPECTS_DEF.items()]
+ax.legend(handles=legend_elements, loc="lower center", bbox_to_anchor=(0.5, -0.05),
+          ncol=len(ASPECTS_DEF), frameon=False, fontsize=9)
 
         # 9) Логотип-дуга поруч зі знаком Скорпіона вже намальований над написами.
         # 10) Збереження картинки
