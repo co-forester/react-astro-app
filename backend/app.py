@@ -282,7 +282,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
 
         # 6) ASC/MC/DSC/IC маркери зовні кола
         angle_markers = ["ASC", "MC", "DSC", "IC"]
-        r_base = 1.0    # радіус кола зодіаку
+        r_base = 0.90    # радіус кола зодіаку
         r_outer = 1.15  # позиція маркера зовні кола
         for mark in angle_markers:
             try:
