@@ -1,131 +1,96 @@
 import os
 import math
-from datetime import datetime as dt
-from flask import Flask, request, jsonify, send_from_directory
+from datetime import datetime as dt, timedelta
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-from matplotlib.patches import Wedge
-
 from geopy.geocoders import Nominatim
-from geopy.exc import GeocoderTimedOut
 from timezonefinder import TimezoneFinder
 import pytz
-
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
-from flatlib import const
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+CACHE_DIR = "cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 app = Flask(__name__)
 CORS(app)
 
-HOUSE_COLORS = [
-    "#FFE5B4", "#FFD1DC", "#C1F0F6", "#B9FBC0",
-    "#FFFACD", "#E6E6FA", "#FFB6C1", "#D8BFD8",
-    "#FFF0F5", "#E0FFFF", "#F5DEB3", "#F0FFF0"
-]
+def clean_cache():
+    now = dt.now()
+    for filename in os.listdir(CACHE_DIR):
+        path = os.path.join(CACHE_DIR, filename)
+        if os.path.isfile(path):
+            mtime = dt.fromtimestamp(os.path.getmtime(path))
+            if now - mtime > timedelta(days=30):
+                os.remove(path)
 
-PLANET_COLORS = {
-    const.SUN: "gold", const.MOON: "silver", const.MERCURY: "gray",
-    const.VENUS: "pink", const.MARS: "red", const.JUPITER: "orange",
-    const.SATURN: "brown", const.URANUS: "cyan", const.NEPTUNE: "blue",
-    const.PLUTO: "purple"
-}
+def generate_chart_image(chart, filename):
+    fig, ax = plt.subplots(figsize=(8,8), subplot_kw={'polar': True})
+    ax.set_theta_zero_location('E')  # 0° вліво
+    ax.set_theta_direction(-1)  # за годинниковою стрілкою
 
-SIGNS = ["Овен","Телець","Близнюки","Рак","Лев","Діва","Терези","Скорпіон","Стрілець","Козеріг","Водолій","Риби"]
-COLORS = plt.cm.tab20.colors  # для секторів домів
-
-def get_coords(city_name, retries=3):
-    geolocator = Nominatim(user_agent="astro_app")
-    for _ in range(retries):
-        try:
-            location = geolocator.geocode(city_name, timeout=10)
-            if location:
-                return location.latitude, location.longitude
-        except GeocoderTimedOut:
-            continue
-    raise ValueError(f"Не вдалося знайти місто: {city_name}")
-
-def draw_chart(chart, filename="chart.png"):
-    fig, ax = plt.subplots(figsize=(8,8), subplot_kw={'projection':'polar'})
-    ax.set_theta_zero_location("W")
-    ax.set_theta_direction(-1)
-
-    # --- Сектори домів ---
-    for i in range(12):
-        start = np.deg2rad(i*30)
-        end = np.deg2rad((i+1)*30)
-        wedge = Wedge((0,0), 1.0, np.rad2deg(start), np.rad2deg(end), facecolor=COLORS[i%len(COLORS)], alpha=0.2)
-        ax.add_patch(wedge)
-
-    # --- Штрихи та градуси ---
-    for deg in range(0,360,10):
-        rad = np.deg2rad(deg)
+    # Градуси
+    for deg in range(0, 360, 10):
+        rad = math.radians(deg)
+        length = 0.05 if deg % 30 else 0.1
+        ax.plot([rad, rad], [1-length, 1], color='black', lw=1)
         if deg % 30 == 0:
-            ax.plot([rad, rad], [0.85, 1.0], color='black', lw=2)
-            ax.text(rad, 1.05, str(deg), horizontalalignment='center', verticalalignment='center', fontsize=10)
-        else:
-            ax.plot([rad, rad], [0.9, 1.0], color='black', lw=1)
+            ax.text(rad, 1.1, f"{deg}°", ha='center', va='center', fontsize=10)
 
-    # --- Підписи знаків ---
-    for i, sign in enumerate(SIGNS):
-        rad = np.deg2rad(i*30 + 15)
-        ax.text(rad, 1.15, sign, horizontalalignment='center', verticalalignment='center', fontsize=12, fontweight='bold')
+    # Центр
+    ax.text(0, 0, "Натальна карта", ha='center', va='center', fontsize=12, fontweight='bold')
 
-    # --- Логотип у центрі ---
-    ax.text(0,0, "ASTRO", horizontalalignment='center', verticalalignment='center', fontsize=14, fontweight='bold', color='darkred')
-
-    ax.set_rticks([])
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_ylim(0,1.2)
-
-    # --- Планети ---
-    for body in chart.bodies:
-        lon = float(body.lon)
-        rad = np.deg2rad(lon)
-        ax.plot(rad, 0.7, 'o', markersize=10, label=body.id)
-        ax.text(rad, 0.65, body.id, horizontalalignment='center', verticalalignment='center', fontsize=10)
-
-    plt.savefig(filename, dpi=300, bbox_inches='tight')
-    plt.close()
+    ax.set_yticklabels([])
+    ax.set_xticklabels([])
+    ax.set_ylim(0,1)
+    plt.savefig(filename, bbox_inches='tight', dpi=150)
+    plt.close(fig)
 
 @app.route("/generate", methods=["POST"])
 def generate():
-    try:
-        data = request.json
-        city = data.get("city")
-        date_str = data.get("date")  # 'YYYY-MM-DD'
-        time_str = data.get("time")  # 'HH:MM'
+    clean_cache()
+    data = request.json
 
-        lat, lon = get_coords(city)
-        pos = GeoPos(lat, lon)
+    city_name = data.get("city", "")
+    date_str = data.get("date", "")
+    time_str = data.get("time", "")
 
-        tz_name = TimezoneFinder().timezone_at(lat=lat, lng=lon)
-        tz = pytz.timezone(tz_name)
-        dt_obj = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
-        dt_obj = tz.localize(dt_obj)
-        astro_dt = Datetime(dt_obj.year, dt_obj.month, dt_obj.day, dt_obj.hour, dt_obj.minute, tz.zone)
+    if not city_name or not date_str or not time_str:
+        return jsonify({"error": "Не вдалося знайти місто, дату або час"}), 400
 
-        chart = Chart(astro_dt, pos, hsys="P")
-        draw_chart(chart)
+    # Унікальний ключ для кешу
+    cache_filename = f"{city_name}_{date_str}_{time_str}.png".replace(" ", "_").replace("/", "-")
+    cache_path = os.path.join(CACHE_DIR, cache_filename)
+    if os.path.exists(cache_path):
+        return send_file(cache_path, mimetype='image/png')
 
-        return jsonify({"chart": "/chart.png"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    # Геокодування
+    geolocator = Nominatim(user_agent="astro_app")
+    location = geolocator.geocode(city_name)
+    if not location:
+        return jsonify({"error": "Не вдалося знайти місто"}), 400
+    lat, lon = location.latitude, location.longitude
 
-@app.route("/chart.png")
-def chart_png():
-    return send_from_directory(os.getcwd(), "chart.png")
+    # Таймзона
+    tf = TimezoneFinder()
+    tz_name = tf.timezone_at(lng=lon, lat=lat) or "UTC"
+    tz = pytz.timezone(tz_name)
+    dt_obj = tz.localize(dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M"))
 
-@app.route("/health")
-def health():
-    return "OK", 200
+    # Flatlib Datetime
+    astro_dt = Datetime(dt_obj.strftime("%Y/%m/%d"), dt_obj.strftime("%H:%M"), tz_name)
+    pos = GeoPos(lat, lon)
+    chart = Chart(astro_dt, pos, hsys="P")
+
+    # Генерація картинки
+    generate_chart_image(chart, cache_path)
+
+    return send_file(cache_path, mimetype='image/png')
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port)
