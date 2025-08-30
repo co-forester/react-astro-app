@@ -7,8 +7,11 @@ from flask_cors import CORS
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.patches import Wedge
 
 from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut
 from timezonefinder import TimezoneFinder
 import pytz
 
@@ -43,55 +46,52 @@ ASPECTS = {
 
 ASPECT_ORB = 6  # допустимое отклонение градусов
 
-def draw_chart(chart, filename="chart.png"):
-    fig, ax = plt.subplots(figsize=(8,8), subplot_kw={'polar':True})
-    ax.set_theta_direction(-1)
-    ax.set_theta_offset(math.pi/2)
+SIGNS = ["Овен","Телець","Близнюки","Рак","Лев","Діва","Терези","Скорпіон","Стрілець","Козеріг","Водолій","Риби"]
+COLORS = plt.cm.tab20.colors  # для секторів домів
+
+def generate_chart_image(chart, filename="chart.png"):
+    fig, ax = plt.subplots(figsize=(8,8), subplot_kw={'projection':'polar'})
+    ax.set_theta_zero_location("W")  # 0° зліва
+    ax.set_theta_direction(-1)       # по годинниковій
+
+    # --- Коло та сектори ---
+    for i in range(12):
+        start = np.deg2rad(i*30)
+        end = np.deg2rad((i+1)*30)
+        wedge = Wedge((0,0), 1.0, np.rad2deg(start), np.rad2deg(end), facecolor=COLORS[i%len(COLORS)], alpha=0.2)
+        ax.add_patch(wedge)
+
+    # --- Мелкі штрихи кожні 10 градусів ---
+    for deg in range(0,360,10):
+        rad = np.deg2rad(deg)
+        if deg % 30 == 0:
+            ax.plot([rad, rad], [0.85, 1.0], color='black', lw=2)
+            ax.text(rad, 1.05, str(deg), horizontalalignment='center', verticalalignment='center', fontsize=10)
+        else:
+            ax.plot([rad, rad], [0.9, 1.0], color='black', lw=1)
+
+    # --- Підписи знаків Зодіаку ---
+    for i, sign in enumerate(SIGNS):
+        rad = np.deg2rad(i*30 + 15)  # центр знаку
+        ax.text(rad, 1.15, sign, horizontalalignment='center', verticalalignment='center', fontsize=12, fontweight='bold')
+
+    # --- Логотип / центр ---
+    ax.text(0,0, "ASTRO", horizontalalignment='center', verticalalignment='center', fontsize=14, fontweight='bold', color='darkred')
+
+    ax.set_rticks([])
     ax.set_xticks([])
     ax.set_yticks([])
-    
-    # --- Сектори домів ---
-    for i in range(12):
-        start_angle = math.radians(i * 30)
-        ax.bar(start_angle, 1, width=math.radians(30), bottom=0, color=HOUSE_COLORS[i], edgecolor="k", alpha=0.3)
-        ax.text(start_angle + math.radians(15), 0.9, f"H{i+1}", ha='center', va='center', fontsize=10, fontweight='bold')
+    ax.set_ylim(0,1.2)
 
-    # --- Градуси по колу ---
-    for deg in range(0, 360, 10):
-        angle = math.radians(deg)
-        ax.text(angle, 1.02, f"{deg}°", ha='center', va='center', fontsize=7, rotation=-deg, rotation_mode='anchor')
-    
-    # --- Логотип/ім'я в центрі ---
-    ax.text(0, 0, "ALBIREO", ha='center', va='center', fontsize=16, fontweight='bold', color="darkblue")
-    
     # --- Планети ---
-    planets = []
-    for obj in chart.objects:
-        try:
-            if obj.isPlanet():
-                angle = math.radians(obj.sign * 30 + obj.lon % 30)
-                ax.plot(angle, 0.7, 'o', color=PLANET_COLORS.get(obj.name, "black"))
-                ax.text(angle, 0.75, obj.name, ha='center', va='center', fontsize=8)
-                planets.append((obj, angle))
-        except:
-            continue
+    for body in chart.bodies:
+        lon = float(body.lon)
+        rad = np.deg2rad(lon)
+        ax.plot(rad, 0.7, 'o', markersize=10, label=body.id)
+        ax.text(rad, 0.65, body.id, horizontalalignment='center', verticalalignment='center', fontsize=10)
 
-    # --- Аспекти ---
-    for i in range(len(planets)):
-        for j in range(i+1, len(planets)):
-            p1, a1 = planets[i]
-            p2, a2 = planets[j]
-            lon1 = p1.lon
-            lon2 = p2.lon
-            diff = abs(lon1 - lon2)
-            diff = diff if diff <= 180 else 360 - diff
-            for asp_deg, (asp_name, color) in ASPECTS.items():
-                if abs(diff - asp_deg) <= ASPECT_ORB:
-                    ax.plot([a1, a2], [0.7, 0.7], color=color, linewidth=1, alpha=0.7)
-
-    plt.savefig(filename, bbox_inches='tight', dpi=150)
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.close()
-
 @app.route("/generate", methods=["POST"])
 def generate():
     try:
