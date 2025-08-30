@@ -1,74 +1,103 @@
 import os
 from datetime import datetime as dt
-from flask import Flask, request, jsonify
+
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from flatlib.chart import Chart
-from flatlib.datetime import Datetime
-from flatlib.geopos import GeoPos
-from flatlib import const
+
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
 
+from flatlib.chart import Chart
+from flatlib.datetime import Datetime
+from flatlib.geopos import GeoPos
+
 app = Flask(__name__)
 CORS(app)
 
-# --- Система домів (Placidus) ---
-HOUSES_SYSTEMS = {
-    "PLACIDUS": "P",
-    "KOCH": "K",
-    "CAMPANUS": "C",
-    "REGIOMONTAUS": "R",
-    "EQUAL": "E",
-    "PORPHYRY": "O",
-    "TOPOCENTRIC": "T",
-}
-
-def get_timezone(lat, lon):
-    tf = TimezoneFinder()
-    tzname = tf.timezone_at(lat=lat, lng=lon)
-    return pytz.timezone(tzname)
-
-def create_chart(date_str, time_str, lat, lon, hsys_name="PLACIDUS"):
-    tz = get_timezone(lat, lon)
-    astro_dt = Datetime(date_str, time_str, tz.zone)
-    pos = GeoPos(lat, lon)
-
-    hsys = HOUSES_SYSTEMS.get(hsys_name.upper(), "P")  # Placidus як дефолт
-    try:
-        chart = Chart(astro_dt, pos, hsys=hsys)
-    except Exception:
-        chart = Chart(astro_dt, pos)  # fallback без домів
-    return chart
-
-@app.route("/generate", methods=["POST"])
-def generate():
-    data = request.json
-    try:
-        date_str = data["date"]       # формат 'YYYY-MM-DD'
-        time_str = data["time"]       # формат 'HH:MM'
-        city = data["city"]
-        hsys_name = data.get("hsys", "PLACIDUS")
-
-        geolocator = Nominatim(user_agent="astro_app")
-        location = geolocator.geocode(city, timeout=10)
-        if not location:
-            return jsonify({"error": f"Місто '{city}' не знайдено"}), 400
-
-        chart = create_chart(date_str, time_str, location.latitude, location.longitude, hsys_name)
-
-        # Тут твоя логіка створення картинки та JSON з аспектами
-        # chart_image = ...
-        # aspects_json = ...
-
-        return jsonify({"message": "Chart створено успішно"})  # тимчасово
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+# ----------------------
+# Хелсі-ендпоінт
+# ----------------------
 @app.route("/health")
 def health():
     return "OK", 200
 
+# ----------------------
+# Генерація натальної карти
+# ----------------------
+@app.route("/generate", methods=["POST"])
+def generate():
+    data = request.json
+    try:
+        date_str = data.get("date")  # формат YYYY-MM-DD
+        time_str = data.get("time")  # формат HH:MM
+        city = data.get("city")
+
+        if not all([date_str, time_str, city]):
+            return jsonify({"error": "date, time та city обов'язкові"}), 400
+
+        dt_obj = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+
+        # ----------------------
+        # Геокодування
+        # ----------------------
+        geolocator = Nominatim(user_agent="astro_app")
+        location = geolocator.geocode(city, timeout=10)
+        if not location:
+            return jsonify({"error": f"Не знайдено місто {city}"}), 404
+
+        latitude, longitude = location.latitude, location.longitude
+
+        # ----------------------
+        # Часовий пояс
+        # ----------------------
+        tz = pytz.timezone(TimezoneFinder().timezone_at(lng=longitude, lat=latitude))
+        dt_obj = tz.localize(dt_obj)
+
+        # ----------------------
+        # Flatlib datetime та позиція
+        # ----------------------
+        astro_dt = Datetime(dt_obj.day, dt_obj.month, dt_obj.year,
+                            dt_obj.hour, dt_obj.minute, tz.zone)
+        pos = GeoPos(latitude, longitude)
+
+        # ----------------------
+        # Створення карти Placidus
+        # ----------------------
+        chart = Chart(astro_dt, pos, hsys="P")  # Placidus
+
+        # ----------------------
+        # Малюємо карту
+        # ----------------------
+        fig, ax = plt.subplots(figsize=(6,6))
+        ax.set_title(f"Натальна карта: {city} {date_str} {time_str}")
+        ax.axis("off")
+        # Тут можна додати кастомізацію: кола, логотипи, аспекти, сектори домов
+        plt.savefig("chart.png")
+        plt.close(fig)
+
+        return jsonify({
+            "message": "Натальна карта згенерована",
+            "chart_url": "/chart.png"
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ----------------------
+# Віддаємо зображення карти
+# ----------------------
+@app.route("/chart.png")
+def chart_png():
+    return send_from_directory(os.getcwd(), "chart.png")
+
+# ----------------------
+# Запуск сервера
+# ----------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
