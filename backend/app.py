@@ -281,25 +281,32 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                         color="#6a1b2c", fontweight="bold", zorder=7)
 
         # 6) ASC/MC/DSC/IC маркери
-        try:
-            asc_obj = chart.get(const.ASC)
-            mc_obj = chart.get(const.MC)
-            asc = getattr(asc_obj, "lon", None)
-            mc  = getattr(mc_obj, "lon", None)
-            if asc is not None and mc is not None:
-                asc = asc % 360
-                mc = mc % 360
-                dsc = (asc + 180) % 360
-                ic  = (mc  + 180) % 360
-                angles = [("ASC", asc, "#2ecc71"), ("MC", mc, "#8e44ad"),
-                          ("DSC", dsc, "#2ecc71"), ("IC", ic, "#8e44ad")]
-                for lab, ang, col in angles:
-                    th = np.deg2rad(ang)
-                    ax.plot([th, th], [1.00, 1.15], color=col, lw=2.0, zorder=6)
-                    ax.text(th, 1.02, lab, fontsize=9, ha="center", va="center",
-                            color=col, fontweight="bold", zorder=6, rotation=-ang, rotation_mode="anchor")
-        except Exception:
-            pass
+        angle_markers = ["ASC", "MC", "DSC", "IC"]
+        r_outer = 1.05  # трохи за межами кола зодіаку
+        for mark in angle_markers:
+            try:
+                obj = chart.getObject(mark)
+                if obj is None:
+                    continue
+                lon = getattr(obj, "lon", None)
+                if lon is None:
+                    continue
+
+                th = np.deg2rad(float(lon) % 360)
+                # точка маркера
+                ax.plot([th], [r_outer], marker='o', markersize=10, color="#FFD700", zorder=6)
+
+                # форматування градуси-хвилини-секунди
+                deg = int(lon)
+                min = int((lon - deg) * 60)
+                sec = int(((lon - deg) * 60 - min) * 60)
+                label = f"{mark} {deg}°{min}'{sec}''"
+
+                # підпис поряд з маркером
+                ax.text(th, r_outer + 0.03, label,
+                        ha='center', va='center', fontsize=9, color="#FFD700", zorder=7, rotation=0)
+            except Exception:
+                continue
 
         # 7) Планети: великий символ + DMS підпис
         # збираємо позиції для аспектів
