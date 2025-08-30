@@ -106,9 +106,7 @@ def geocode_place(place, retries=2, timeout=8):
             loc = geolocator.geocode(place, timeout=timeout)
             if loc:
                 return float(loc.latitude), float(loc.longitude)
-            # пробуємо трохи розширити запит (якщо користувач вводить "Kyiv" іноді краще "Kyiv, Ukraine")
             if "," not in place and _ == 0:
-                # друга спроба з додаванням Ukraine — без гарантій
                 try_place = f"{place}, Ukraine"
                 loc2 = geolocator.geocode(try_place, timeout=timeout)
                 if loc2:
@@ -121,7 +119,6 @@ def geocode_place(place, retries=2, timeout=8):
     return None, None
 
 def get_house_lon(chart, i):
-    """Отримати довготу вершини дому i (1..12) з різних можливих API flatlib."""
     try:
         return chart.houses[i-1].lon
     except Exception:
@@ -168,7 +165,6 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
     try:
         fig = plt.figure(figsize=(12, 12))
         ax = plt.subplot(111, polar=True)
-        # 0° зліва, оберт по годиннику (так працює з 0° = Овен ліворуч)
         ax.set_theta_zero_location("W")
         ax.set_theta_direction(-1)
         ax.set_ylim(0, 1.35)
@@ -177,7 +173,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         ax.set_facecolor("white")
         plt.rcParams["font.family"] = "DejaVu Sans"
 
-        # 1) Сектори будинків (Placidus) або fallback рівні 30°
+              # 1) Сектори будинків (Placidus) або fallback рівні 30°
         try:
             for i in range(1, 13):
                 cusp1 = get_house_lon(chart, i)
@@ -214,26 +210,20 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 )
                 ax.plot([np.deg2rad(start), np.deg2rad(start)], [0.15, 1.18], color="#888888", lw=0.8, zorder=2)
 
+
         # 2) Бордове кільце Зодіаку + символи та дугові підписи
         for i, sym in enumerate(ZODIAC_SYMBOLS):
             start = i * 30
             theta_start = np.deg2rad(start)
             theta_end = np.deg2rad(start + 30)
             width = abs(theta_end - theta_start)
-
-            # бордовий сегмент
-            ax.bar(
-                x=(theta_start + theta_end) / 2,
-                height=0.12, width=width, bottom=1.18,
-                color="#6a1b2c", edgecolor="white", linewidth=1.2, zorder=3
-            )
+            ax.bar(x=(theta_start + theta_end) / 2, height=0.12, width=width, bottom=1.18,
+                   color="#6a1b2c", edgecolor="white", linewidth=1.2, zorder=3)
             ax.plot([theta_start, theta_start], [1.18, 1.30], color="white", lw=1.2, zorder=4)
 
             center_deg = start + 15
             theta_c = np.deg2rad(center_deg)
             text_rot = -(center_deg)
-
-            # заміна підпису Скорпіона на лого
             if sym == "♏":
                 ax.text(theta_c, 1.225, logo_text, fontsize=13, ha="center", va="center",
                         color="#FFD700", fontweight="bold", rotation=text_rot, rotation_mode="anchor", zorder=6)
@@ -250,16 +240,17 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 r_end = 1.18 if deg_mark % 10 == 0 else 1.16
                 ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#6a1b2c", lw=1, zorder=2)
 
-        # 3) Зовнішня градуйовка: кожні 10° штрихи, кожні 30° цифри
+        # +++ ДОДАНО: Зовнішня градуйовка кожні 30° і 10° з цифрами і рисками + DMS +++
         for deg in range(0, 360, 10):
             th = np.deg2rad(deg)
             r0 = 1.15
             r1 = 1.18 if deg % 30 == 0 else 1.165
             ax.plot([th, th], [r0, r1], color="black", lw=1.0 if deg % 30 == 0 else 0.6, zorder=4)
             if deg % 30 == 0:
-                ax.text(th, 1.205, str(deg), fontsize=8, ha="center", va="center", color="black")
+                ax.text(th, 1.205, f"{deg}°", fontsize=8, ha="center", va="center", color="black")
+                ax.text(th, 1.235, deg_to_dms(deg), fontsize=7, ha="center", va="center", color="gray")
 
-        # 4) Центральне кільце + бордовий диск з ім'ям
+         # 4) Центральне кільце + бордовий диск з ім'ям
         inner_ring = plt.Circle((0, 0), 0.14, color="#f5f5f5", zorder=1, fill=True, ec="#dddddd", lw=0.5)
         ax.add_artist(inner_ring)
         center_circle = plt.Circle((0, 0), 0.10, color="#800000", zorder=10)
@@ -487,3 +478,4 @@ def health():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=True)
+    
