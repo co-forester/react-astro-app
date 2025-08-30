@@ -36,46 +36,33 @@ PLANET_COLORS = {
     const.PLUTO: "purple"
 }
 
-ASPECTS = {
-    0: ("Conjunction", "red"),
-    60: ("Sextile", "green"),
-    90: ("Square", "orange"),
-    120: ("Trine", "blue"),
-    180: ("Opposition", "purple")
-}
-
-ASPECT_ORB = 6  # допустимое отклонение градусов
-
 SIGNS = ["Овен","Телець","Близнюки","Рак","Лев","Діва","Терези","Скорпіон","Стрілець","Козеріг","Водолій","Риби"]
 COLORS = plt.cm.tab20.colors  # для секторів домів
 
-def get_coords(city_name):
+def get_coords(city_name, retries=3):
     geolocator = Nominatim(user_agent="astro_app")
-    location = geolocator.geocode(city_name, timeout=10)
-    if location is None:
-        raise ValueError(f"Не вдалося знайти місто: {city_name}")
-    return location.latitude, location.longitude
+    for _ in range(retries):
+        try:
+            location = geolocator.geocode(city_name, timeout=10)
+            if location:
+                return location.latitude, location.longitude
+        except GeocoderTimedOut:
+            continue
+    raise ValueError(f"Не вдалося знайти місто: {city_name}")
 
-def create_chart(date_str, time_str, city):
-    lat, lon = get_coords(city)
-    pos = GeoPos(lat, lon)
-    astro_dt = Datetime(date_str, time_str, '+00:00')
-    chart = Chart(astro_dt, pos, hsys='P')  # Placidus
-    return chart
-
-def generate_chart_image(chart, filename="chart.png"):
+def draw_chart(chart, filename="chart.png"):
     fig, ax = plt.subplots(figsize=(8,8), subplot_kw={'projection':'polar'})
-    ax.set_theta_zero_location("W")  # 0° зліва
-    ax.set_theta_direction(-1)       # по годинниковій
+    ax.set_theta_zero_location("W")
+    ax.set_theta_direction(-1)
 
-    # --- Коло та сектори ---
+    # --- Сектори домів ---
     for i in range(12):
         start = np.deg2rad(i*30)
         end = np.deg2rad((i+1)*30)
         wedge = Wedge((0,0), 1.0, np.rad2deg(start), np.rad2deg(end), facecolor=COLORS[i%len(COLORS)], alpha=0.2)
         ax.add_patch(wedge)
 
-    # --- Мелкі штрихи кожні 10 градусів ---
+    # --- Штрихи та градуси ---
     for deg in range(0,360,10):
         rad = np.deg2rad(deg)
         if deg % 30 == 0:
@@ -84,12 +71,12 @@ def generate_chart_image(chart, filename="chart.png"):
         else:
             ax.plot([rad, rad], [0.9, 1.0], color='black', lw=1)
 
-    # --- Підписи знаків Зодіаку ---
+    # --- Підписи знаків ---
     for i, sign in enumerate(SIGNS):
-        rad = np.deg2rad(i*30 + 15)  # центр знаку
+        rad = np.deg2rad(i*30 + 15)
         ax.text(rad, 1.15, sign, horizontalalignment='center', verticalalignment='center', fontsize=12, fontweight='bold')
 
-    # --- Логотип / центр ---
+    # --- Логотип у центрі ---
     ax.text(0,0, "ASTRO", horizontalalignment='center', verticalalignment='center', fontsize=14, fontweight='bold', color='darkred')
 
     ax.set_rticks([])
@@ -106,6 +93,7 @@ def generate_chart_image(chart, filename="chart.png"):
 
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.close()
+
 @app.route("/generate", methods=["POST"])
 def generate():
     try:
@@ -113,25 +101,19 @@ def generate():
         city = data.get("city")
         date_str = data.get("date")  # 'YYYY-MM-DD'
         time_str = data.get("time")  # 'HH:MM'
-        
-        # --- Геокодування ---
-        geolocator = Nominatim(user_agent="astro_app")
-        loc = geolocator.geocode(f"{city}, Ukraine", timeout=5)
-        if not loc:
-            return jsonify({"error": "Не вдалося знайти місто"}), 400
-        pos = GeoPos(loc.latitude, loc.longitude)
-        
-        # --- Часовий пояс ---
-        tz = pytz.timezone(TimezoneFinder().timezone_at(lat=loc.latitude, lng=loc.longitude))
+
+        lat, lon = get_coords(city)
+        pos = GeoPos(lat, lon)
+
+        tz_name = TimezoneFinder().timezone_at(lat=lat, lng=lon)
+        tz = pytz.timezone(tz_name)
         dt_obj = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         dt_obj = tz.localize(dt_obj)
         astro_dt = Datetime(dt_obj.year, dt_obj.month, dt_obj.day, dt_obj.hour, dt_obj.minute, tz.zone)
-        
-        # --- Chart ---
+
         chart = Chart(astro_dt, pos, hsys="P")
-        
-        # --- Малюємо ---
         draw_chart(chart)
+
         return jsonify({"chart": "/chart.png"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -146,4 +128,4 @@ def health():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
