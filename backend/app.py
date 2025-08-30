@@ -306,6 +306,20 @@ def draw_natal_chart(chart, aspects_list, save_path, logo_text="Albireo Daria �
                     bbox=dict(facecolor="#6a1b2c", edgecolor="none", pad=5, boxstyle="round,pad=0.4"), zorder=6)
         except Exception:
             pass
+        
+        # Малюємо маленьке бордове коло у центрі
+        center_circle = plt.Circle((0, 0), 0.1, color="#800000", zorder=10)  # бордовий
+        ax.add_artist(center_circle)
+
+        # Підпис у центрі (ім'я)
+        if "name" in data and data["name"]:
+            ax.text(
+                0, 0, data["name"],
+                color="white",
+                ha="center", va="center",
+                fontsize=10, fontweight="bold",
+                zorder=11
+            )
 
         # Збереження
         try:
