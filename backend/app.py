@@ -328,52 +328,43 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             except Exception:
                 continue
 
-       # 8) Аспекти: короткі дуги між планетами + легенда
-        ASPECTS_STANDARD = [
-            {"name": "Conjunction", "angle": 0, "orb": 8, "color": "#FF0000"},
-            {"name": "Sextile", "angle": 60, "orb": 4, "color": "#00FF00"},
-            {"name": "Square", "angle": 90, "orb": 6, "color": "#0000FF"},
-            {"name": "Trine", "angle": 120, "orb": 6, "color": "#FFA500"},
-            {"name": "Opposition", "angle": 180, "orb": 8, "color": "#800080"},
-        ]
-
+        # 8) Аспекти: кольорові дуги + легенда
+        r_line = 0.82  # радіус дуг аспектів
         legend_items = []
 
-        r_line = 0.82  # радіус для дуг аспектів
+        for asp in aspects_list:
+            try:
+                p1_id = asp["planet1"]
+                p2_id = asp["planet2"]
+                lon1, lon2 = None, None
+                # знайти lon за id
+                for o in chart.objects:
+                    oid = getattr(o, "id", None)
+                    if oid == p1_id:
+                        lon1 = getattr(o, "lon", getattr(o, "signlon", None))
+                    if oid == p2_id:
+                        lon2 = getattr(o, "lon", getattr(o, "signlon", None))
+                if lon1 is None or lon2 is None:
+                    continue
 
-        for i, obj1 in enumerate(chart.objects):
-            lon1 = getattr(obj1, "lon", None) or getattr(obj1, "signlon", None)
-            if lon1 is None:
+                th1 = np.deg2rad(float(lon1) % 360)
+                th2 = np.deg2rad(float(lon2) % 360)
+                # коротка дуга
+                d = ((th2 - th1 + np.pi) % (2*np.pi)) - np.pi
+                steps = max(12, int(abs(d)/(np.pi/180)*2))
+                thetas = np.linspace(th1, th1 + d, steps)
+                rs = np.full_like(thetas, r_line)
+                ax.plot(thetas, rs, color=asp.get("color", "#777777"), lw=1.6, alpha=0.95, zorder=5)
+                legend_items.append((asp["type"], asp.get("color", "#777777")))
+            except Exception:
                 continue
-            for j, obj2 in enumerate(chart.objects):
-                if j <= i:
-                    continue
-                lon2 = getattr(obj2, "lon", None) or getattr(obj2, "signlon", None)
-                if lon2 is None:
-                    continue
-                diff = (float(lon2) - float(lon1)) % 360
-                short_diff = min(diff, 360 - diff)
-                for asp in ASPECTS_STANDARD:
-                    if abs(short_diff - asp["angle"]) <= asp["orb"]:
-                        # обчислюємо кут у радіанах
-                        th1 = np.deg2rad(float(lon1) % 360)
-                        th2 = np.deg2rad(float(lon2) % 360)
-                        # коротка дуга
-                        d = ((th2 - th1 + np.pi) % (2*np.pi)) - np.pi
-                        steps = max(12, int(abs(d)/(np.pi/180)*2))
-                        thetas = np.linspace(th1, th1 + d, steps)
-                        rs = np.full_like(thetas, r_line)
-                        ax.plot(thetas, rs, color=asp["color"], lw=1.6, alpha=0.9, zorder=5)
-                        # для легенди
-                        legend_items.append((asp["name"], asp["color"]))
 
-        # унікальна легенда
+        # Унікальна легенда
         legend_items = list({(n, c) for n, c in legend_items})
-        for k, (name, color) in enumerate(legend_items):
+        for name, color in legend_items:
             ax.plot([], [], color=color, lw=3, label=name)
-        ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=len(legend_items))                         
-                # 9) Логотип-дуга поруч зі знаком Скорпіона вже намальований над написами.
-      
+        ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=len(legend_items))         # 9) Логотип-дуга поруч зі знаком Скорпіона вже намальований над написами.
+            
         # 10) Збереження картинки
        
         try:
