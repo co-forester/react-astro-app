@@ -49,6 +49,20 @@ ASPECT_ORB = 6  # допустимое отклонение градусов
 SIGNS = ["Овен","Телець","Близнюки","Рак","Лев","Діва","Терези","Скорпіон","Стрілець","Козеріг","Водолій","Риби"]
 COLORS = plt.cm.tab20.colors  # для секторів домів
 
+def get_coords(city_name):
+    geolocator = Nominatim(user_agent="astro_app")
+    location = geolocator.geocode(city_name, timeout=10)
+    if location is None:
+        raise ValueError(f"Не вдалося знайти місто: {city_name}")
+    return location.latitude, location.longitude
+
+def create_chart(date_str, time_str, city):
+    lat, lon = get_coords(city)
+    pos = GeoPos(lat, lon)
+    astro_dt = Datetime(date_str, time_str, '+00:00')
+    chart = Chart(astro_dt, pos, hsys='P')  # Placidus
+    return chart
+
 def generate_chart_image(chart, filename="chart.png"):
     fig, ax = plt.subplots(figsize=(8,8), subplot_kw={'projection':'polar'})
     ax.set_theta_zero_location("W")  # 0° зліва
