@@ -70,7 +70,6 @@ def generate_chart(chart, name):
         start = math.radians(i*30)
         ax.barh(1.5, math.radians(30), left=start, height=1.0,
                 color=plt.cm.tab20(i*2), edgecolor='k', alpha=0.3)
-        # Підписи знаків зодіаку
         angle = start + math.radians(15)
         ax.text(angle, 1.7, sign_names[i], ha='center', va='center',
                 fontsize=10, rotation=-(i*30+15), rotation_mode='anchor')
@@ -135,9 +134,9 @@ def generate():
     astro_dt = Datetime(dt_obj.strftime("%Y-%m-%d"), dt_obj.strftime("%H:%M"), tz.zone)
     pos = GeoPos(lat, lon)
     try:
-        chart = Chart(astro_dt, pos, hsys=const.PLACIDUS)  # Placidus через константу
+        chart = Chart(astro_dt, pos, hsys=const.PLACIDUS)
     except Exception:
-        chart = Chart(astro_dt, pos)  # fallback на дефолтну систему домів
+        chart = Chart(astro_dt, pos)
 
     chart_file = generate_chart(chart, name)
     aspects_json = get_aspects_json(chart)
