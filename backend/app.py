@@ -64,15 +64,16 @@ def generate_chart(chart, name):
     ax.set_theta_direction(-1)
 
     # Зодіакальні кольорові сектори 12 домів
+    sign_names = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+                  "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]
     for i in range(12):
         start = math.radians(i*30)
         ax.barh(1.5, math.radians(30), left=start, height=1.0,
                 color=plt.cm.tab20(i*2), edgecolor='k', alpha=0.3)
-        # Додамо підписи знаків зодіаку по дузі
-        sign_names = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo",
-                      "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]
-        angle = start + math.radians(15)  # середина сектору
-        ax.text(angle, 1.7, sign_names[i], ha='center', va='center', fontsize=10, rotation=-(i*30+15), rotation_mode='anchor')
+        # Підписи знаків зодіаку
+        angle = start + math.radians(15)
+        ax.text(angle, 1.7, sign_names[i], ha='center', va='center',
+                fontsize=10, rotation=-(i*30+15), rotation_mode='anchor')
 
     # Логотип/ім'я в центрі
     ax.text(0,0,name,ha='center',va='center', fontsize=16, fontweight='bold')
@@ -130,13 +131,13 @@ def generate():
     tz = get_timezone(lat, lon)
     dt_obj = parse_datetime(date, time, tz)
 
-    # Placidus-chart
+    # Placidus-chart через константу
     astro_dt = Datetime(dt_obj.strftime("%Y-%m-%d"), dt_obj.strftime("%H:%M"), tz.zone)
     pos = GeoPos(lat, lon)
     try:
-        chart = Chart(astro_dt, pos, hsys="P")  # Placidus
+        chart = Chart(astro_dt, pos, hsys=const.PLACIDUS)  # Placidus через константу
     except Exception:
-        chart = Chart(astro_dt, pos)  # fallback
+        chart = Chart(astro_dt, pos)  # fallback на дефолтну систему домів
 
     chart_file = generate_chart(chart, name)
     aspects_json = get_aspects_json(chart)
