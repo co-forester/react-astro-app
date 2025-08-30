@@ -24,9 +24,6 @@ CORS(app)
 
 CHART_FILE = 'chart.png'
 
-ZODIAC_SIGNS = ["Aries","Taurus","Gemini","Cancer","Leo","Virgo",
-                "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"]
-
 # --- Функції ---
 def get_coordinates(place_name):
     geolocator = Nominatim(user_agent="astro_app")
@@ -66,32 +63,24 @@ def generate_chart(chart, name):
     ax.set_theta_zero_location('S')
     ax.set_theta_direction(-1)
 
-    # Сектори зодіаку / домов
+    # Зодіакальні кольорові сектори 12 домів
     for i in range(12):
         start = math.radians(i*30)
         ax.barh(1.5, math.radians(30), left=start, height=1.0,
                 color=plt.cm.tab20(i*2), edgecolor='k', alpha=0.3)
-        # Написи знаків зодіаку по дузі
-        mid = start + math.radians(15)
-        ax.text(mid, 1.9, ZODIAC_SIGNS[i], ha='center', va='center',
-                fontsize=10, fontweight='bold', rotation=-(i*30+15),
-                rotation_mode='anchor')
 
-    # Логотип/ім'я по дузі трохи вище центрів секторів
-    for i, char in enumerate(name):
-        angle = math.radians(360/len(name)*i - 90)  # дуга над центром
-        ax.text(angle, 0.8, char, ha='center', va='center', fontsize=14, fontweight='bold')
+    # Логотип/ім'я в центрі
+    ax.text(0,0,name,ha='center',va='center', fontsize=16, fontweight='bold')
 
     # Планети
     for obj in chart.objects:
         if obj.type in const.PLANETS:
             lon = math.radians(obj.lon)
             ax.plot(lon, 2.5, 'o', markersize=10, label=obj.id)
-            # Розташування підписи по дузі трохи ширше
             ax.text(lon, 2.6, f"{obj.id}\n{deg_to_dms(obj.lon)}",
                     ha='center', va='bottom', fontsize=8)
 
-    # Аспекти
+    # Аспекти (простий приклад)
     for asp in aspects.find(chart, const.CONJUNCTION, const.SEXTILE, const.SQUARE,
                             const.TRINE, const.OPPOSITION):
         lon1 = math.radians(asp.obj1.lon)
