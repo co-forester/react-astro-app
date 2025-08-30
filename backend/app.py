@@ -328,43 +328,54 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             except Exception:
                 continue
 
-        # 8) Аспекти: кольорові дуги + легенда
-        r_line = 0.82  # радіус дуг аспектів
+        # 8) Класичні аспекти — прямі лінії + легенда
+        r_planet = 0.75  # радіус планет для відносин
         legend_items = []
 
-        for asp in aspects_list:
-            try:
-                p1_id = asp["planet1"]
-                p2_id = asp["planet2"]
-                lon1, lon2 = None, None
-                # знайти lon за id
-                for o in chart.objects:
-                    oid = getattr(o, "id", None)
-                    if oid == p1_id:
-                        lon1 = getattr(o, "lon", getattr(o, "signlon", None))
-                    if oid == p2_id:
-                        lon2 = getattr(o, "lon", getattr(o, "signlon", None))
-                if lon1 is None or lon2 is None:
-                    continue
+        # Кольори для аспектів
+        aspect_colors = {
+            "Conjunction": "#FF0000",
+            "Sextile": "#00AAFF",
+            "Square": "#FF8800",
+            "Trine": "#00CC00",
+            "Opposition": "#9900FF",
+        }
 
-                th1 = np.deg2rad(float(lon1) % 360)
-                th2 = np.deg2rad(float(lon2) % 360)
-                # коротка дуга
-                d = ((th2 - th1 + np.pi) % (2*np.pi)) - np.pi
-                steps = max(12, int(abs(d)/(np.pi/180)*2))
-                thetas = np.linspace(th1, th1 + d, steps)
-                rs = np.full_like(thetas, r_line)
-                ax.plot(thetas, rs, color=asp.get("color", "#777777"), lw=1.6, alpha=0.95, zorder=5)
-                legend_items.append((asp["type"], asp.get("color", "#777777")))
-            except Exception:
+        for asp in aspects_list:
+            p1_obj = next((o for o in chart.objects if getattr(o, "id", None) == asp["planet1"]), None)
+            p2_obj = next((o for o in chart.objects if getattr(o, "id", None) == asp["planet2"]), None)
+            if p1_obj is None or p2_obj is None:
                 continue
 
-        # Унікальна легенда
-        legend_items = list({(n, c) for n, c in legend_items})
+            lon1 = getattr(p1_obj, "lon", getattr(p1_obj, "signlon", None))
+            lon2 = getattr(p2_obj, "lon", getattr(p2_obj, "signlon", None))
+            if lon1 is None or lon2 is None:
+                continue
+
+            # координати на колі (полярні -> прямі лінії)
+            x1, y1 = r_planet * np.cos(np.deg2rad(lon1)), r_planet * np.sin(np.deg2rad(lon1))
+            x2, y2 = r_planet * np.cos(np.deg2rad(lon2)), r_planet * np.sin(np.deg2rad(lon2))
+
+            ax.plot([x1, x2], [y1, y2],
+                    color=aspect_colors.get(asp["type"], "#777777"),
+                    lw=1.6, alpha=0.95, zorder=5)
+
+            legend_items.append((asp["type"], aspect_colors.get(asp["type"], "#777777")))
+
+        # Легенда під картою
+        legend_items = list({(n, c) for n, c in legend_items})  # унікальні
         for name, color in legend_items:
             ax.plot([], [], color=color, lw=3, label=name)
-        ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=len(legend_items))         # 9) Логотип-дуга поруч зі знаком Скорпіона вже намальований над написами.
-            
+        ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=len(legend_items))
+
+        # Акцент на Асцендент
+        asc_obj = chart.getObject("ASC")
+        if asc_obj is not None:
+            asc_lon = getattr(asc_obj, "lon", None)
+            if asc_lon is not None:
+                x, y = 0.9 * np.cos(np.deg2rad(asc_lon)), 0.9 * np.sin(np.deg2rad(asc_lon))
+                ax.plot([x], [y], marker='o', markersize=8, color="#FFD700", label="ASC")
+       
         # 10) Збереження картинки
        
         try:
