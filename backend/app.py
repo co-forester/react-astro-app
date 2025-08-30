@@ -328,11 +328,10 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             except Exception:
                 continue
 
-        # 8) Класичні аспекти — прямі лінії + легенда
-        r_planet = 0.75  # радіус планет для відносин
+        # 8) Класичні аспекти — прямі лінії + легенда + акцент ASC
+        r_planet = 0.75
         legend_items = []
 
-        # Кольори для аспектів
         aspect_colors = {
             "Conjunction": "#FF0000",
             "Sextile": "#00AAFF",
@@ -342,40 +341,46 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         }
 
         for asp in aspects_list:
-            p1_obj = next((o for o in chart.objects if getattr(o, "id", None) == asp["planet1"]), None)
-            p2_obj = next((o for o in chart.objects if getattr(o, "id", None) == asp["planet2"]), None)
-            if p1_obj is None or p2_obj is None:
+            try:
+                # Знаходимо об'єкти планет
+                p1_obj = next((o for o in chart.objects if getattr(o, "id", None) == asp["planet1"]), None)
+                p2_obj = next((o for o in chart.objects if getattr(o, "id", None) == asp["planet2"]), None)
+                if p1_obj is None or p2_obj is None:
+                    continue
+
+                lon1 = getattr(p1_obj, "lon", getattr(p1_obj, "signlon", None))
+                lon2 = getattr(p2_obj, "lon", getattr(p2_obj, "signlon", None))
+                if lon1 is None or lon2 is None:
+                    continue
+
+                th1 = np.deg2rad(float(lon1) % 360)
+                th2 = np.deg2rad(float(lon2) % 360)
+
+                # Прямі лінії між планетами
+                ax.plot([th1, th2], [r_planet, r_planet],
+                        color=aspect_colors.get(asp["type"], "#777777"),
+                        lw=1.6, alpha=0.95, zorder=5)
+
+                legend_items.append((asp["type"], aspect_colors.get(asp["type"], "#777777")))
+            except Exception:
                 continue
 
-            lon1 = getattr(p1_obj, "lon", getattr(p1_obj, "signlon", None))
-            lon2 = getattr(p2_obj, "lon", getattr(p2_obj, "signlon", None))
-            if lon1 is None or lon2 is None:
-                continue
-
-            # координати на колі (полярні -> прямі лінії)
-            x1, y1 = r_planet * np.cos(np.deg2rad(lon1)), r_planet * np.sin(np.deg2rad(lon1))
-            x2, y2 = r_planet * np.cos(np.deg2rad(lon2)), r_planet * np.sin(np.deg2rad(lon2))
-
-            ax.plot([x1, x2], [y1, y2],
-                    color=aspect_colors.get(asp["type"], "#777777"),
-                    lw=1.6, alpha=0.95, zorder=5)
-
-            legend_items.append((asp["type"], aspect_colors.get(asp["type"], "#777777")))
-
-        # Легенда під картою
-        legend_items = list({(n, c) for n, c in legend_items})  # унікальні
+        # Унікальна легенда
+        legend_items = list({(n, c) for n, c in legend_items})
         for name, color in legend_items:
             ax.plot([], [], color=color, lw=3, label=name)
         ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=len(legend_items))
 
         # Акцент на Асцендент
-        asc_obj = chart.getObject("ASC")
-        if asc_obj is not None:
-            asc_lon = getattr(asc_obj, "lon", None)
-            if asc_lon is not None:
-                x, y = 0.9 * np.cos(np.deg2rad(asc_lon)), 0.9 * np.sin(np.deg2rad(asc_lon))
-                ax.plot([x], [y], marker='o', markersize=8, color="#FFD700", label="ASC")
-       
+        try:
+            asc_obj = chart.getObject("ASC")
+            if asc_obj is not None:
+                asc_lon = getattr(asc_obj, "lon", None)
+                if asc_lon is not None:
+                    th = np.deg2rad(float(asc_lon) % 360)
+                    ax.plot([th], [r_planet], marker='o', markersize=8, color="#FFD700", label="ASC")
+        except Exception:
+            pass
         # 10) Збереження картинки
        
         try:
