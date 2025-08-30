@@ -283,8 +283,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
 
 
         # ---  Колo зодіаку ---
-        r_inner = 0.9
-        r_outer = 1.1
+        r_inner = 0.85
+        r_outer = 1.35
 
         # Градуювання кожні 30 градусів світліше
         for deg in range(0, 360, 30):
@@ -322,7 +322,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 continue
 
         # 8) Класичні аспекти — прямі лінії + легенда + точні градуси
-        r_planet = 0.75
+        r_planet = 0.80
         legend_items = []
 
         aspect_colors = {
@@ -383,13 +383,12 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             ax.plot([], [], color=color, lw=3, label=name)
         ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.12), ncol=len(legend_items))
         
-        # ---  Логотип Скорпіона по дузі всередині кола ---
-        theta_logo = np.linspace(np.pi*0.25, np.pi*0.75, 1)
-        r_logo = 0.55
-        for th in theta_logo:
-            ax.text(th, r_logo, "♏", fontsize=14, ha='center', va='center', color="#444444")
-            ax.text(th, r_logo - 0.05, "Albireo Daria", fontsize=9, ha='center', va='center', color="#444444")
-        
+  
+        # логотип-текст по дузі, з поворотом проти годинникової
+        ax.text(scorpio_angle, r_logo - 0.07, "Albireo Daria",
+                fontsize=9, ha='center', va='center', color="#444444",
+                rotation=np.rad2deg(scorpio_angle) + 90,   # поворот по дузі
+                rotation_mode="anchor")
         # Акцент на Асцендент
         try:
             asc_obj = chart.getObject("ASC")
