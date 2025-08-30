@@ -1,3 +1,4 @@
+
 # app.py — професійна натальна карта (Placidus), кеш PNG/JSON, дугові підписи, лого, DMS, ASC/MC/IC/DSC
 import os
 import math
@@ -374,12 +375,12 @@ for asp in aspects_to_draw:
     except Exception:
         continue
 
-# Легенда під картою
-from matplotlib.patches import Patch
-legend_elements = [Patch(facecolor=v["color"], label=v_name) for v_name, v in ASPECTS_DEF.items()]
-ax.legend(handles=legend_elements, loc="lower center", bbox_to_anchor=(0.5, -0.05),
+        # Легенда під картою
+        from matplotlib.patches import Patch
+        legend_elements = [Patch(facecolor=v["color"], label=v_name) for v_name, v in ASPECTS_DEF.items()]
+        ax.legend(handles=legend_elements, loc="lower center", bbox_to_anchor=(0.5, -0.05),
+        
           ncol=len(ASPECTS_DEF), frameon=False, fontsize=9)
-
         # 9) Логотип-дуга поруч зі знаком Скорпіона вже намальований над написами.
         # 10) Збереження картинки
         try:
