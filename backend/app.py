@@ -1,4 +1,5 @@
 import os
+import traceback
 import math
 from datetime import datetime as dt
 
@@ -117,40 +118,55 @@ def get_aspects_json(chart):
 # --- Роути ---
 @app.route('/generate', methods=['POST'])
 def generate():
-    data = request.json
-    name = data.get('name','Unknown')
-    date = data.get('date')
-    time = data.get('time')
-    place = data.get('place')
-
-    lat, lon = get_coordinates(place)
-    if lat is None or lon is None:
-        return jsonify({"error": "Не вдалося визначити координати місця"}), 400
-
-    tz = get_timezone(lat, lon)
-    dt_obj = parse_datetime(date, time, tz)
-
-    # Placidus-chart через константу
-    astro_dt = Datetime(dt_obj.strftime("%Y-%m-%d"), dt_obj.strftime("%H:%M"), tz.zone)
-    pos = GeoPos(lat, lon)
     try:
-        chart = Chart(astro_dt, pos, hsys=const.PLACIDUS)
-    except Exception:
-        chart = Chart(astro_dt, pos)
+        data = request.json
+        if not data:
+            return jsonify({"error": "Немає даних у запиті"}), 400
 
-    chart_file = generate_chart(chart, name)
-    aspects_json = get_aspects_json(chart)
+        name = data.get('name', 'Unknown')
+        date = data.get('date')
+        time = data.get('time')
+        place = data.get('place')
 
-    return jsonify({
-        "name": name,
-        "date": date,
-        "time": time,
-        "place": place,
-        "timezone": tz.zone,
-        "aspects_json": aspects_json,
-        "chart_url": f"/{CHART_FILE}"
-    })
+        if not all([date, time, place]):
+            return jsonify({"error": "Не всі поля заповнені: date, time, place"}), 400
 
+        # Координати
+        lat, lon = get_coordinates(place)
+        if lat is None or lon is None:
+            return jsonify({"error": f"Не вдалося визначити координати місця: {place}"}), 400
+
+        # Таймзона
+        tz = get_timezone(lat, lon)
+        dt_obj = parse_datetime(date, time, tz)
+
+        # Chart
+        try:
+            astro_dt = Datetime(dt_obj.strftime("%Y-%m-%d"), dt_obj.strftime("%H:%M"), tz.zone)
+            pos = GeoPos(lat, lon)
+            chart = Chart(astro_dt, pos, hsys="P")  # Placidus
+        except Exception:
+            chart = Chart(astro_dt, pos)  # fallback
+
+        # Згенерувати картку
+        chart_file = generate_chart(chart, name)
+        aspects_json = get_aspects_json(chart)
+
+        return jsonify({
+            "name": name,
+            "date": date,
+            "time": time,
+            "place": place,
+            "timezone": tz.zone,
+            "aspects_json": aspects_json,
+            "chart_url": f"/{CHART_FILE}"
+        })
+
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "trace": traceback.format_exc()
+        }), 500
 @app.route(f'/{CHART_FILE}', methods=['GET'])
 def serve_chart():
     return send_from_directory('.', CHART_FILE)
