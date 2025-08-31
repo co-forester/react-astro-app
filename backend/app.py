@@ -1,4 +1,3 @@
-
 # app.py — професійна натальна карта (Placidus), кеш PNG/JSON, дугові підписи, лого, DMS, ASC/MC/IC/DSC
 import os
 import math
@@ -341,7 +340,9 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             except Exception:
                 continue
 
-        # 8) Класичні аспекти — прямі лінії над колом планет, кольори + таблиця
+        # 8) Класичні аспекти — прямі лінії/хорди над колом планет, кольори + таблиця
+        # Примітка: compute_aspects_manual дає типи у lowercase (conjunction, sextile,...)
+        # нормалізуємо тип до Title Case для зіставлення зі словником кольорів
         r_planet = 0.80
         aspect_colors = {
             "Conjunction": "#D62728",   # червоний
@@ -358,11 +359,16 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             try:
                 p1_id = asp.get("planet1")
                 p2_id = asp.get("planet2")
-                # знайдемо lon із chart.objects
+                t = asp.get("type", "")
+                # нормалізація типу до Title Case (conjunction -> Conjunction)
+                type_title = t.title() if isinstance(t, str) else str(t)
+
+                # знайдемо об'єкти
                 p1 = next((o for o in chart.objects if getattr(o, "id", None) == p1_id), None)
                 p2 = next((o for o in chart.objects if getattr(o, "id", None) == p2_id), None)
                 if p1 is None or p2 is None:
                     continue
+
                 lon1 = getattr(p1, "lon", None) or getattr(p1, "signlon", None)
                 lon2 = getattr(p2, "lon", None) or getattr(p2, "signlon", None)
                 if lon1 is None or lon2 is None:
@@ -373,16 +379,24 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 th1 = np.deg2rad(lon1_f)
                 th2 = np.deg2rad(lon2_f)
 
-                # Пряма лінія (хордa) на рівні r_planet
-                ax.plot([th1, th2], [r_planet, r_planet],
-                        color=aspect_colors.get(asp.get("type"), "#777777"),
-                        lw=2.2, alpha=0.95, zorder=10)
+                # Малюємо "дугу" або хорду. Щоб уникнути проблем з трансформами, малюємо
+                # невелику дугу по колу на радіусі r_planet — вона явно видна і кольорова.
+                # Якщо потрібно саме пряма хорда — можна додатково домалювати через Cartesian.
+                thetas = np.linspace(th1, th2, max(2, int(abs(th2 - th1) / (np.pi/180) * 2)))
+                rs = np.full_like(thetas, r_planet)
+                color = aspect_colors.get(type_title, "#777777")
+                ax.plot(thetas, rs, color=color, lw=2.2, alpha=0.95, zorder=10)
 
-                # DMS формат для таблиці
+                # DMS формат
                 def dms_str(x):
-                    d = int(x) % 360
-                    m = int((x - int(x)) * 60)
-                    s = int(((x - int(x)) * 60 - m) * 60)
+                    x = float(x) % 360
+                    d = int(x)
+                    m = int((x - d) * 60)
+                    s = int(round(((x - d) * 60 - m) * 60))
+                    if s == 60:
+                        s = 0; m += 1
+                    if m == 60:
+                        m = 0; d = (d + 1) % 360
                     return f"{d}°{m}'{s}''"
 
                 aspects_table.append({
@@ -390,14 +404,13 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     "lon1": dms_str(lon1_f),
                     "planet2": p2_id,
                     "lon2": dms_str(lon2_f),
-                    "type": asp.get("type"),
+                    "type": type_title,
                     "angle": asp.get("angle"),
                     "angle_dms": asp.get("angle_dms"),
-                    "color": aspect_colors.get(asp.get("type"), "#777777")
+                    "color": color
                 })
 
-                # прапор для легенди
-                legend_seen[asp.get("type")] = aspect_colors.get(asp.get("type"), "#777777")
+                legend_seen[type_title] = color
 
             except Exception:
                 continue
@@ -420,6 +433,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             scorpio_mid = np.deg2rad(225)  # середина сектора Скорпіона
             r_logo = 0.58
             ax.text(scorpio_mid, r_logo, "♏", fontsize=14, ha='center', va='center', color="#444444", zorder=8)
+            # назва логотипу по дузі — невеликий шрифт, по радіусу з відступом
             ax.text(scorpio_mid, r_logo - 0.06, "Albireo Daria", fontsize=8, ha='center', va='center',
                     color="#444444", rotation=np.rad2deg(scorpio_mid) + 90, rotation_mode="anchor", zorder=8)
         except Exception:
@@ -446,6 +460,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         print("Error in draw_natal_chart:", e)
         traceback.print_exc()
         raise
+
 # ----------------- /generate -----------------
 @app.route("/generate", methods=["POST"])
 def generate():
@@ -561,4 +576,3 @@ def health():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=True)
-    
