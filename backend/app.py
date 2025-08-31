@@ -1,8 +1,7 @@
 import os
 import math
 from datetime import datetime
-
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 
 import matplotlib
@@ -16,101 +15,96 @@ import pytz
 from flatlib.chart import Chart
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
-from flatlib import aspects
+from flatlib import aspects as fl_aspects
 
 app = Flask(__name__)
 CORS(app)
 
-# --- Helper functions ---
-def format_dms(value):
-    deg = int(value)
-    min_float = (value - deg) * 60
-    minute = int(min_float)
-    second = int((min_float - minute) * 60)
-    return f"{deg}°{minute}'{second}''"
-
-# --- Generate chart image ---
-def generate_chart_image(chart):
-    fig, ax = plt.subplots(figsize=(10,10), subplot_kw={'projection': 'polar'})
-    ax.set_theta_direction(-1)  # counter-clockwise
-    ax.set_theta_offset(math.pi/2)  # 0 at top
-    ax.set_facecolor('white')
-    
-    # Draw zodiac circle (wider)
-    zodiac_r = 1.5
-    ax.set_ylim(0, zodiac_r)
-    
-    # Draw houses sectors with pastel colors
-    for i in range(12):
-        start = math.radians(i*30)
-        end = math.radians((i+1)*30)
-        ax.fill_between([start,end], 0, zodiac_r, color=plt.cm.Pastel1(i/12), alpha=0.3)
-
-    # Draw zodiac symbols along circle
-    zodiac_symbols = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓']
-    zodiac_names = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces']
-    for i, sym in enumerate(zodiac_symbols):
-        angle = math.radians(i*30 + 15)
-        ax.text(angle, zodiac_r*1.02, sym, fontsize=20, ha='center', va='center')
-        ax.text(angle, zodiac_r*1.1, zodiac_names[i], fontsize=10, ha='center', va='center', rotation=-math.degrees(angle)+90)
-    
-    # Draw aspects
-    aspect_colors = {
-        'Conjunction':'red',
-        'Opposition':'blue',
-        'Trine':'green',
-        'Square':'orange',
-        'Sextile':'purple'
-    }
-    planets = chart.planets()
-    for i, p1 in enumerate(planets):
-        for j, p2 in enumerate(planets):
-            if i < j:
-                asp = chart.getAspect(p1, p2)
-                if asp:
-                    color = aspect_colors.get(asp.type, 'gray')
-                    theta1 = math.radians(p1.lon)
-                    theta2 = math.radians(p2.lon)
-                    ax.plot([theta1, theta2], [0.9*zodiac_r,0.9*zodiac_r], color=color, lw=1)
-
-    # TODO: draw ASC/MC/DSC/IC labels outside circle with DMS
-    # TODO: add Scorpio logo along the symbol
-
-    # Save figure
-    if not os.path.exists('static'):
-        os.makedirs('static')
-    path = os.path.join('static','chart.png')
-    plt.savefig(path, bbox_inches='tight')
-    plt.close()
-    return path
-
-# --- API Endpoints ---
-@app.route('/generate', methods=['POST'])
-def generate():
+@app.route("/generate", methods=["POST"])
+def generate_chart():
     data = request.get_json()
-    date_str = data.get('date')
-    time_str = data.get('time')
-    location = data.get('location')
-    try:
-        geolocator = Nominatim(user_agent='astroapp')
-        loc = geolocator.geocode(location)
-        tzf = TimezoneFinder()
-        tzname = tzf.timezone_at(lng=loc.longitude, lat=loc.latitude)
-        tz = pytz.timezone(tzname)
-        dt_utc = datetime.strptime(f'{date_str} {time_str}', '%Y-%m-%d %H:%M')
-        dt_local = tz.localize(dt_utc)
-        fdt = Datetime(date_str, time_str, tzname)
-        pos = GeoPos(loc.latitude, loc.longitude)
-        chart = Chart(fdt, pos)
+    name = data.get("name", "Народжений")
+    date_str = data.get("date")  # формат YYYY-MM-DD
+    time_str = data.get("time")  # формат HH:MM
+    place_str = data.get("place")
 
-        path = generate_chart_image(chart)
+    try:
+        # Геолокація
+        geolocator = Nominatim(user_agent="astro_app")
+        location = geolocator.geocode(place_str)
+        if not location:
+            return jsonify({"message": f"Місто не знайдено: {place_str}", "status": "error"}), 400
+        lat, lon = location.latitude, location.longitude
+        geo = GeoPos(lat, lon)
+
+        # Часовий пояс
+        tf = TimezoneFinder()
+        tz_name = tf.timezone_at(lng=lon, lat=lat)
+        if not tz_name:
+            tz_name = "UTC"
+        tz = pytz.timezone(tz_name)
+
+        # datetime
+        dt_naive = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+        dt_aware = tz.localize(dt_naive)
+        fdt = Datetime(dt_aware.year, dt_aware.month, dt_aware.day, dt_aware.hour, dt_aware.minute, 0, tz_name)
+
+        chart = Chart(fdt, geo)
+
+        # Аспекти
+        aspects_list = []
+        planets = ['Sun','Moon','Mercury','Venus','Mars','Jupiter','Saturn','Uranus','Neptune','Pluto']
+        for i, p1 in enumerate(planets):
+            for p2 in planets[i+1:]:
+                for a in fl_aspects.MAJOR_ASPECTS:
+                    if chart.get(p1).isAspect(chart.get(p2), a):
+                        angle = chart.get(p1).aspect(chart.get(p2)).angle
+                        aspects_list.append({
+                            "planet1": p1,
+                            "planet2": p2,
+                            "type": a.name,
+                            "angle": f"{angle:.1f}°",
+                            "color": a.color
+                        })
+
+        # Малювання карти
+        fig, ax = plt.subplots(figsize=(8,8), subplot_kw={'polar': True})
+        ax.set_theta_zero_location("N")
+        ax.set_theta_direction(-1)
+
+        # Сектори будинків
+        for i in range(12):
+            start = i * 30
+            ax.bar(math.radians(start), 1, width=math.radians(30), color=plt.cm.Pastel1(i), edgecolor='white', alpha=0.5)
+
+        # Логотип/ім'я в центрі
+        ax.text(0,0, name, fontsize=14, ha='center', va='center', fontweight='bold')
+
+        # Плоти планети на колі (просте розташування по градусах)
+        for p in planets:
+            body = chart.get(p)
+            pos = body.signlon
+            ax.plot(math.radians(pos), 1, 'o', label=p)
+
+        ax.set_rticks([])
+        ax.set_yticklabels([])
+        ax.set_xticks([])
+        ax.set_xticklabels([])
+
+        chart_file = "chart.png"
+        plt.savefig(chart_file, bbox_inches='tight', dpi=150)
+        plt.close(fig)
 
         return jsonify({
-            'status':'ok',
-            'chart_url':'/'+path
+            "chart_url": f"/chart.png",
+            "aspects_json": aspects_list
         })
     except Exception as e:
-        return jsonify({'status':'error','message':str(e)})
+        return jsonify({"message": str(e), "status": "error"}), 500
+
+@app.route("/chart.png")
+def send_chart():
+    return send_file("chart.png", mimetype='image/png')
 
 # --- Health ---
 @app.route('/health')
