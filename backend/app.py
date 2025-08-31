@@ -2,157 +2,152 @@ import os
 import math
 import numpy as np
 from datetime import datetime as dt
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from matplotlib.patches import Wedge
-from matplotlib.text import TextPath
-from matplotlib.transforms import Affine2D
-from matplotlib.font_manager import FontProperties
-
+from matplotlib.patches import Wedge, Circle
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
 from flatlib.chart import Chart
+from flatlib import const
 
 app = Flask(__name__)
 CORS(app)
 
-# --- Константи для графіки ---
-R_PLANET = 0.80
-R_HOUSES = 0.90
-ASPECT_COLORS = {
-    "Conjunction": "#D62728",
-    "Sextile":     "#1F77B4",
-    "Square":      "#FF7F0E",
-    "Trine":       "#2CA02C",
-    "Opposition":  "#9467BD",
-}
+# --- Helper Functions ---
+def dms_string(deg_float):
+    deg = int(deg_float)
+    min_float = (deg_float - deg) * 60
+    minute = int(min_float)
+    sec = int((min_float - minute) * 60)
+    return f"{deg}°{minute}'{sec}\""
 
-ZODIAC_SIGNS = [
-    ("Aries", "♈"), ("Taurus", "♉"), ("Gemini", "♊"), ("Cancer", "♋"),
-    ("Leo", "♌"), ("Virgo", "♍"), ("Libra", "♎"), ("Scorpio", "♏"),
-    ("Sagittarius", "♐"), ("Capricorn", "♑"), ("Aquarius", "♒"), ("Pisces", "♓")
-]
+def draw_natal_chart(chart, filename="chart.png"):
+    fig, ax = plt.subplots(figsize=(10, 10), subplot_kw={'polar': True})
+    ax.set_facecolor('#ffffff')
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_ylim(0, 1)
 
-# --- Допоміжні функції ---
-def dms_str(x):
-    d = int(x) % 360
-    m = int((x - int(x)) * 60)
-    s = int(((x - int(x)) * 60 - m) * 60)
-    return f"{d}°{m}'{s}''"
+    # --- Parameters ---
+    r_inner = 0.65
+    r_outer = 0.85
+    r_house = 0.63
+    r_logo = 0.55
+    r_aspect = r_outer
+    theta_offset = np.pi/2  # ASC at left side
+    
+    # --- Zodiac Ring ---
+    signs = const.SIGNS
+    sign_colors = ['#FFDDC1','#FFE4B5','#FFDAB9','#FFE4C4','#FFEFD5','#FFFACD',
+                   '#FAF0E6','#F5F5DC','#FFF8DC','#F0E68C','#E6E6FA','#D8BFD8']
+    for i, sign in enumerate(signs):
+        theta1 = (i/12)*2*np.pi + theta_offset
+        theta2 = ((i+1)/12)*2*np.pi + theta_offset
+        ax.add_patch(Wedge((0,0), r_outer, np.degrees(theta1), np.degrees(theta2),
+                           width=r_outer-r_inner, facecolor=sign_colors[i], edgecolor='k', lw=0.5))
+        # Name of sign along arc
+        mid_theta = (theta1 + theta2)/2
+        ax.text(mid_theta, r_outer+0.03, sign, fontsize=10, ha='center', va='center', rotation=-np.degrees(mid_theta-np.pi/2),
+                rotation_mode='anchor')
 
-def draw_text_on_arc(ax, text, radius, start_angle, clockwise=True, fontsize=12, fontname="DejaVu Sans"):
-    """Розміщує текст по дузі. Кожна буква окремо"""
-    fp = FontProperties(fname=None, family=fontname)
-    theta_sign = -1 if clockwise else 1
-    angle_rad = np.deg2rad(start_angle)
-    for ch in text:
-        tpath = TextPath((0, 0), ch, size=fontsize, prop=fp)
-        rot = Affine2D().rotate(angle_rad - np.pi/2)
-        tr = rot + Affine2D().translate(radius * np.cos(angle_rad), radius * np.sin(angle_rad)) + ax.transData
-        patch = plt.PathPatch(tpath, transform=tr, color='black')
-        ax.add_patch(patch)
-        angle_rad += theta_sign * fontsize / radius  # регулюємо крок
+    # --- Houses ---
+    for i in range(12):
+        theta = (i/12)*2*np.pi + theta_offset
+        ax.plot([theta, theta], [0, r_house], color='grey', lw=0.7, ls='--')
 
-# --- Маршрут генерації карти ---
+    # --- Planets ---
+    planet_positions = {}
+    for obj in chart.objects:
+        deg = obj.signlon
+        theta = np.radians(deg*360/360) + theta_offset
+        planet_positions[obj.id] = theta
+        ax.plot(theta, r_inner+0.1, 'o', color='blue')
+        ax.text(theta, r_inner+0.12, obj.id, fontsize=9, ha='center', va='center')
+
+    # --- Aspects ---
+    aspect_colors = {
+        'CONJUNCTION':'#FF0000',
+        'OPPOSITION':'#0000FF',
+        'TRINE':'#00FF00',
+        'SQUARE':'#FFA500',
+        'SEXTILE':'#800080'
+    }
+    aspects = chart.getAspects()
+    for aspect in aspects:
+        p1 = aspect.obj1.id
+        p2 = aspect.obj2.id
+        color = aspect_colors.get(aspect.type, '#000000')
+        theta1 = planet_positions[p1]
+        theta2 = planet_positions[p2]
+        ax.plot([theta1, theta2], [r_aspect, r_aspect], color=color, lw=1.5, alpha=0.7)
+
+    # --- ASC/MC/DSC/IC ---
+    angles = {
+        'ASC': chart.getObject('ASC').signlon,
+        'MC': chart.getObject('MC').signlon,
+        'DSC': chart.getObject('DSC').signlon,
+        'IC': chart.getObject('IC').signlon
+    }
+    for key, deg in angles.items():
+        theta = np.radians(deg*360/360) + theta_offset
+        ax.text(theta, r_outer+0.05, f"{key} {dms_string(deg)}", fontsize=9, ha='center', va='center', rotation=-np.degrees(theta-np.pi/2),
+                rotation_mode='anchor', color='black')
+
+    # --- Logo Scorpio ---
+    text = "Albireo Daria"
+    n = len(text)
+    theta_start = (7/12)*2*np.pi + theta_offset  # Start in Scorpio sector
+    theta_end = (8/12)*2*np.pi + theta_offset
+    thetas = np.linspace(theta_end, theta_start, n)
+    for i, ch in enumerate(text):
+        ax.text(thetas[i], r_logo, ch, fontsize=9, ha='center', va='center', rotation=180, color="#444444")
+
+    # --- Save ---
+    plt.savefig(filename, bbox_inches='tight')
+    plt.close()
+    return aspects
+
+# --- Generate Endpoint ---
 @app.route("/generate", methods=["POST"])
 def generate_chart():
-    data = request.json
-    date_str = data.get("date")
-    time_str = data.get("time")
-    place = data.get("place")
-    aspects_list = data.get("aspects", [])
+    try:
+        data = request.json
+        date = data['date']
+        time = data['time']
+        city = data['city']
 
-    # --- Геокодування та таймзона ---
-    geolocator = Nominatim(user_agent="astro_app")
-    loc = geolocator.geocode(place)
-    tf = TimezoneFinder()
-    tz_name = tf.timezone_at(lng=loc.longitude, lat=loc.latitude)
-    tz = pytz.timezone(tz_name)
-    dt_utc = tz.localize(dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")).astimezone(pytz.UTC)
+        geolocator = Nominatim(user_agent="astro_app")
+        loc = geolocator.geocode(city)
+        tf = TimezoneFinder()
+        tz = pytz.timezone(tf.timezone_at(lng=loc.longitude, lat=loc.latitude))
+        dt_utc = tz.localize(dt.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")).astimezone(pytz.UTC)
 
-    chart = Chart(dt_utc, loc.latitude, loc.longitude, hsys='P')
+        chart = Chart(dt_utc, loc.latitude, loc.longitude)
 
-    # --- Створюємо фігуру ---
-    fig, ax = plt.subplots(figsize=(10,10), subplot_kw={'polar':True})
-    ax.set_ylim(0,1.2)
-    ax.axis('off')
+        aspects = draw_natal_chart(chart)
 
-    # --- Коло зодіаку (ширше) ---
-    for i, (name, symbol) in enumerate(ZODIAC_SIGNS):
-        start = i * 30
-        end = (i+1) * 30
-        wedge = Wedge((0,0), 1.1, start, end, width=0.1, facecolor="#f5f5f5", edgecolor="black", lw=1.5)
-        ax.add_patch(wedge)
-        # Назва знаку по дузі
-        mid_angle = (start + end)/2
-        draw_text_on_arc(ax, name, radius=1.05, start_angle=mid_angle, clockwise=False, fontsize=10)
-        # Символ знаку ближче до центру
-        draw_text_on_arc(ax, symbol, radius=1.0, start_angle=mid_angle, clockwise=False, fontsize=18)
+        aspect_list = []
+        for a in aspects:
+            aspect_list.append({
+                "obj1": a.obj1.id,
+                "obj2": a.obj2.id,
+                "type": a.type,
+                "exact": dms_string(a.orb)
+            })
 
-    # --- Коло домів ближче до градусів ---
-    for i in range(12):
-        angle = np.deg2rad(i*30)
-        ax.plot([angle, angle], [0, R_HOUSES], color="gray", lw=1.2, zorder=5)
+        return jsonify({"status":"ok", "aspects": aspect_list, "chart_img": "/chart.png"})
 
-    # --- Планети (хорди аспектів) ---
-    aspects_table = []
-    legend_seen = {}
-    for asp in aspects_list:
-        p1 = next((o for o in chart.objects if getattr(o, "id", None)==asp.get("planet1")), None)
-        p2 = next((o for o in chart.objects if getattr(o, "id", None)==asp.get("planet2")), None)
-        if not p1 or not p2:
-            continue
-        lon1 = float(getattr(p1, "lon", getattr(p1, "signlon", 0))) % 360
-        lon2 = float(getattr(p2, "lon", getattr(p2, "signlon", 0))) % 360
-        th1, th2 = np.deg2rad(lon1), np.deg2rad(lon2)
-        # Пряма лінія (хорда)
-        ax.plot([th1, th2], [R_PLANET, R_PLANET],
-                color=ASPECT_COLORS.get(asp.get("type"), "#777777"),
-                lw=2.2, alpha=0.95, zorder=10)
-        aspects_table.append({
-            "planet1": asp.get("planet1"),
-            "lon1": dms_str(lon1),
-            "planet2": asp.get("planet2"),
-            "lon2": dms_str(lon2),
-            "type": asp.get("type"),
-            "angle": asp.get("angle"),
-            "angle_dms": asp.get("angle_dms"),
-            "color": ASPECT_COLORS.get(asp.get("type"), "#777777")
-        })
-        legend_seen[asp.get("type")] = ASPECT_COLORS.get(asp.get("type"), "#777777")
+    except Exception as e:
+        return jsonify({"status":"error", "message": str(e)}), 500
 
-    # --- Легенда аспектів під картою ---
-    if legend_seen:
-        ax_leg = fig.add_axes([0.05, -0.09, 0.9, 0.06])
-        ax_leg.axis("off")
-        legend_handles = [Line2D([0],[0], color=c, lw=4) for c in legend_seen.values()]
-        legend_labels = list(legend_seen.keys())
-        ax_leg.legend(handles=legend_handles, labels=legend_labels,
-                      loc="center", ncol=len(legend_handles), frameon=False)
-
-    # --- Логотип Скорпіона по дузі проти годинникової ---
-    scorpio_mid = (7*30 + 15)  # середина сектора Скорпіона
-    draw_text_on_arc(ax, "SCORPION", radius=0.85, start_angle=scorpio_mid, clockwise=False, fontsize=12)
-
-    # --- Збереження картинки ---
-    chart_path = "/tmp/chart.png"
-    plt.savefig(chart_path, dpi=200, bbox_inches="tight")
-    plt.close(fig)
-
-    return jsonify({
-        "chart_url": "/chart.png",
-        "aspects": aspects_table
-    })
-
+# --- Serve Chart Image ---
 @app.route("/chart.png")
 def serve_chart():
-    return send_from_directory("/tmp", "chart.png")
+    return app.send_static_file("chart.png")
 
 # --- Health ---
 @app.route("/health")
