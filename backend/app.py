@@ -1,153 +1,191 @@
 import os
 import math
-import numpy as np
 from datetime import datetime as dt
-from flask import Flask, request, jsonify
+
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import Wedge, Circle
+import matplotlib.patches as mpatches
+
 from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import pytz
+
 from flatlib.chart import Chart
+from flatlib.datetime import Datetime
+from flatlib.geopos import GeoPos
+from flatlib import aspects as fasp
 from flatlib import const
 
 app = Flask(__name__)
 CORS(app)
 
-# --- Helper Functions ---
-def dms_string(deg_float):
-    deg = int(deg_float)
-    min_float = (deg_float - deg) * 60
-    minute = int(min_float)
-    sec = int((min_float - minute) * 60)
-    return f"{deg}°{minute}'{sec}\""
+# --- COLORS ---
+PLANET_COLORS = {
+    const.SUN: "#FFA500",
+    const.MOON: "#1E90FF",
+    const.MERCURY: "#32CD32",
+    const.VENUS: "#FF69B4",
+    const.MARS: "#FF4500",
+    const.JUPITER: "#9370DB",
+    const.SATURN: "#708090",
+    const.URANUS: "#40E0D0",
+    const.NEPTUNE: "#0000FF",
+    const.PLUTO: "#8B0000",
+}
 
-def draw_natal_chart(chart, filename="chart.png"):
+ASPECT_COLORS = {
+    const.CONJUNCTION: "#FF0000",
+    const.SEXTILE: "#00FF00",
+    const.SQUARE: "#FF00FF",
+    const.TRINE: "#0000FF",
+    const.OPPOSITION: "#FFA500",
+}
+
+# --- Zodiac names and symbols ---
+ZODIAC_SIGNS = [
+    ("Aries", "♈"), ("Taurus", "♉"), ("Gemini", "♊"), ("Cancer", "♋"),
+    ("Leo", "♌"), ("Virgo", "♍"), ("Libra", "♎"), ("Scorpio", "♏"),
+    ("Sagittarius", "♐"), ("Capricorn", "♑"), ("Aquarius", "♒"), ("Pisces", "♓")
+]
+
+# --- Helper functions ---
+def dms(degree):
+    deg = int(degree)
+    min_ = int((degree - deg) * 60)
+    sec = int(((degree - deg) * 60 - min_) * 60)
+    return f"{deg}°{min_}'{sec}\""
+
+def polar_to_cartesian(r, theta):
+    return r * math.cos(theta), r * math.sin(theta)
+
+# --- Generate chart image ---
+def generate_chart(data):
     fig, ax = plt.subplots(figsize=(10, 10), subplot_kw={'polar': True})
-    ax.set_facecolor('#ffffff')
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_ylim(0, 1)
+    ax.set_theta_direction(-1)
+    ax.set_theta_zero_location("E")
+    ax.set_ylim(0, 1.2)
+    ax.axis('off')
 
-    # --- Parameters ---
-    r_inner = 0.65
-    r_outer = 0.85
-    r_house = 0.63
-    r_logo = 0.55
-    r_aspect = r_outer
-    theta_offset = np.pi/2  # ASC at left side
-    
-    # --- Zodiac Ring ---
-    signs = const.SIGNS
-    sign_colors = ['#FFDDC1','#FFE4B5','#FFDAB9','#FFE4C4','#FFEFD5','#FFFACD',
-                   '#FAF0E6','#F5F5DC','#FFF8DC','#F0E68C','#E6E6FA','#D8BFD8']
-    for i, sign in enumerate(signs):
-        theta1 = (i/12)*2*np.pi + theta_offset
-        theta2 = ((i+1)/12)*2*np.pi + theta_offset
-        ax.add_patch(Wedge((0,0), r_outer, np.degrees(theta1), np.degrees(theta2),
-                           width=r_outer-r_inner, facecolor=sign_colors[i], edgecolor='k', lw=0.5))
-        # Name of sign along arc
-        mid_theta = (theta1 + theta2)/2
-        ax.text(mid_theta, r_outer+0.03, sign, fontsize=10, ha='center', va='center', rotation=-np.degrees(mid_theta-np.pi/2),
-                rotation_mode='anchor')
+    # --- Draw zodiac sectors ---
+    for i, (name, symbol) in enumerate(ZODIAC_SIGNS):
+        start = 2*math.pi * i/12
+        end = 2*math.pi * (i+1)/12
+        ax.bar(
+            x=(start+end)/2,
+            height=0.6,
+            width=end-start,
+            bottom=0.6,
+            color=f"C{i%10}",
+            alpha=0.2,
+            edgecolor="k"
+        )
+        # Sign symbol and name along arc
+        th = (start+end)/2
+        ax.text(th, 0.9, symbol, fontsize=20, ha='center', va='center', color="#444")
+        ax.text(th, 1.05, name, fontsize=10, ha='center', va='center', color="#444")
 
-    # --- Houses ---
-    for i in range(12):
-        theta = (i/12)*2*np.pi + theta_offset
-        ax.plot([theta, theta], [0, r_house], color='grey', lw=0.7, ls='--')
+    # --- Draw planets ---
+    planets = []
+    for p in data['planets']:
+        degree = p['degree'] * math.pi/180
+        ax.plot([degree], [0.75], 'o', color=PLANET_COLORS[p['name']], markersize=12)
+        x, y = polar_to_cartesian(0.75, degree)
+        ax.text(degree, 0.78, p['symbol'], fontsize=12, ha='center', va='center')
 
-    # --- Planets ---
-    planet_positions = {}
-    for obj in chart.objects:
-        deg = obj.signlon
-        theta = np.radians(deg*360/360) + theta_offset
-        planet_positions[obj.id] = theta
-        ax.plot(theta, r_inner+0.1, 'o', color='blue')
-        ax.text(theta, r_inner+0.12, obj.id, fontsize=9, ha='center', va='center')
-
-    # --- Aspects ---
-    aspect_colors = {
-        'CONJUNCTION':'#FF0000',
-        'OPPOSITION':'#0000FF',
-        'TRINE':'#00FF00',
-        'SQUARE':'#FFA500',
-        'SEXTILE':'#800080'
-    }
-    aspects = chart.getAspects()
-    for aspect in aspects:
-        p1 = aspect.obj1.id
-        p2 = aspect.obj2.id
-        color = aspect_colors.get(aspect.type, '#000000')
-        theta1 = planet_positions[p1]
-        theta2 = planet_positions[p2]
-        ax.plot([theta1, theta2], [r_aspect, r_aspect], color=color, lw=1.5, alpha=0.7)
+    # --- Draw aspects as chords ---
+    for asp in data['aspects']:
+        deg1 = asp['from_degree'] * math.pi/180
+        deg2 = asp['to_degree'] * math.pi/180
+        ax.plot([deg1, deg2], [0.75, 0.75], color=ASPECT_COLORS[asp['type']], lw=1.5)
 
     # --- ASC/MC/DSC/IC ---
-    angles = {
-        'ASC': chart.getObject('ASC').signlon,
-        'MC': chart.getObject('MC').signlon,
-        'DSC': chart.getObject('DSC').signlon,
-        'IC': chart.getObject('IC').signlon
-    }
-    for key, deg in angles.items():
-        theta = np.radians(deg*360/360) + theta_offset
-        ax.text(theta, r_outer+0.05, f"{key} {dms_string(deg)}", fontsize=9, ha='center', va='center', rotation=-np.degrees(theta-np.pi/2),
-                rotation_mode='anchor', color='black')
+    angles = data['angles']
+    for name, deg in angles.items():
+        theta = deg * math.pi/180
+        ax.text(theta, 1.15, name + " " + dms(deg), fontsize=10, ha='center', va='center', fontweight='bold')
 
-    # --- Logo Scorpio ---
-    text = "Albireo Daria"
-    n = len(text)
-    theta_start = (7/12)*2*np.pi + theta_offset  # Start in Scorpio sector
-    theta_end = (8/12)*2*np.pi + theta_offset
-    thetas = np.linspace(theta_end, theta_start, n)
-    for i, ch in enumerate(text):
-        ax.text(thetas[i], r_logo, ch, fontsize=9, ha='center', va='center', rotation=180, color="#444444")
+    # --- Logo in Scorpio sector ---
+    sc_index = 7
+    start = 2*math.pi * sc_index/12
+    end = 2*math.pi * (sc_index+1)/12
+    theta_logo = np.linspace(end-0.05, start+0.05, len("Albireo Daria"))
+    r_logo = 0.55
+    for i, ch in enumerate("Albireo Daria"):
+        th = theta_logo[i]
+        ax.text(th, r_logo, ch, fontsize=10, ha='center', va='center', rotation=180, color="#444")
 
-    # --- Save ---
-    plt.savefig(filename, bbox_inches='tight')
-    plt.close()
-    return aspects
+    # --- Table of aspects ---
+    aspect_table = [[asp['from'], asp['type'], asp['to'], dms(asp['angle'])] for asp in data['aspects']]
+    columns = ["From", "Aspect", "To", "Angle"]
+    table = plt.table(cellText=aspect_table, colLabels=columns, loc='bottom', cellLoc='center', colColours=['#eee']*4)
+    table.auto_set_font_size(False)
+    table.set_fontsize(10)
 
-# --- Generate Endpoint ---
+    # Save figure
+    plt.savefig("chart.png", bbox_inches='tight')
+    plt.close(fig)
+    return "chart.png"
+
+# --- Routes ---
 @app.route("/generate", methods=["POST"])
-def generate_chart():
+def generate():
     try:
-        data = request.json
-        date = data['date']
-        time = data['time']
-        city = data['city']
+        req = request.get_json()
+        # --- Parse date/time ---
+        date = req['date']
+        time = req['time']
+        city = req['city']
+        dt_obj = dt.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
 
+        # --- Geocode ---
         geolocator = Nominatim(user_agent="astro_app")
-        loc = geolocator.geocode(city)
-        tf = TimezoneFinder()
-        tz = pytz.timezone(tf.timezone_at(lng=loc.longitude, lat=loc.latitude))
-        dt_utc = tz.localize(dt.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")).astimezone(pytz.UTC)
+        location = geolocator.geocode(city)
+        if not location:
+            return jsonify({"status": "error", "message": "City not found"}), 400
+        tz_str = TimezoneFinder().timezone_at(lng=location.longitude, lat=location.latitude)
+        tz = pytz.timezone(tz_str)
+        dt_obj = tz.localize(dt_obj)
 
-        chart = Chart(dt_utc, loc.latitude, loc.longitude)
+        fdt = Datetime(dt_obj.year, dt_obj.month, dt_obj.day, dt_obj.hour, dt_obj.minute, tz_str)
+        chart = Chart(fdt, GeoPos(location.latitude, location.longitude))
 
-        aspects = draw_natal_chart(chart)
-
-        aspect_list = []
-        for a in aspects:
-            aspect_list.append({
-                "obj1": a.obj1.id,
-                "obj2": a.obj2.id,
-                "type": a.type,
-                "exact": dms_string(a.orb)
+        # --- Collect planet positions ---
+        planets = []
+        for name in [const.SUN,const.MOON,const.MERCURY,const.VENUS,const.MARS,const.JUPITER,const.SATURN,const.URANUS,const.NEPTUNE,const.PLUTO]:
+            obj = chart.get(name)
+            planets.append({
+                "name": name,
+                "symbol": const.SYMBOLS[name],
+                "degree": obj.lon
             })
 
-        return jsonify({"status":"ok", "aspects": aspect_list, "chart_img": "/chart.png"})
+        # --- Collect angles ASC/MC/DSC/IC ---
+        angles = {}
+        for angle in [const.ASC, const.MC, const.DSC, const.IC]:
+            obj = chart.get(angle)
+            angles[angle] = obj.lon
+
+        # --- Collect aspects ---
+        aspects = []
+        for a in fasp.getAspects(chart):
+            aspects.append({
+                "from": a.obj1.name,
+                "to": a.obj2.name,
+                "type": a.type,
+                "angle": a.angle,
+                "from_degree": a.obj1.lon,
+                "to_degree": a.obj2.lon
+            })
+
+        chart_file = generate_chart({"planets": planets, "angles": angles, "aspects": aspects})
+        return jsonify({"status": "ok", "chart": chart_file, "planets": planets, "aspects": aspects})
 
     except Exception as e:
-        return jsonify({"status":"error", "message": str(e)}), 500
-
-# --- Serve Chart Image ---
-@app.route("/chart.png")
-def serve_chart():
-    return app.send_static_file("chart.png")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # --- Health ---
 @app.route("/health")
