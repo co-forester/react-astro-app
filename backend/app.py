@@ -300,20 +300,23 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     ha="center", va="center", fontsize=fontsize,
                     fontweight="bold", zorder=15, clip_on=False)
 
-        # --- ASC/MC/DSC/IC ---
-        r_marker = 1.34
+       # --- ASC/MC/DSC/IC поза колом зодіаку ---
+        r_marker = 1.45  # трохи далі від зовнішнього кола
         for label in ["ASC", "MC", "DSC", "IC"]:
             try:
                 obj = chart.get(label)
                 lon = getattr(obj,"lon",None)
                 if lon is None: continue
                 th = np.deg2rad(float(lon) % 360)
-                ax.plot([th],[r_marker-0.02], marker='o', markersize=6, color="#FFD700", zorder=9)
+                # маркер
+                ax.plot([th],[r_marker], marker='o', markersize=8, color="#FFD700", zorder=12)
+                # жовтий підпис
                 deg_i = int(float(lon)); min_i=int((float(lon)-deg_i)*60)
                 sec_i=int((((float(lon)-deg_i)*60)-min_i)*60)
                 label_text = f"{label} {deg_i}°{min_i}'{sec_i}''"
-                ax.text(th, r_marker+0.015,label_text,ha='center',va='center',fontsize=8,color="#444444",zorder=9,rotation=0)
-            except Exception: continue
+                ax.text(th, r_marker+0.04, label_text, ha='center', va='center', fontsize=10, color="#FFD700", fontweight="bold", zorder=12, rotation=0)
+            except Exception:
+                continue
 
         # --- 7) Планети ---
         r_planet = 0.80
