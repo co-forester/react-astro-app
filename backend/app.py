@@ -204,19 +204,30 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         for i in range(1, 13):
             cusp1 = get_house_lon(chart, i)
             cusp2 = get_house_lon(chart, (i % 12) + 1)
-            if cusp1 is None or cusp2 is None: continue
-            start_deg = cusp1 % 360
-            end_deg = cusp2 % 360
-            if (end_deg - start_deg) <= 0: end_deg += 360
+            if cusp1 is None or cusp2 is None:
+                continue  # пропускаємо будинок якщо не порахувався
+            start_deg = float(cusp1) % 360
+            end_deg = float(cusp2) % 360
+            if (end_deg - start_deg) <= 0:
+                end_deg += 360  # правильно обробляємо перетин 0°
             theta_start = np.deg2rad(start_deg)
             theta_end = np.deg2rad(end_deg)
             width = abs(theta_end - theta_start)
+
+            # Бордовий сектор будинку
             ax.bar(
                 x=(theta_start + theta_end)/2,
-                height=1.08, width=width, bottom=0.0,
-                color=HOUSE_COLORS[(i-1)%12][0], alpha=0.3,
-                edgecolor=HOUSE_COLORS[(i-1)%12][1], linewidth=0.6, zorder=0
+                height=1.08,
+                width=width,
+                bottom=0.0,
+                color=HOUSE_COLORS[(i-1)%12][0],
+                alpha=0.3,
+                edgecolor=HOUSE_COLORS[(i-1)%12][1],
+                linewidth=0.6,
+                zorder=0
             )
+
+            # Лінія розділу будинків
             ax.plot([theta_start, theta_start], [0.15, 1.12],
                     color="#888888", lw=0.8, zorder=2)
 
@@ -225,9 +236,10 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         for i in range(1, 13):
             cusp1 = get_house_lon(chart, i)
             cusp2 = get_house_lon(chart, (i % 12) + 1)
-            if cusp1 is None or cusp2 is None: continue
-            start = cusp1 % 360
-            end = cusp2 % 360
+            if cusp1 is None or cusp2 is None:
+                continue
+            start = float(cusp1) % 360
+            end = float(cusp2) % 360
             mid = (start + ((end - start) % 360)/2) % 360
             th_mid = np.deg2rad(mid)
             ax.text(th_mid, house_number_radius, str(i),
