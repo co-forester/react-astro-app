@@ -338,6 +338,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         ax.set_aspect("equal", adjustable="box")
         
         # --- 10a) Легенда під картою (планети та аспекти) ---
+        # --- 10a) Легенда під картою (планети та аспекти) ---
         legend_x_start = -0.95
         legend_y_start = -0.18
         legend_dx = 0.25
