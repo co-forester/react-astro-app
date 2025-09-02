@@ -344,88 +344,82 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 continue
 
         # 8) Класичні аспекти — ПРЯМІ ХОРДИ + кольори + таблиця
-        aspect_colors = {
+        aspect_colors = {                                   # Кольори для типів аспектів
             "conjunction": "#D62728",
             "sextile":     "#1F77B4",
             "square":      "#FF7F0E",
             "trine":       "#2CA02C",
             "opposition":  "#9467BD",
         }
-        aspects_table = []
-        legend_seen = {}
+        aspects_table = []                                  # Список для даних таблиці
+        legend_seen = {}                                    # Для легенди — які аспекти присутні
 
-        # Накладена КАРТЕЗІАНСЬКА вісь для прямих хорд (на одну й ту ж позицію)
-        ax_chord = fig.add_axes(ax.get_position(), frameon=False)
-        ax_chord.set_xlim(-1.45, 1.45)
-        ax_chord.set_ylim(-1.45, 1.45)
-        ax_chord.set_aspect("equal")
-        ax_chord.axis("off")
+        # Створюємо картезіанську вісь для хорд (накладка на полярну)
+        ax_chord = fig.add_axes(ax.get_position(), frameon=False)  # Порожня вісь поверх основної
+        ax_chord.set_xlim(-1.45, 1.45)                      # Межі по X
+        ax_chord.set_ylim(-1.45, 1.45)                      # Межі по Y
+        ax_chord.set_aspect("equal")                        # Квадратна шкала
+        ax_chord.axis("off")                                # Вимикаємо осі
 
-        for asp in aspects_list:
+        for asp in aspects_list:                             # Проходимо по всіх аспектах
             try:
-                p1_id = asp.get("planet1")
-                p2_id = asp.get("planet2")
-                p1 = next((o for o in chart.objects if getattr(o, "id", None) == p1_id), None)
-                p2 = next((o for o in chart.objects if getattr(o, "id", None) == p2_id), None)
-                if p1 is None or p2 is None:
-                    continue
-                lon1 = getattr(p1, "lon", None) or getattr(p1, "signlon", None)
-                lon2 = getattr(p2, "lon", None) or getattr(p2, "signlon", None)
-                if lon1 is None or lon2 is None:
-                    continue
-                lon1_f = float(lon1) % 360
-                lon2_f = float(lon2) % 360
+                p1_id = asp.get("planet1")                  # ID першої планети
+                p2_id = asp.get("planet2")                  # ID другої планети
 
-                th1 = np.deg2rad(lon1_f)
-                th2 = np.deg2rad(lon2_f)
+                # Використовуємо planet_positions для точного збігу
+                if p1_id not in planet_positions or p2_id not in planet_positions:
+                    continue                                 # Пропускаємо, якщо планети немає
 
-                # координати на колі r_planet у КАРТЕЗІАНСЬКИХ координатах
-                x1, y1 = np.cos(th1) * r_planet, np.sin(th1) * r_planet
-                x2, y2 = np.cos(th2) * r_planet, np.sin(th2) * r_planet
+                th1, r1, lon1_f = planet_positions[p1_id]  # Кут, радіус і градуси першої планети
+                th2, r2, lon2_f = planet_positions[p2_id]  # Кут, радіус і градуси другої планети
 
-                col = aspect_colors.get(str(asp.get("type", "")).lower(), "#777777")
+                x1, y1 = np.cos(th1) * r1, np.sin(th1) * r1 # Картезіанські координати першої планети
+                x2, y2 = np.cos(th2) * r2, np.sin(th2) * r2 # Картезіанські координати другої планети
 
-                # ПРЯМА ХОРДА
+                col = aspect_colors.get(str(asp.get("type", "")).lower(), "#777777") # Колір аспекту
+
+                # Малюємо прямий сегмент (хорду) між планетами
                 ax_chord.plot([x1, x2], [y1, y2], color=col, lw=2.2, alpha=0.95, zorder=10)
 
-                # DMS формат для таблиці
+                # Функція для переведення градусів у DMS для таблиці
                 def dms_str(x):
                     d = int(x) % 360
                     m = int((x - int(x)) * 60)
                     s = int(((x - int(x)) * 60 - m) * 60)
                     return f"{d}°{m}'{s}''"
 
+                # Додаємо рядок у таблицю аспектів
                 aspects_table.append({
                     "planet1": p1_id,
                     "lon1": dms_str(lon1_f),
                     "planet2": p2_id,
                     "lon2": dms_str(lon2_f),
-                    "type": asp.get("type"),           # у нижньому регістрі
+                    "type": asp.get("type"),           
                     "angle": asp.get("angle"),
                     "angle_dms": asp.get("angle_dms"),
-                    "color": col
+                    "color": col                                # Колір для підфарбування рядка
                 })
-                legend_seen[str(asp.get("type","")).lower()] = col
+                legend_seen[str(asp.get("type","")).lower()] = col # Зберігаємо для легенди
 
             except Exception:
-                continue
+                continue                                       # Ігноруємо помилки окремих аспектів
 
-        # Легенда під картою (охайно, сталий порядок)
+        # Легенда під картою
         legend_order = ["conjunction", "sextile", "square", "trine", "opposition"]
         legend_handles = []
         legend_labels = []
         for nm in legend_order:
             if nm in legend_seen:
                 col = legend_seen[nm]
-                legend_handles.append(Line2D([0], [0], color=col, lw=4))
+                legend_handles.append(Line2D([0], [0], color=col, lw=4)) # Кольоровий прямокутник
                 legend_labels.append(nm.title())
         if legend_handles:
             ax_leg = fig.add_axes([0.05, -0.09, 0.90, 0.06])
             ax_leg.axis("off")
             ax_leg.legend(handles=legend_handles, labels=legend_labels,
-                          loc="center", ncol=len(legend_handles), frameon=False)
+                        loc="center", ncol=len(legend_handles), frameon=False)
 
-        # Таблиця аспектів під картою (кольорова)
+        # Таблиця аспектів під картою
         if aspects_table:
             cols = ["planet1", "lon1", "planet2", "lon2", "type", "angle_dms"]
             table_data = [[str(row.get(c, "")) for c in cols] for row in aspects_table]
@@ -434,18 +428,18 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             ax_tbl = fig.add_axes([0.03, -0.28, 0.94, 0.16])
             ax_tbl.axis("off")
             tbl = ax_tbl.table(cellText=table_data,
-                               colLabels=["Planet 1","Lon 1","Planet 2","Lon 2","Aspect","Angle"],
-                               loc="center", cellLoc="center")
+                            colLabels=["Planet 1","Lon 1","Planet 2","Lon 2","Aspect","Angle"],
+                            loc="center", cellLoc="center")
             tbl.auto_set_font_size(False)
             tbl.set_fontsize(7)
             tbl.scale(1.0, 1.18)
-            # підфарбуємо рядки легким відтінком аспекту
+
+            # Підфарбовуємо рядки легким відтінком відповідного аспекту
             nrows = len(table_data)
-            for r in range(1, nrows + 1):  # +1, бо 0-й — заголовки
+            for r in range(1, nrows + 1):  # +1 бо 0-й — заголовки
                 for c in range(len(cols)):
                     cell = tbl[(r, c)]
-                    cell.set_facecolor(matplotlib.colors.to_rgba(colors[r-1], 0.12))
-
+                    cell.set_facecolor(matplotlib.colors.to_rgba(colors[r-1], 0.12))  # Легкий відтінок
         # ---  Логотип у секторі Скорпіона ПО ДУЗІ, проти год. стрілки, кожна літера перевернута (+180°) ---
         try:
             # сектор Скорпіона ~ 210°–240°; коротка дуга біля центру сектора
