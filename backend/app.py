@@ -31,8 +31,8 @@ app = Flask(__name__)
 CORS(app)
 
 CACHE_DIR = "cache"
-os.makedirs(CACHE_DIR, exist_ok=True)
-CACHE_TTL_DAYS = 30
+os.makedirs(CACHE_DIR, exist_ok=True)   # створює папку "cache", якщо її ще нема
+CACHE_TTL_DAYS = 0.5                    # "Time To Live" — файли старше 30 днів треба видаляти
 
 geolocator = Nominatim(user_agent="albireo_astro_app")
 tf = TimezoneFinder()
@@ -42,11 +42,11 @@ ZODIAC_SYMBOLS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","�
 ZODIAC_NAMES   = ["Овен","Телець","Близнюки","Рак","Лев","Діва","Терези","Скорпіон",
                   "Стрілець","Козеріг","Водолій","Риби"]
 
-# М’які пастельні: будинки
+# Соковиті, насичені градієнти для будинків (start_color, end_color)
 HOUSE_COLORS = [
-    "#fde0dc", "#f8bbd0", "#e1bee7", "#d1c4e9",
-    "#c5cae9", "#bbdefb", "#b3e5fc", "#b2ebf2",
-    "#b2dfdb", "#c8e6c9", "#dcedc8", "#f0f4c3"
+    ("#f9b9b7", "#f28c8c"), ("#f48fb1", "#f06292"), ("#ce93d8", "#ab47bc"), ("#b39ddb", "#7e57c2"),
+    ("#9fa8da", "#5c6bc0"), ("#90caf9", "#42a5f5"), ("#81d4fa", "#29b6f6"), ("#80deea", "#26c6da"),
+    ("#80cbc4", "#26a69a"), ("#a5d6a7", "#66bb6a"), ("#c5e1a5", "#9ccc65"), ("#e6ee9c", "#d4e157")
 ]
 
 # Планети, символи, кольори (світлі, контрастні)
@@ -73,16 +73,18 @@ ASPECTS_DEF = {
 
 # ----------------- Утиліти -----------------
 def cleanup_cache(days: int = CACHE_TTL_DAYS):
-    now_ts = dt.now().timestamp()
-    for fname in os.listdir(CACHE_DIR):
+    now_ts = dt.now().timestamp()  # поточний час у секундах (UNIX timestamp)
+
+    for fname in os.listdir(CACHE_DIR):  # перебирає всі файли у папці cache/
         fpath = os.path.join(CACHE_DIR, fname)
         try:
-            if os.path.isfile(fpath):
+            if os.path.isfile(fpath):  # перевіряє, що це саме файл, а не папка
+                # скільки часу пройшло від останньої модифікації файлу
                 if now_ts - os.path.getmtime(fpath) > days * 24 * 3600:
-                    os.remove(fpath)
+                    os.remove(fpath)   # якщо файл старший за `days`, видаляє його
         except Exception:
-            pass
-
+            pass   # у випадку помилки просто ігнорує
+        
 def cache_key(name, date_str, time_str, place):
     raw = f"{name}_{date_str}_{time_str}_{place}"
     return hashlib.md5(raw.encode("utf-8")).hexdigest()
@@ -173,7 +175,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         ax.set_facecolor("white")
         plt.rcParams["font.family"] = "DejaVu Sans"
 
-        # 1) Сектори будинків (Placidus) або fallback рівні 30° (пастельні, ближче до градуювання)
+        # 1) Сектори будинків (Placidus) або fallback рівні 30° (градієнтні, ближче до градуювання)
         try:
             for i in range(1, 13):
                 cusp1 = get_house_lon(chart, i)
@@ -190,8 +192,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 ax.bar(
                     x=(theta_start + theta_end) / 2,
                     height=1.08, width=width, bottom=0.00,
-                    color=HOUSE_COLORS[(i-1) % 12], alpha=0.30,
-                    edgecolor="white", linewidth=0.6, zorder=0
+                    color=HOUSE_COLORS[(i-1) % 12][0], alpha=0.30,
+                    edgecolor=HOUSE_COLORS[(i-1) % 12][1], linewidth=0.6, zorder=0
                 )
                 # вершина дому
                 ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)], [0.15, 1.12], color="#888888", lw=0.8, zorder=2)
@@ -204,8 +206,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 ax.bar(
                     x=(theta_start + theta_end) / 2,
                     height=1.08, width=width, bottom=0.00,
-                    color=HOUSE_COLORS[i % 12], alpha=0.26,
-                    edgecolor="white", linewidth=0.6, zorder=0
+                    color=HOUSE_COLORS[i % 12][0], alpha=0.26,
+                    edgecolor=HOUSE_COLORS[i % 12][1], linewidth=0.6, zorder=0
                 )
                 ax.plot([np.deg2rad(start), np.deg2rad(start)], [0.15, 1.12], color="#888888", lw=0.8, zorder=2)
 
