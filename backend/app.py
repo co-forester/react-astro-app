@@ -236,6 +236,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 )
 
         except Exception:                                           # fallback для випадків відсутності даних
+            house_number_radius = central_circle_radius + 0.03      # визначаємо радіус номерів домів навіть у fallback
             for i in range(12):                                     # рівні 30° сектори
                 th_start = np.deg2rad(i*30)                         # початок сектору
                 th_end   = np.deg2rad(i*30 + 30)                    # кінець сектору
@@ -252,7 +253,6 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     fontsize=9, ha="center", va="center",
                     color="#6a1b2c", fontweight="bold", zorder=7
                 )
-
         # 2) Бордове кільце Зодіаку (ширше) + символи та назви по дузі
         for i, sym in enumerate(ZODIAC_SYMBOLS):
             start = i * 30
