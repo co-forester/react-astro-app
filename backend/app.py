@@ -239,45 +239,61 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     fontsize=9, ha="center", va="center",
                     color="#6a1b2c", fontweight="bold", zorder=7)
 
-        # --- 4) Зодіакальне кільце та символи (верх до центру) ---
+        # --- 4) Зодіакальне кільце та символи (внутрішня дуга, Placidus) ---
         ring_radius_start = 1.10
         ring_height = 0.20
+
         for i, sym in enumerate(ZODIAC_SYMBOLS):
-            start = i * 30
-            end = start + 30
+            # Беремо реальні градуси Placidus для дому
+            cusp1 = get_house_lon(chart, i+1)
+            cusp2 = get_house_lon(chart, (i+1) % 12 + 1)
+            if cusp1 is None or cusp2 is None:
+                start = i * 30
+                end = start + 30
+            else:
+                start = cusp1 % 360
+                end = cusp2 % 360
+                if (end - start) <= 0:
+                    end += 360
             mid = (start + end) / 2
             theta_start = np.deg2rad(start)
             theta_end = np.deg2rad(end)
             theta_c = np.deg2rad(mid)
 
             # Сектор бордовий
-            ax.bar(x=(theta_start + theta_end)/2, height=ring_height, width=abs(theta_end-theta_start),
+            ax.bar(
+                x=(theta_start + theta_end)/2,
+                height=ring_height,
+                width=abs(theta_end - theta_start),
                 bottom=ring_radius_start,
-                color=HOUSE_COLORS[i%12][0], edgecolor=HOUSE_COLORS[i%12][1],
-                linewidth=1.2, zorder=3)
+                color=HOUSE_COLORS[i % 12][0],
+                edgecolor=HOUSE_COLORS[i % 12][1],
+                linewidth=1.2,
+                zorder=3
+            )
 
             # Лінії розділу секторів
             ax.plot([theta_start, theta_start],
                     [ring_radius_start, ring_radius_start + ring_height + 0.01],
                     color="white", lw=1.2, zorder=4)
 
-            # Позиції текстів
-            symbol_r = ring_radius_start + 0.15  # вище
-            label_r = ring_radius_start + 0.07   # нижче
+            # Внутрішня дуга: символи трохи вище, підписи нижче
+            symbol_r = ring_radius_start + ring_height - 0.02  # трохи всередині сектора
+            label_r = ring_radius_start + 0.05                # нижче символу, всередині дуги
 
             if ZODIAC_NAMES[i] == "Скорпіон":
-                # Логотип у дузі
+                # Логотип у дузі замість підпису
                 ax.text(theta_c, label_r, "Albireo Daria",
                         fontsize=11, ha="center", va="center",
                         color="#FFD700", fontweight="bold",
                         rotation=mid+90, rotation_mode="anchor", zorder=6)
             else:
-                # Символ (вище, по дузі)
+                # Символ над підписом
                 ax.text(theta_c, symbol_r, sym,
                         fontsize=18, ha="center", va="center",
                         color="#4e4247", fontweight="bold",
                         rotation=mid+90, rotation_mode="anchor", zorder=6)
-                # Назва (нижче, по дузі)
+                # Назва знаку під символом
                 ax.text(theta_c, label_r, ZODIAC_NAMES[i],
                         fontsize=9, ha="center", va="center",
                         color="#4e4247", rotation=mid+90,
