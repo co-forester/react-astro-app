@@ -249,26 +249,39 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     ax.text(th_mid, house_number_radius, str(i),
                             fontsize=9, ha="center", va="center", color="#6a1b2c", fontweight="bold", zorder=7)
 
-                # --- 4) Бордове кільце Зодіаку + символи та назви по дузі ---
+                # --- 4) Бордове кільце Зодіаку + символи та назви по дузі (повернуті до центру) -----------------
                 for i, sym in enumerate(ZODIAC_SYMBOLS):
                     start = i * 30
                     theta_start = np.deg2rad(start)
                     theta_end = np.deg2rad(start + 30)
                     width = abs(theta_end - theta_start)
-                    ax.bar(x=(theta_start + theta_end)/2, height=0.20, width=width, bottom=1.10,
+
+                    # Широке бордове кільце
+                    ax.bar(x=(theta_start + theta_end) / 2, height=0.20, width=width, bottom=1.10,
                         color="#6a1b2c", edgecolor="white", linewidth=1.2, zorder=3)
                     ax.plot([theta_start, theta_start], [1.10, 1.30], color="white", lw=1.2, zorder=4)
+
                     center_deg = start + 15
                     theta_c = np.deg2rad(center_deg)
-                    text_rot = -center_deg
-                    ax.text(theta_c, 1.18, sym, fontsize=20, ha="center", va="center",
-                            color="white" if sym != "♏" else "#FFD700",
-                            fontweight="bold", rotation=text_rot,
-                            rotation_mode="anchor", zorder=6)
-                    ax.text(theta_c, 1.27, ZODIAC_NAMES[i], fontsize=9, ha="center", va="center",
-                            color="white", rotation=text_rot,
-                            rotation_mode="anchor", zorder=5)
-                    # Дугові риски 5°
+                    # поворот так, щоб верх був до центру карти
+                    text_rot = center_deg + 90  
+
+                    # Символи
+                    if sym == "♏":
+                        ax.text(theta_c, 1.18, sym, fontsize=20, ha="center", va="center",
+                                color="#FFD700", fontweight="bold", rotation=text_rot,
+                                rotation_mode="anchor", zorder=6)
+                    else:
+                        ax.text(theta_c, 1.18, sym, fontsize=20, ha="center", va="center",
+                                color="white", fontweight="bold", rotation=text_rot,
+                                rotation_mode="anchor", zorder=5)
+
+                        # Дугова назва знаку
+                        ax.text(theta_c, 1.27, ZODIAC_NAMES[i], fontsize=9, ha="center", va="center",
+                                color="white", rotation=text_rot,
+                                rotation_mode="anchor", zorder=5)
+
+                    # Дугові внутрішні риски 5°
                     for deg_mark in range(0, 31, 5):
                         theta_deg = np.deg2rad(start + deg_mark)
                         r_start = 1.09
