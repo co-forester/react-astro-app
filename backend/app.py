@@ -228,47 +228,64 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     color="#6a1b2c", fontweight="bold", zorder=7)
 
         # --- 4) Зодіакальне кільце та символи (верх до центру) ---
+        ring_radius_start = 1.10
+        ring_height = 0.20
         for i, sym in enumerate(ZODIAC_SYMBOLS):
             start = i * 30
+            end = start + 30
+            mid = (start + end) / 2
             theta_start = np.deg2rad(start)
-            theta_end = np.deg2rad(start + 30)
-            width = abs(theta_end - theta_start)
-            ax.bar(x=(theta_start + theta_end)/2, height=0.20, width=width, bottom=1.10,
-                   color="#6a1b2c", edgecolor="white", linewidth=1.2, zorder=3)
-            ax.plot([theta_start, theta_start], [1.10, 1.30], color="white", lw=1.2, zorder=4)
-
-            center_deg = start + 15
-            theta_c = np.deg2rad(center_deg)
-            text_rot = center_deg + 90  # повернути до центру
-
-            ax.text(theta_c, 1.18, sym,
-                    fontsize=20, ha="center", va="center",
-                    color="#FFD700" if sym=="♏" else "white",
-                    fontweight="bold", rotation=text_rot,
-                    rotation_mode="anchor", zorder=6 if sym=="♏" else 5)
-            ax.text(theta_c, 1.27, ZODIAC_NAMES[i],
-                    fontsize=9, ha="center", va="center",
-                    color="white", rotation=text_rot,
-                    rotation_mode="anchor", zorder=5)
+            theta_end = np.deg2rad(end)
+            theta_c = np.deg2rad(mid)
+            
+            # Сектор з бордовим градієнтом
+            ax.bar(x=(theta_start + theta_end)/2, height=ring_height, width=abs(theta_end-theta_start),
+                bottom=ring_radius_start,
+                color=HOUSE_COLORS[i%12][0], edgecolor=HOUSE_COLORS[i%12][1],
+                linewidth=1.2, zorder=3)
+            
+            # Лінії розділу секторів
+            ax.plot([theta_start, theta_start], [ring_radius_start, ring_radius_start + ring_height + 0.01],
+                    color="white", lw=1.2, zorder=4)
+            
+            # Символ та підпис по дузі
+            if ZODIAC_NAMES[i] == "Скорпіон":
+                # Логотип замість підпису
+                ax.text(theta_c, ring_radius_start + 0.08, "Albireo Daria", fontsize=12, ha="center", va="center",
+                        color="#FFD700", fontweight="bold", rotation=mid+90,
+                        rotation_mode="anchor", zorder=6)
+            else:
+                # Символ блідо-пастельний
+                ax.text(theta_c, ring_radius_start + 0.08, sym, fontsize=20, ha="center", va="center",
+                        color=HOUSE_COLORS[i%12][0], fontweight="bold",
+                        rotation=mid+90, rotation_mode="anchor", zorder=5)
+                # Назва знаку зверху до центру
+                ax.text(theta_c, ring_radius_start + 0.17, ZODIAC_NAMES[i], fontsize=9, ha="center", va="center",
+                        color=HOUSE_COLORS[i%12][0], rotation=mid+90,
+                        rotation_mode="anchor", zorder=5)
+            
+            # Поділ градусів по 5° та 10°
             for deg_mark in range(0, 31, 5):
                 theta_deg = np.deg2rad(start + deg_mark)
-                r_start = 1.09
-                r_end = 1.10 if deg_mark % 10 == 0 else 1.095
+                r_start = ring_radius_start + 0.01
+                r_end = ring_radius_start + 0.02 if deg_mark % 10 == 0 else ring_radius_start + 0.015
                 ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#faf6f7", lw=1, zorder=2)
-
+       
         # --- 5) Центральне коло ---
-        central_circle_radius = 0.16
+        max_name_len = len(str(name_for_center)) if name_for_center else 0
+        central_circle_radius = max(0.16, 0.08 + max_name_len*0.012)  # динамічний радіус
         central_circle = plt.Circle((0, 0), central_circle_radius,
-                                    color="#e9c7cf", ec="#a05c6a", lw=1.1, alpha=0.97, zorder=12)
+                                    color="#e9c7cf", ec="#a05c6a", lw=1.2, alpha=0.97, zorder=10)
         ax.add_patch(central_circle)
-        if name_for_center:
-            base_fontsize = 13
-            name_len = len(str(name_for_center))
-            fontsize = base_fontsize if name_len <= 13 else max(8, int(base_fontsize * 13 / name_len))
-            ax.text(0, 0, name_for_center, color="#800000",
-                    ha="center", va="center", fontsize=fontsize,
-                    fontweight="bold", zorder=13, clip_on=True)
 
+        if name_for_center:
+            fontsize = min(13, int(central_circle_radius*130))
+            ax.text(0, 0, name_for_center, color="#800000",
+                    ha="center", va="center",
+                    fontsize=fontsize,
+                    fontweight="bold",
+                    zorder=15,
+                    clip_on=False)  # вимикаємо обрізку
         # --- 6) ASC/MC/DSC/IC з fallback ---
         r_marker = 1.34
         for label in ["ASC", "MC", "DSC", "IC"]:
@@ -338,27 +355,27 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         ax.set_aspect("equal", adjustable="box")
         
         # --- 10a) Легенда під картою (планети та аспекти) ---
-        # --- 10a) Легенда під картою (планети та аспекти) ---
-        legend_x_start = -0.95
-        legend_y_start = -0.18
+       
+        legend_x_start = -0.6  # початок по горизонталі, вирівняно під коло
+        legend_y_start = -0.15  # трохи під колом
         legend_dx = 0.25
-        legend_dy = 0.04
+        legend_dy = 0.035  # менший крок, щоб все компактно
+
 
         # Планети
-        ax.text(legend_x_start, legend_y_start, "Планети:", fontsize=10, fontweight="bold", ha="left", va="center", color="#333333", zorder=15)
-        px, py = legend_x_start + 0.05, legend_y_start - legend_dy
+        fig.text(legend_x_start, legend_y_start + 0.1, "Планети:", fontsize=10, fontweight="bold", ha="left", va="bottom", color="#333333")
+        py = legend_y_start
         for pid, sym in PLANET_SYMBOLS.items():
             if pid in PLANET_COLORS:
-                ax.text(px, py, f"{sym} {pid}", fontsize=9, ha="left", va="center", color=PLANET_COLORS[pid], zorder=15)
-                py -= legend_dy
+                fig.text(legend_x_start, py, f"{sym} {pid}", fontsize=9, ha="left", va="bottom", color=PLANET_COLORS[pid])
+                py += legend_dy
 
         # Аспекти
-        ax.text(legend_x_start + 1.1, legend_y_start, "Аспекти:", fontsize=10, fontweight="bold", ha="left", va="center", color="#333333", zorder=15)
-        px, py = legend_x_start + 1.15, legend_y_start - legend_dy
+        fig.text(legend_x_start + 0.3, legend_y_start + 0.1, "Аспекти:", fontsize=10, fontweight="bold", ha="left", va="bottom", color="#333333")
+        py = legend_y_start
         for asp_name, cfg in ASPECTS_DEF.items():
-            ax.plot([px-0.02, px-0.02+0.02], [py, py], color=cfg["color"], lw=3, zorder=15)
-            ax.text(px + 0.02, py, asp_name, fontsize=9, ha="left", va="center", color="#333333", zorder=15)
-            py -= legend_dy
+            fig.text(legend_x_start + 0.3, py, f"{asp_name}", fontsize=9, ha="left", va="bottom", color=cfg["color"])
+            py += legend_dy
         
         plt.savefig(save_path, dpi=180, bbox_inches="tight", facecolor=fig.get_facecolor())
         plt.close(fig)
