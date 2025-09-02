@@ -192,8 +192,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         # --- Фон ---
         fig = plt.figure(figsize=(12, 12))
         ax = plt.subplot(111, polar=True)
-        ax.set_theta_zero_location("W")
-        ax.set_theta_direction(-1)
+        ax.set_theta_zero_location("E")  # 0° на схід
+        ax.set_theta_direction(-1)       # напрям годинникової стрілки
         ax.set_ylim(0, 1.45)
         ax.set_xticks([]); ax.set_yticks([])
         fig.patch.set_facecolor("#4e4247")
@@ -204,30 +204,19 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         for i in range(1, 13):
             cusp1 = get_house_lon(chart, i)
             cusp2 = get_house_lon(chart, (i % 12) + 1)
-            if cusp1 is None or cusp2 is None:
-                continue  # пропускаємо будинок якщо не порахувався
-            start_deg = float(cusp1) % 360
-            end_deg = float(cusp2) % 360
-            if (end_deg - start_deg) <= 0:
-                end_deg += 360  # правильно обробляємо перетин 0°
+            if cusp1 is None or cusp2 is None: continue
+            start_deg = cusp1 % 360
+            end_deg = cusp2 % 360
+            if (end_deg - start_deg) <= 0: end_deg += 360
             theta_start = np.deg2rad(start_deg)
             theta_end = np.deg2rad(end_deg)
             width = abs(theta_end - theta_start)
-
-            # Бордовий сектор будинку
             ax.bar(
                 x=(theta_start + theta_end)/2,
-                height=1.08,
-                width=width,
-                bottom=0.0,
-                color=HOUSE_COLORS[(i-1)%12][0],
-                alpha=0.3,
-                edgecolor=HOUSE_COLORS[(i-1)%12][1],
-                linewidth=0.6,
-                zorder=0
+                height=1.08, width=width, bottom=0.0,
+                color=HOUSE_COLORS[(i-1)%12][0], alpha=0.3,
+                edgecolor=HOUSE_COLORS[(i-1)%12][1], linewidth=0.6, zorder=0
             )
-
-            # Лінія розділу будинків
             ax.plot([theta_start, theta_start], [0.15, 1.12],
                     color="#888888", lw=0.8, zorder=2)
 
@@ -236,10 +225,9 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         for i in range(1, 13):
             cusp1 = get_house_lon(chart, i)
             cusp2 = get_house_lon(chart, (i % 12) + 1)
-            if cusp1 is None or cusp2 is None:
-                continue
-            start = float(cusp1) % 360
-            end = float(cusp2) % 360
+            if cusp1 is None or cusp2 is None: continue
+            start = cusp1 % 360
+            end = cusp2 % 360
             mid = (start + ((end - start) % 360)/2) % 360
             th_mid = np.deg2rad(mid)
             ax.text(th_mid, house_number_radius, str(i),
@@ -327,38 +315,25 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 ax.text(th, r_marker+0.015,label_text,ha='center',va='center',fontsize=8,color="#444444",zorder=9,rotation=0)
             except Exception: continue
 
-        # --- 7) Планети з fallback ---
+        # --- 7) Планети ---
         r_planet = 0.80
         planet_positions = {}
-
-        # створимо словник для швидкого доступу по імені
         chart_obj_map = {getattr(obj, "id", ""): obj for obj in chart.objects if getattr(obj, "id", None)}
 
         for pid, sym in PLANET_SYMBOLS.items():
             obj = chart_obj_map.get(pid, None)
-            
-            # fallback: для Chiron, Lilith, Ceres, Pallas, Juno, Vesta — Flatlib може не створювати
-            if obj is None:
-                continue
-            
+            if obj is None: continue
             lon = getattr(obj, "lon", None)
-            if lon is None:
-                lon = getattr(obj, "signlon", None)
-            if lon is None:
-                continue
+            if lon is None: lon = getattr(obj, "signlon", None)
+            if lon is None: continue
             lon = float(lon) % 360
             th = np.deg2rad(lon)
             col = PLANET_COLORS.get(pid, "#333333")
-            
-            # точка планети
             ax.plot(th, r_planet, marker='o', markersize=6, color=col, zorder=12)
-            # символ над точкою
             ax.text(th, r_planet + 0.07, sym, fontsize=20,
                     ha="center", va="center", color=col, zorder=11)
-            # підпис з градусами
             ax.text(th, r_planet, f"{pid} {deg_to_dms(lon)}",
                     fontsize=8, ha="center", va="center", color=col, zorder=11)
-            
             planet_positions[pid] = (th, r_planet, lon)
 
         # --- Аспекти ---
@@ -404,7 +379,6 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         print("Error in draw_natal_chart:", e)
         traceback.print_exc()
         raise
-
 
 # ----------------- /generate -----------------
 @app.route("/generate", methods=["POST"])
