@@ -183,14 +183,15 @@ def compute_aspects_manual(objects):
 # ----------------- Малювання натальної карти -----------------
 def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_text="Albireo Daria"):
     try:
+        # --- Фон ---
         fig = plt.figure(figsize=(12, 12))
         ax = plt.subplot(111, polar=True)
         ax.set_theta_zero_location("W")
         ax.set_theta_direction(-1)
         ax.set_ylim(0, 1.45)
         ax.set_xticks([]); ax.set_yticks([])
-        fig.patch.set_facecolor("white")
-        ax.set_facecolor("white")
+        fig.patch.set_facecolor("#4e4247")
+        ax.set_facecolor("#4e4247")
         plt.rcParams["font.family"] = "DejaVu Sans"
 
         # --- 2) Сектори будинків ---
@@ -356,27 +357,28 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         
         # --- 10a) Легенда під картою (планети та аспекти) ---
        
-        legend_x_start = -0.6  # початок по горизонталі, вирівняно під коло
-        legend_y_start = -0.15  # трохи під колом
-        legend_dx = 0.25
-        legend_dy = 0.035  # менший крок, щоб все компактно
-
+        legend_elements = []
 
         # Планети
-        fig.text(legend_x_start, legend_y_start + 0.1, "Планети:", fontsize=10, fontweight="bold", ha="left", va="bottom", color="#333333")
-        py = legend_y_start
         for pid, sym in PLANET_SYMBOLS.items():
             if pid in PLANET_COLORS:
-                fig.text(legend_x_start, py, f"{sym} {pid}", fontsize=9, ha="left", va="bottom", color=PLANET_COLORS[pid])
-                py += legend_dy
+                legend_elements.append(Line2D([0], [0], marker='o', color='w',
+                                            markerfacecolor=PLANET_COLORS[pid],
+                                            label=f"{sym} {pid}",
+                                            markersize=8))
 
         # Аспекти
-        fig.text(legend_x_start + 0.3, legend_y_start + 0.1, "Аспекти:", fontsize=10, fontweight="bold", ha="left", va="bottom", color="#333333")
-        py = legend_y_start
         for asp_name, cfg in ASPECTS_DEF.items():
-            fig.text(legend_x_start + 0.3, py, f"{asp_name}", fontsize=9, ha="left", va="bottom", color=cfg["color"])
-            py += legend_dy
-        
+            legend_elements.append(Line2D([0], [0], color=cfg["color"], lw=2,
+                                        label=asp_name.capitalize()))
+
+        # Розташування легенди
+        ax.legend(handles=legend_elements,
+                loc="lower center",
+                bbox_to_anchor=(0.5, -0.15),
+                fontsize=9,
+                ncol=3, frameon=False)
+                
         plt.savefig(save_path, dpi=180, bbox_inches="tight", facecolor=fig.get_facecolor())
         plt.close(fig)
 
