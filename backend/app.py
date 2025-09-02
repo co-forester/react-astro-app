@@ -336,6 +336,29 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
 
         # --- 10) Збереження ---
         ax.set_aspect("equal", adjustable="box")
+        
+        # --- 10a) Легенда під картою (планети та аспекти) ---
+        legend_x_start = -0.95
+        legend_y_start = -0.18
+        legend_dx = 0.25
+        legend_dy = 0.04
+
+        # Планети
+        ax.text(legend_x_start, legend_y_start, "Планети:", fontsize=10, fontweight="bold", ha="left", va="center", color="#333333", zorder=15)
+        px, py = legend_x_start + 0.05, legend_y_start - legend_dy
+        for pid, sym in PLANET_SYMBOLS.items():
+            if pid in PLANET_COLORS:
+                ax.text(px, py, f"{sym} {pid}", fontsize=9, ha="left", va="center", color=PLANET_COLORS[pid], zorder=15)
+                py -= legend_dy
+
+        # Аспекти
+        ax.text(legend_x_start + 1.1, legend_y_start, "Аспекти:", fontsize=10, fontweight="bold", ha="left", va="center", color="#333333", zorder=15)
+        px, py = legend_x_start + 1.15, legend_y_start - legend_dy
+        for asp_name, cfg in ASPECTS_DEF.items():
+            ax.plot([px-0.02, px-0.02+0.02], [py, py], color=cfg["color"], lw=3, zorder=15)
+            ax.text(px + 0.02, py, asp_name, fontsize=9, ha="left", va="center", color="#333333", zorder=15)
+            py -= legend_dy
+        
         plt.savefig(save_path, dpi=180, bbox_inches="tight", facecolor=fig.get_facecolor())
         plt.close(fig)
 
