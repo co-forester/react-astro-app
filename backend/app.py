@@ -228,7 +228,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     fontsize=9, ha="center", va="center",
                     color="#6a1b2c", fontweight="bold", zorder=7)
 
-        # --- 4) Зодіакальне кільце та символи (верх до центру) ---
+       # --- 4) Зодіакальне кільце та символи (верх до центру) ---
         ring_radius_start = 1.10
         ring_height = 0.20
         for i, sym in enumerate(ZODIAC_SYMBOLS):
@@ -238,40 +238,46 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             theta_start = np.deg2rad(start)
             theta_end = np.deg2rad(end)
             theta_c = np.deg2rad(mid)
-            
-            # Сектор з бордовим градієнтом
+
+            # Сектор бордовий
             ax.bar(x=(theta_start + theta_end)/2, height=ring_height, width=abs(theta_end-theta_start),
                 bottom=ring_radius_start,
                 color=HOUSE_COLORS[i%12][0], edgecolor=HOUSE_COLORS[i%12][1],
                 linewidth=1.2, zorder=3)
-            
+
             # Лінії розділу секторів
-            ax.plot([theta_start, theta_start], [ring_radius_start, ring_radius_start + ring_height + 0.01],
+            ax.plot([theta_start, theta_start],
+                    [ring_radius_start, ring_radius_start + ring_height + 0.01],
                     color="white", lw=1.2, zorder=4)
-            
-            # Символ та підпис по дузі
+
+            # Позиції текстів
+            symbol_r = ring_radius_start + 0.15  # вище
+            label_r = ring_radius_start + 0.07   # нижче
+
             if ZODIAC_NAMES[i] == "Скорпіон":
-                # Логотип замість підпису
-                ax.text(theta_c, ring_radius_start + 0.08, "Albireo Daria", fontsize=12, ha="center", va="center",
-                        color="#FFD700", fontweight="bold", rotation=mid+90,
-                        rotation_mode="anchor", zorder=6)
+                # Логотип у дузі
+                ax.text(theta_c, label_r, "Albireo Daria",
+                        fontsize=11, ha="center", va="center",
+                        color="#FFD700", fontweight="bold",
+                        rotation=mid+90, rotation_mode="anchor", zorder=6)
             else:
-                # Символ блідо-пастельний
-                ax.text(theta_c, ring_radius_start + 0.08, sym, fontsize=20, ha="center", va="center",
-                        color=HOUSE_COLORS[i%12][0], fontweight="bold",
-                        rotation=mid+90, rotation_mode="anchor", zorder=5)
-                # Назва знаку зверху до центру
-                ax.text(theta_c, ring_radius_start + 0.17, ZODIAC_NAMES[i], fontsize=9, ha="center", va="center",
-                        color=HOUSE_COLORS[i%12][0], rotation=mid+90,
+                # Символ (вище, по дузі)
+                ax.text(theta_c, symbol_r, sym,
+                        fontsize=18, ha="center", va="center",
+                        color="#4e4247", fontweight="bold",
+                        rotation=mid+90, rotation_mode="anchor", zorder=6)
+                # Назва (нижче, по дузі)
+                ax.text(theta_c, label_r, ZODIAC_NAMES[i],
+                        fontsize=9, ha="center", va="center",
+                        color="#4e4247", rotation=mid+90,
                         rotation_mode="anchor", zorder=5)
-            
-            # Поділ градусів по 5° та 10°
+
+            # Поділ градусів
             for deg_mark in range(0, 31, 5):
                 theta_deg = np.deg2rad(start + deg_mark)
                 r_start = ring_radius_start + 0.01
                 r_end = ring_radius_start + 0.02 if deg_mark % 10 == 0 else ring_radius_start + 0.015
                 ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#faf6f7", lw=1, zorder=2)
-       
         # --- 5) Центральне коло ---
         max_name_len = len(str(name_for_center)) if name_for_center else 0
         central_circle_radius = max(0.16, 0.08 + max_name_len*0.012)  # динамічний радіус
@@ -356,8 +362,6 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         ax.set_aspect("equal", adjustable="box")
         
         # --- 10a) Легенда під картою (планети та аспекти) ---
-        from matplotlib.lines import Line2D
-
         legend_elements = []
 
         # Планети
@@ -366,18 +370,18 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 legend_elements.append(Line2D([0], [0], marker='o', color='w',
                                             markerfacecolor=PLANET_COLORS[pid],
                                             label=f"{sym} {pid}",
-                                            markersize=8 * 1.3))  # +30%
+                                            markersize=8 * 1.6))  # +60%
 
         # Аспекти
         for asp_name, cfg in ASPECTS_DEF.items():
-            legend_elements.append(Line2D([0], [0], color=cfg["color"], lw=2.5 * 1.3,
+            legend_elements.append(Line2D([0], [0], color=cfg["color"], lw=2.5 * 1.6,
                                         label=asp_name.capitalize()))
 
-        # Розташування легенди (нижче кола + відступ вниз)
+        # Розташування легенди (нижче кола з меншим відступом)
         ax.legend(handles=legend_elements,
                 loc="upper center",
-                bbox_to_anchor=(0.5, -0.22),  # нижче на -0.22
-                fontsize=12,                  # більший шрифт (+30%)
+                bbox_to_anchor=(0.5, -0.18),  # трохи ближче
+                fontsize=14,                  # більший шрифт (+60%)
                 ncol=3, frameon=False)
                 
         plt.savefig(save_path, dpi=180, bbox_inches="tight", facecolor=fig.get_facecolor())
@@ -491,13 +495,11 @@ def generate():
 # ----------------- Статика кешу -----------------
 @app.route("/cache/<path:filename>")
 def cached_file(filename):
-    """Віддача кешованих файлів"""
     return send_from_directory(CACHE_DIR, filename)
 
 # ----------------- Health -----------------
 @app.route("/health")
 def health():
-    """Перевірка живучості сервера"""
     return "OK", 200
 
 # ----------------- Run -----------------
