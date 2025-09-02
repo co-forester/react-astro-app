@@ -56,11 +56,18 @@ PLANET_SYMBOLS = {
     "North Node":"☊","South Node":"☋","Ascendant":"ASC","MC":"MC",
     "Pars Fortuna":"⚶"
 }
+PLANET_SYMBOLS.update({
+    "Chiron":"⚷", "Lilith":"⚸", "Ceres":"⚳", "Pallas":"⚴", "Juno":"⚵", "Vesta":"⚶"
+})
 PLANET_COLORS = {
     "Sun":"#f6c90e","Moon":"#c0c0c0","Mercury":"#7d7d7d","Venus":"#e88fb4","Mars":"#e55d5d",
     "Jupiter":"#f3a33c","Saturn":"#b78b68","Uranus":"#69d2e7","Neptune":"#6a9bd1","Pluto":"#3d3d3d",
     "Ascendant":"#2ecc71","MC":"#8e44ad"
 }
+PLANET_COLORS.update({
+    "Chiron":"#ff66cc", "Lilith":"#993399", "Ceres":"#66ff66", "Pallas":"#6699ff",
+    "Juno":"#ffcc33", "Vesta":"#ff9966"
+})
 
 # Аспекти (кут, орб, колір) — назви у нижньому регістрі
 ASPECTS_DEF = {
@@ -327,6 +334,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     th = np.deg2rad(lon)
                     sym = PLANET_SYMBOLS[oid]
                     col = PLANET_COLORS.get(oid, "#333333")
+                    # Draw a small colored circle (точка) at the planet position
+                    ax.plot(th, r_planet, marker='o', markersize=6, color=col, zorder=12)
                     ax.text(th, r_planet + 0.07, sym, fontsize=20, ha="center", va="center", color=col, zorder=11)
                     ax.text(th, r_planet, f"{oid} {deg_to_dms(lon)}", fontsize=8,
                             ha="center", va="center", color=col, zorder=11)
