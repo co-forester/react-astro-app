@@ -473,7 +473,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         except Exception:
             pass
 
-        # --- 12) Акцент на Асцендент ---
+        # Акцент на Асцендент (золотий маркер на рівні планет)
         try:
             asc_obj = chart.get(const.ASC)
             if asc_obj is not None:
@@ -484,7 +484,10 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         except Exception:
             pass
 
-        # --- 13) Збереження PNG ---
+        # >>> виправлення пропорцій
+        ax.set_aspect("equal", adjustable="box")  
+
+        # Збереження картинки
         try:
             plt.savefig(save_path, dpi=180, bbox_inches="tight", facecolor=fig.get_facecolor())
         finally:
