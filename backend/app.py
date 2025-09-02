@@ -22,6 +22,7 @@ from geopy.exc import GeocoderTimedOut
 from timezonefinder import TimezoneFinder  # таймзона
 import pytz  # робота з часовими зонами
 
+import swisseph as swe  # Swiss Ephemeris — позиції планет
 from flatlib.chart import Chart  # Flatlib — натальна карта
 from flatlib import const
 from flatlib.datetime import Datetime
@@ -29,16 +30,22 @@ from flatlib.geopos import GeoPos
 
 
 # ----------------- Ініціалізація -----------------
-app = Flask(__name__)  # створення Flask-додатку
-CORS(app)  # дозволяє CORS для фронтенду
+# ================== Ініціалізація ефемерид ==================
+EPHE_DIR = os.environ.get("EPHE_DIR", "/ephe")  # шлях до ефемерид
+if not os.path.exists(EPHE_DIR):
+    print(f"WARNING: Ефемериди не знайдені за шляхом {EPHE_DIR}")
+swe.set_ephe_path(EPHE_DIR)  # встановлюємо локальний шлях для Swiss Ephemeris
 
-CACHE_DIR = "cache"  # директорія для кешу
-os.makedirs(CACHE_DIR, exist_ok=True)  # створює папку, якщо її нема
-CACHE_TTL_DAYS = 0.01  # TTL кешу в днях (~15 хв)
+# ================== Flask ==================
+app = Flask(__name__)
+CORS(app)
 
-geolocator = Nominatim(user_agent="albireo_astro_app")  # геокодер
-tf = TimezoneFinder()  # таймзона
+CACHE_DIR = "cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
+CACHE_TTL_DAYS = 0.01
 
+geolocator = Nominatim(user_agent="albireo_astro_app")
+tf = TimezoneFinder() # таймзона
 
 # ----------------- Конфіг -----------------
 ZODIAC_SYMBOLS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]  # символи зодіаку
@@ -308,25 +315,39 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 ax.text(th, r_marker+0.015,label_text,ha='center',va='center',fontsize=8,color="#444444",zorder=9,rotation=0)
             except Exception: continue
 
-        # --- Планети з fallback ---
+        # --- 7) Планети з fallback ---
         r_planet = 0.80
         planet_positions = {}
-        for obj in chart.objects:
-            oid = getattr(obj,"id",None)
-            if oid in PLANET_SYMBOLS:
-                lon = getattr(obj,"lon",None)
-                if lon is None: lon = getattr(obj,"signlon",None)
-                if lon is None: continue
-                lon = float(lon) % 360
-                th = np.deg2rad(lon)
-                sym = PLANET_SYMBOLS[oid]
-                col = PLANET_COLORS.get(oid,"#333333")
-                ax.plot(th, r_planet, marker='o', markersize=6, color=col, zorder=12)
-                ax.text(th, r_planet+0.07, sym, fontsize=20,
-                        ha="center", va="center", color=col, zorder=11)
-                ax.text(th, r_planet, f"{oid} {deg_to_dms(lon)}",
-                        fontsize=8, ha="center", va="center", color=col, zorder=11)
-                planet_positions[oid] = (th, r_planet, lon)
+
+        # створимо словник для швидкого доступу по імені
+        chart_obj_map = {getattr(obj, "id", ""): obj for obj in chart.objects if getattr(obj, "id", None)}
+
+        for pid, sym in PLANET_SYMBOLS.items():
+            obj = chart_obj_map.get(pid, None)
+            
+            # fallback: для Chiron, Lilith, Ceres, Pallas, Juno, Vesta — Flatlib може не створювати
+            if obj is None:
+                continue
+            
+            lon = getattr(obj, "lon", None)
+            if lon is None:
+                lon = getattr(obj, "signlon", None)
+            if lon is None:
+                continue
+            lon = float(lon) % 360
+            th = np.deg2rad(lon)
+            col = PLANET_COLORS.get(pid, "#333333")
+            
+            # точка планети
+            ax.plot(th, r_planet, marker='o', markersize=6, color=col, zorder=12)
+            # символ над точкою
+            ax.text(th, r_planet + 0.07, sym, fontsize=20,
+                    ha="center", va="center", color=col, zorder=11)
+            # підпис з градусами
+            ax.text(th, r_planet, f"{pid} {deg_to_dms(lon)}",
+                    fontsize=8, ha="center", va="center", color=col, zorder=11)
+            
+            planet_positions[pid] = (th, r_planet, lon)
 
         # --- Аспекти ---
         for asp in aspects_list:
