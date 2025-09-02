@@ -356,7 +356,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         ax.set_aspect("equal", adjustable="box")
         
         # --- 10a) Легенда під картою (планети та аспекти) ---
-       
+        from matplotlib.lines import Line2D
+
         legend_elements = []
 
         # Планети
@@ -365,18 +366,18 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 legend_elements.append(Line2D([0], [0], marker='o', color='w',
                                             markerfacecolor=PLANET_COLORS[pid],
                                             label=f"{sym} {pid}",
-                                            markersize=8))
+                                            markersize=8 * 1.3))  # +30%
 
         # Аспекти
         for asp_name, cfg in ASPECTS_DEF.items():
-            legend_elements.append(Line2D([0], [0], color=cfg["color"], lw=2,
+            legend_elements.append(Line2D([0], [0], color=cfg["color"], lw=2.5 * 1.3,
                                         label=asp_name.capitalize()))
 
-        # Розташування легенди
+        # Розташування легенди (нижче кола + відступ вниз)
         ax.legend(handles=legend_elements,
-                loc="lower center",
-                bbox_to_anchor=(0.5, -0.15),
-                fontsize=9,
+                loc="upper center",
+                bbox_to_anchor=(0.5, -0.22),  # нижче на -0.22
+                fontsize=12,                  # більший шрифт (+30%)
                 ncol=3, frameon=False)
                 
         plt.savefig(save_path, dpi=180, bbox_inches="tight", facecolor=fig.get_facecolor())
