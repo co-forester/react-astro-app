@@ -32,7 +32,7 @@ CORS(app)
 
 CACHE_DIR = "cache"
 os.makedirs(CACHE_DIR, exist_ok=True)   # створює папку "cache", якщо її ще нема
-CACHE_TTL_DAYS = 0.5                    # "Time To Live" — файли старше 30 днів треба видаляти
+CACHE_TTL_DAYS = 0.01                    # "Time To Live" — файли старше 30 днів треба видаляти
 
 geolocator = Nominatim(user_agent="albireo_astro_app")
 tf = TimezoneFinder()
@@ -262,16 +262,49 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 ax.text(th, 1.305, f"{deg}°", fontsize=8, ha="center", va="center", color="#aaaaaa")
                 ax.text(th, 1.325, deg_to_dms(deg), fontsize=7, ha="center", va="center", color="#888888")
 
-        # 4) Центральне кільце + бордовий диск з ім'ям у центрі
-        inner_ring = plt.Circle((0, 0), 0.16, color="#f5f5f5", zorder=10, fill=True, ec="#dddddd", lw=0.6)
-        ax.add_artist(inner_ring)
-        center_circle = plt.Circle((0, 0), 0.11, color="#800000", zorder=12)
-        ax.add_artist(center_circle)
+        # 4) Центральне коло (світлий бордовий) та ім'я всередині
+        # Малюємо центральне коло світло-бордовим, щоб на ньому не губилися хорди аспектів.
+        # Використовуємо злегка прозорий світлий бордовий відтінок, щоб він був контрастним, але не занадто темним.
+        # Додаємо тонку сіру обводку для виділення межі кола.
+        central_circle_radius = 0.16  # Радіус центрального кола (збільшений, щоб не перекривати номери домів)
+        central_circle = plt.Circle(
+            (0, 0), central_circle_radius,
+            color="#e9c7cf",           # Світлий бордовий (контрастний, але не темний)
+            zorder=12, fill=True,
+            ec="#a05c6a", lw=1.1,      # Тонка бордова обводка для виділення межі
+            alpha=0.97                 # Легка прозорість для м'якості
+        )
+        ax.add_artist(central_circle)
+
+        # Ім'я малюємо чітко всередині центрального кола, не виходячи за його межі.
+        # Динамічно підбираємо розмір шрифту, щоб ім'я не виходило за межі кола навіть для довгих імен.
         if name_for_center:
-            ax.text(0, 0, name_for_center, color="white", ha="center", va="center",
-                    fontsize=10, fontweight="bold", zorder=13)
+            # Максимальна ширина тексту (у відносних координатах)
+            max_text_width = 0.25 * central_circle_radius  # Підібрано експериментально
+            # Базовий розмір шрифту
+            base_fontsize = 13
+            # Оцінка довжини імені (кількість символів, з урахуванням кирилиці)
+            name_len = len(str(name_for_center))
+            # Зменшуємо розмір шрифту для довших імен
+            if name_len > 13:
+                fontsize = max(8, int(base_fontsize * 13 / name_len))
+            else:
+                fontsize = base_fontsize
+            # Малюємо ім'я у центрі кола, з білим кольором, жирним шрифтом
+            ax.text(
+                0, 0, name_for_center,
+                color="#800000",           # Темний бордовий для контрасту на світлому фоні
+                ha="center", va="center",
+                fontsize=fontsize,
+                fontweight="bold",
+                zorder=13,
+                clip_on=True,              # Не виходити за межі кола
+            )
 
         # 5) Номери домів (по Placidus або fallback)
+        # Щоб номери домів та лінії секторів не перекривали центральне коло,
+        # зміщуємо їх трохи далі від центру (радіус > central_circle_radius).
+        house_number_radius = central_circle_radius + 0.03  # Відступ від центру
         try:
             for i in range(1, 13):
                 cusp1 = get_house_lon(chart, i)
@@ -283,13 +316,19 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 diff = (end - start) % 360
                 mid = (start + diff / 2.0) % 360
                 th_mid = np.deg2rad(mid)
-                ax.text(th_mid, 0.14, str(i), fontsize=9, ha="center", va="center",
-                        color="#6a1b2c", fontweight="bold", zorder=7)
+                ax.text(
+                    th_mid, house_number_radius, str(i),
+                    fontsize=9, ha="center", va="center",
+                    color="#6a1b2c", fontweight="bold", zorder=7
+                )
         except Exception:
             for i in range(12):
                 th_mid = np.deg2rad(i*30 + 15)
-                ax.text(th_mid, 0.14, str(i+1), fontsize=9, ha="center", va="center",
-                        color="#6a1b2c", fontweight="bold", zorder=7)
+                ax.text(
+                    th_mid, house_number_radius, str(i+1),
+                    fontsize=9, ha="center", va="center",
+                    color="#6a1b2c", fontweight="bold", zorder=7
+                )
 
         # 6) ASC/MC/DSC/IC — маркери та DMS ЗА МЕЖАМИ КІЛЬЦЯ
         r_marker = 1.34  # поза зовнішнім краєм кільця
