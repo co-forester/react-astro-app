@@ -169,102 +169,85 @@ def compute_aspects_manual(objects):
                     break
     return results
 
-# ----------------- Малювання карти -----------------
 def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_text="Albireo Daria"):
     try:
-        fig = plt.figure(figsize=(12, 12))
-        ax = plt.subplot(111, polar=True)
-        ax.set_theta_zero_location("W")
-        ax.set_theta_direction(-1)
-        ax.set_ylim(0, 1.45)
-        ax.set_xticks([]); ax.set_yticks([])
-        fig.patch.set_facecolor("white")
-        ax.set_facecolor("white")
-        plt.rcParams["font.family"] = "DejaVu Sans"
+        # --- Створення фігури та полярних осей ---
+        fig = plt.figure(figsize=(12, 12))               # Створюємо квадратну фігуру 12x12 дюймів
+        ax = plt.subplot(111, polar=True)                # Полярна вісь для кругової карти
+        ax.set_theta_zero_location("W")                 # 0° збігається із західним напрямком
+        ax.set_theta_direction(-1)                      # Кути збільшуються проти годинникової стрілки
+        ax.set_ylim(0, 1.45)                            # Радіус осі до 1.45
+        ax.set_xticks([]); ax.set_yticks([])            # Прибираємо мітки кутів та радіусу
+        fig.patch.set_facecolor("white")                # Білий фон фігури
+        ax.set_facecolor("white")                        # Білий фон осі
+        plt.rcParams["font.family"] = "DejaVu Sans"    # Шрифт по замовчуванню
 
-        # ----------------- Сектори будинків (Placidus) -----------------
+        # --- 1) Сектори будинків Placidus (з fallback) ---
         try:
-            for i in range(1, 13):  # проходимо по 12 будинках
-                cusp1 = get_house_lon(chart, i)                     # довгота початку дому i
-                cusp2 = get_house_lon(chart, (i % 12) + 1)         # довгота початку наступного дому (i+1)
-                if cusp1 is None or cusp2 is None:                 
+            for i in range(1, 13):                     # Проходимо по 12 будинках
+                cusp1 = get_house_lon(chart, i)        # Довгота початку дому i
+                cusp2 = get_house_lon(chart, (i % 12) + 1)  # Довгота початку наступного дому
+                if cusp1 is None or cusp2 is None:     
                     raise RuntimeError("house cusps not available")  
 
-                start_deg = cusp1 % 360                             
-                end_deg   = cusp2 % 360                             
-                if (end_deg - start_deg) <= 0:                      
+                start_deg = cusp1 % 360                 # Перетворюємо у 0-360°
+                end_deg   = cusp2 % 360
+                if (end_deg - start_deg) <= 0:          # Якщо перехід через 0°
                     end_deg += 360
 
-                theta_start = np.deg2rad(start_deg)                
-                theta_end   = np.deg2rad(end_deg)                  
-                width = abs(theta_end - theta_start)               
+                theta_start = np.deg2rad(start_deg)     # У радіани
+                theta_end   = np.deg2rad(end_deg)
+                width = abs(theta_end - theta_start)    # Ширина сектора
 
+                # Малюємо сектор будинку як bar
                 ax.bar(
-                    x=(theta_start + theta_end)/2,                 
-                    height=1.08,                                   
-                    width=width,                                   
-                    bottom=0.0,                                    
-                    color=HOUSE_COLORS[(i-1)%12][0],              
-                    alpha=0.30,                                    
-                    edgecolor=HOUSE_COLORS[(i-1)%12][1],          
-                    linewidth=0.6,                                 
-                    zorder=0                                       
+                    x=(theta_start + theta_end)/2,      
+                    height=1.08,                         
+                    width=width,                         
+                    bottom=0.0,                          
+                    color=HOUSE_COLORS[(i-1)%12][0],     
+                    alpha=0.30,                          
+                    edgecolor=HOUSE_COLORS[(i-1)%12][1], 
+                    linewidth=0.6,                       
+                    zorder=0                              
                 )
 
+                # Лінія початку дому
                 ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)],
-                        [0.15, 1.12], color="#888888", lw=0.8, zorder=2)  
+                        [0.15, 1.12], color="#888888", lw=0.8, zorder=2)
 
-            # ----------------- Номери домів -----------------
-            house_number_radius = central_circle_radius + 0.03        
-            for i in range(1, 13):                                   
-                cusp1 = get_house_lon(chart, i)                       
-                cusp2 = get_house_lon(chart, (i % 12) + 1)           
-                start = cusp1 % 360                                   
-                end   = cusp2 % 360
-                diff  = (end - start) % 360                           
-                mid   = (start + diff / 2.0) % 360                    
-                th_mid = np.deg2rad(mid)                              
-                ax.text(
-                    th_mid, house_number_radius, str(i),             
-                    fontsize=9, ha="center", va="center",            
-                    color="#6a1b2c", fontweight="bold", zorder=7     
-                )
-
-        except Exception:                                           
-            house_number_radius = central_circle_radius + 0.03  # Визначаємо радіус для fallback
-            for i in range(12):                                     
-                th_start = np.deg2rad(i*30)                         
-                th_end   = np.deg2rad(i*30 + 30)                    
+        except Exception:
+            # Fallback: рівномірні 30° сектора
+            for i in range(12):
+                th_start = np.deg2rad(i*30)
+                th_end   = np.deg2rad(i*30 + 30)
                 width = th_end - th_start
                 ax.bar(
                     x=(th_start + th_end)/2, height=1.08, width=width, bottom=0.0,
                     color=HOUSE_COLORS[i % 12][0], alpha=0.26, edgecolor=HOUSE_COLORS[i % 12][1],
                     linewidth=0.6, zorder=0
                 )
-                ax.plot([th_start, th_start], [0.15, 1.12], color="#888888", lw=0.8, zorder=2)  
-                th_mid = np.deg2rad(i*30 + 15)                       
-                ax.text(
-                    th_mid, house_number_radius, str(i+1),           
-                    fontsize=9, ha="center", va="center",
-                    color="#6a1b2c", fontweight="bold", zorder=7
-                )
-        # 2) Бордове кільце Зодіаку (ширше) + символи та назви по дузі
+                ax.plot([th_start, th_start], [0.15, 1.12], color="#888888", lw=0.8, zorder=2)
+
+        # --- 2) Бордове кільце Зодіаку + символи та назви ---
         for i, sym in enumerate(ZODIAC_SYMBOLS):
             start = i * 30
             theta_start = np.deg2rad(start)
             theta_end = np.deg2rad(start + 30)
             width = abs(theta_end - theta_start)
-            # широке кільце зодіаку
-            ax.bar(x=(theta_start + theta_end) / 2, height=0.20, width=width, bottom=1.10,
+
+            # Широке кільце зодіаку
+            ax.bar(x=(theta_start + theta_end)/2, height=0.20, width=width, bottom=1.10,
                    color="#6a1b2c", edgecolor="white", linewidth=1.2, zorder=3)
             ax.plot([theta_start, theta_start], [1.10, 1.30], color="white", lw=1.2, zorder=4)
 
             center_deg = start + 15
             theta_c = np.deg2rad(center_deg)
             text_rot = -(center_deg)
-            # символ ближче до внутрішнього краю кільця, назва ближче до зовнішнього
+
+            # Символ та назва зодіаку
             if sym == "♏":
-                # у Скорпіоні замість назви нижче — піде логотип (додаємо окремо далі)
+                # Скорпіон: логотип буде окремо
                 ax.text(theta_c, 1.18, sym, fontsize=20, ha="center", va="center",
                         color="#FFD700", fontweight="bold", rotation=text_rot, rotation_mode="anchor", zorder=6)
             else:
@@ -273,14 +256,14 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 ax.text(theta_c, 1.27, ZODIAC_NAMES[i], fontsize=9, ha="center", va="center",
                         color="white", rotation=text_rot, rotation_mode="anchor", zorder=5)
 
-            # дугові внутрішні риски 5°
+            # Дуги внутрішніх рисок кожні 5°
             for deg_mark in range(0, 31, 5):
                 theta_deg = np.deg2rad(start + deg_mark)
                 r_start = 1.09
                 r_end = 1.10 if deg_mark % 10 == 0 else 1.095
                 ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#faf6f7", lw=1, zorder=2)
 
-        # 3) Градуйовка: кожні 10°, цифри та DMS кожні 30°
+        # --- 3) Градуйовка — кожні 10°, цифри та DMS кожні 30° ---
         for deg in range(0, 360, 10):
             th = np.deg2rad(deg)
             r0 = 1.08
@@ -292,43 +275,30 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 ax.text(th, 1.305, f"{deg}°", fontsize=8, ha="center", va="center", color="#aaaaaa")
                 ax.text(th, 1.325, deg_to_dms(deg), fontsize=7, ha="center", va="center", color="#888888")
 
-        # ----------------- 4) Центральне коло (світлий бордовий) та ім'я всередині -----------------
-        central_circle_radius = 0.16  # Радіус центрального кола, визначений на початку функції
-
-        # Переконаємось, що співвідношення осей квадратне, щоб коло не іскривилось
-        ax.set_aspect("equal")
-
-        # Малюємо центральне коло світло-бордовим
+        # --- 4) Центральне коло та ім’я ---
+        central_circle_radius = 0.16                          # Радіус центрального кола
+        ax.set_aspect("equal")                                # Квадратні осі, щоб коло не іскривилось
         central_circle = plt.Circle(
             (0, 0), central_circle_radius,
-            color="#e9c7cf",           # Світлий бордовий фон (контрастний, але не темний)
-            fill=True,
-            ec="#a05c6a", lw=1.1,      # Тонка бордова обводка для межі
-            alpha=0.97,                 # Легка прозорість для м’якості
-            zorder=12                   # Порядок відображення: над секторами будинків, під планетами
+            color="#e9c7cf", fill=True,                     # Світлий бордовий фон
+            ec="#a05c6a", lw=1.1, alpha=0.97, zorder=12     # Тонка обводка і прозорість
         )
-        ax.add_artist(central_circle)  # Додаємо коло на осі
+        ax.add_artist(central_circle)                         # Додаємо коло на осі
 
-        # Малюємо ім'я у центрі кола, динамічно підбираючи розмір шрифту
+        # Ім’я у центрі
         if name_for_center:
             base_fontsize = 13
-            name_len = len(str(name_for_center))  # Довжина імені
-            # Зменшуємо шрифт для довгих імен, мінімум 8
+            name_len = len(str(name_for_center))
             fontsize = max(8, int(base_fontsize * 13 / name_len)) if name_len > 13 else base_fontsize
-
             ax.text(
-                0, 0, name_for_center,       # Координати центру
-                color="#800000",             # Темний бордовий для контрасту на світлому фоні
-                ha="center", va="center",    # Вирівнювання по центру
-                fontsize=fontsize,           # Динамічний розмір шрифту
-                fontweight="bold",           # Жирний шрифт
-                zorder=13,                   # Поверх кола
-                clip_on=True                 # Не виходити за межі кола
+                0, 0, name_for_center,
+                color="#800000", ha="center", va="center",
+                fontsize=fontsize, fontweight="bold",
+                zorder=13, clip_on=True
             )
-        # 5) Номери домів (по Placidus або fallback)
-        # Щоб номери домів та лінії секторів не перекривали центральне коло,
-        # зміщуємо їх трохи далі від центру (радіус > central_circle_radius).
-        house_number_radius = central_circle_radius + 0.03  # Відступ від центру
+
+        # --- 5) Номери домів, зміщені від центру ---
+        house_number_radius = central_circle_radius + 0.03
         try:
             for i in range(1, 13):
                 cusp1 = get_house_lon(chart, i)
@@ -354,8 +324,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     color="#6a1b2c", fontweight="bold", zorder=7
                 )
 
-        # 6) ASC/MC/DSC/IC — маркери та DMS ЗА МЕЖАМИ КІЛЬЦЯ
-        r_marker = 1.34  # поза зовнішнім краєм кільця
+        # --- 6) ASC/MC/DSC/IC маркери та DMS ---
+        r_marker = 1.34
         for label in ["ASC", "MC", "DSC", "IC"]:
             try:
                 try:
@@ -381,7 +351,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             except Exception:
                 continue
 
-        # 7) Планети: символ + DMS підпис
+        # --- 7) Планети: символи + DMS ---
         r_planet = 0.80
         planet_positions = {}
         for obj in chart.objects:
@@ -397,7 +367,6 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     th = np.deg2rad(lon)
                     sym = PLANET_SYMBOLS[oid]
                     col = PLANET_COLORS.get(oid, "#333333")
-                    # Draw a small colored circle (точка) at the planet position
                     ax.plot(th, r_planet, marker='o', markersize=6, color=col, zorder=12)
                     ax.text(th, r_planet + 0.07, sym, fontsize=20, ha="center", va="center", color=col, zorder=11)
                     ax.text(th, r_planet, f"{oid} {deg_to_dms(lon)}", fontsize=8,
@@ -406,44 +375,28 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             except Exception:
                 continue
 
-        #  8) Класичні аспекти: хорди + таблиця -----------------
-        aspect_colors = {                                   # Кольори для типів аспектів
-            "conjunction": "#D62728",
-            "sextile":     "#1F77B4",
-            "square":      "#FF7F0E",
-            "trine":       "#2CA02C",
-            "opposition":  "#9467BD",
-        }
-        aspects_table = []                                  # Список рядків для таблиці аспектів
-        legend_seen = {}                                    # Для легенди — які аспекти присутні
-
-        # Використовуємо ту ж полярну вісь, що і планети (щоб збігалося)
-        for asp in aspects_list:                             # Проходимо по всіх аспектах
+        # --- 8) Аспекти: хорди + таблиця ---
+        aspect_colors = { "conjunction": "#D62728", "sextile": "#1F77B4", "square": "#FF7F0E",
+                          "trine": "#2CA02C", "opposition": "#9467BD" }
+        aspects_table = []
+        legend_seen = {}
+        for asp in aspects_list:
             try:
-                p1_id = asp.get("planet1")                  # ID першої планети
-                p2_id = asp.get("planet2")                  # ID другої планети
-
-                # Перевірка, чи є планети у planet_positions
+                p1_id = asp.get("planet1")
+                p2_id = asp.get("planet2")
                 if p1_id not in planet_positions or p2_id not in planet_positions:
                     continue
-
-                # Отримуємо полярні координати з planet_positions
-                th1, r1, lon1_f = planet_positions[p1_id]  # кут, радіус, градуси
+                th1, r1, lon1_f = planet_positions[p1_id]
                 th2, r2, lon2_f = planet_positions[p2_id]
-
-                col = aspect_colors.get(str(asp.get("type", "")).lower(), "#777777") # колір хорди
-
-                # Малюємо хорду **безпосередньо на полярній осі** ax, враховуючи поворот 0° = W
+                col = aspect_colors.get(str(asp.get("type", "")).lower(), "#777777")
                 ax.plot([th1, th2], [r1, r2], color=col, lw=2.2, alpha=0.95, zorder=10)
 
-                # Функція для переведення градусів у DMS для таблиці
                 def dms_str(x):
                     d = int(x) % 360
                     m = int((x - int(x)) * 60)
                     s = int(((x - int(x)) * 60 - m) * 60)
                     return f"{d}°{m}'{s}''"
 
-                # Додаємо рядок у таблицю аспектів
                 aspects_table.append({
                     "planet1": p1_id,
                     "lon1": dms_str(lon1_f),
@@ -452,14 +405,13 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     "type": asp.get("type"),
                     "angle": asp.get("angle"),
                     "angle_dms": asp.get("angle_dms"),
-                    "color": col                                # колір для підфарбування рядка
+                    "color": col
                 })
                 legend_seen[str(asp.get("type","")).lower()] = col
-
             except Exception:
-                continue  # Ігноруємо помилки окремих аспектів
+                continue
 
-        # Легенда під картою
+        # --- 9) Легенда ---
         legend_order = ["conjunction", "sextile", "square", "trine", "opposition"]
         legend_handles = []
         legend_labels = []
@@ -472,46 +424,41 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             ax_leg = fig.add_axes([0.05, -0.09, 0.90, 0.06])
             ax_leg.axis("off")
             ax_leg.legend(handles=legend_handles, labels=legend_labels,
-                        loc="center", ncol=len(legend_handles), frameon=False)
+                          loc="center", ncol=len(legend_handles), frameon=False)
 
-        # Таблиця аспектів під картою
+        # --- 10) Таблиця аспектів під картою ---
         if aspects_table:
             cols = ["planet1", "lon1", "planet2", "lon2", "type", "angle_dms"]
             table_data = [[str(row.get(c, "")) for c in cols] for row in aspects_table]
             colors = [row.get("color", "#ffffff") for row in aspects_table]
-
             ax_tbl = fig.add_axes([0.03, -0.28, 0.94, 0.16])
             ax_tbl.axis("off")
             tbl = ax_tbl.table(cellText=table_data,
-                            colLabels=["Planet 1","Lon 1","Planet 2","Lon 2","Aspect","Angle"],
-                            loc="center", cellLoc="center")
+                               colLabels=["Planet 1","Lon 1","Planet 2","Lon 2","Aspect","Angle"],
+                               loc="center", cellLoc="center")
             tbl.auto_set_font_size(False)
             tbl.set_fontsize(7)
             tbl.scale(1.0, 1.18)
-
-            # Підфарбовуємо рядки легким відтінком відповідного аспекту
-            nrows = len(table_data)
-            for r in range(1, nrows + 1):  # +1 бо 0-й — заголовки
+            for r in range(1, len(table_data) + 1):
                 for c in range(len(cols)):
                     cell = tbl[(r, c)]
-                    cell.set_facecolor(matplotlib.colors.to_rgba(colors[r-1], 0.12))  # Легкий відтінок
-        # ---  Логотип у секторі Скорпіона ПО ДУЗІ, проти год. стрілки, кожна літера перевернута (+180°) ---
+                    cell.set_facecolor(matplotlib.colors.to_rgba(colors[r-1], 0.12))
+
+        # --- 11) Логотип у секторі Скорпіона ---
         try:
-            # сектор Скорпіона ~ 210°–240°; коротка дуга біля центру сектора
-            arc_start = np.deg2rad(236)  # ближче до краю
-            arc_end   = np.deg2rad(214)  # ідемо ПРОТИ год. стрілки
-            r_logo = 1.27  # у бордовому кільці, ближче до зовнішнього краю
+            arc_start = np.deg2rad(236)
+            arc_end   = np.deg2rad(214)
+            r_logo = 1.27
             label = (logo_text or "Albireo Daria")
             thetas = np.linspace(arc_start, arc_end, len(label))
             for ch, th in zip(label, thetas):
-                # орієнтація по дотичній + переворот на 180° (“вверх тормашками”)
                 rotation_deg = -np.degrees(th) + 90 + 180
                 ax.text(th, r_logo, ch, fontsize=9, ha='center', va='center',
                         color="#FFD700", rotation=rotation_deg, rotation_mode="anchor", zorder=8)
         except Exception:
             pass
 
-        # Акцент на Асцендент (золотий маркер на рівні планет)
+        # --- 12) Акцент на Асцендент ---
         try:
             asc_obj = chart.get(const.ASC)
             if asc_obj is not None:
@@ -522,7 +469,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         except Exception:
             pass
 
-        # Збереження картинки
+        # --- 13) Збереження PNG ---
         try:
             plt.savefig(save_path, dpi=180, bbox_inches="tight", facecolor=fig.get_facecolor())
         finally:
@@ -532,7 +479,6 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         print("Error in draw_natal_chart:", e)
         traceback.print_exc()
         raise
-
 # ----------------- /generate -----------------
 @app.route("/generate", methods=["POST"])
 def generate():
