@@ -182,41 +182,76 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         ax.set_facecolor("white")
         plt.rcParams["font.family"] = "DejaVu Sans"
 
-        # 1) Сектори будинків (Placidus) або fallback рівні 30° (градієнтні, ближче до градуювання)
+        # ----------------- Сектори будинків (Placidus) -----------------
         try:
-            for i in range(1, 13):
-                cusp1 = get_house_lon(chart, i)
-                cusp2 = get_house_lon(chart, (i % 12) + 1)
-                if cusp1 is None or cusp2 is None:
-                    raise RuntimeError("house cusps not available")
-                start_deg = cusp1 % 360
-                end_deg = cusp2 % 360
-                if (end_deg - start_deg) <= 0:
+            for i in range(1, 13):  # проходимо по 12 будинках
+                cusp1 = get_house_lon(chart, i)                     # довгота початку дому i
+                cusp2 = get_house_lon(chart, (i % 12) + 1)         # довгота початку наступного дому (i+1)
+                if cusp1 is None or cusp2 is None:                 # перевірка на наявність значень
+                    raise RuntimeError("house cusps not available")  # якщо немає, кидаємо помилку
+
+                start_deg = cusp1 % 360                             # нормалізація початку дому 0–360°
+                end_deg   = cusp2 % 360                             # нормалізація кінця дому 0–360°
+
+                if (end_deg - start_deg) <= 0:                      # якщо кут <= 0, додаємо 360 для правильного сектору
                     end_deg += 360
-                theta_start = np.deg2rad(start_deg)
-                theta_end = np.deg2rad(end_deg)
-                width = abs(theta_end - theta_start)
+
+                theta_start = np.deg2rad(start_deg)                # початок дому у радіанах для polar plot
+                theta_end   = np.deg2rad(end_deg)                  # кінець дому у радіанах
+                width = abs(theta_end - theta_start)               # ширина сектора у радіанах
+
                 ax.bar(
-                    x=(theta_start + theta_end) / 2,
-                    height=1.08, width=width, bottom=0.00,
-                    color=HOUSE_COLORS[(i-1) % 12][0], alpha=0.30,
-                    edgecolor=HOUSE_COLORS[(i-1) % 12][1], linewidth=0.6, zorder=0
+                    x=(theta_start + theta_end)/2,                 # середина сектора по куту
+                    height=1.08,                                   # радіус сектору
+                    width=width,                                   # ширина сектору
+                    bottom=0.0,                                    # від центру
+                    color=HOUSE_COLORS[(i-1)%12][0],              # основний колір сектору
+                    alpha=0.30,                                    # прозорість сектору
+                    edgecolor=HOUSE_COLORS[(i-1)%12][1],          # колір обведення сектору
+                    linewidth=0.6,                                 # товщина обведення
+                    zorder=0                                       # порядок відображення (нижче всіх)
                 )
-                # вершина дому
-                ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)], [0.15, 1.12], color="#888888", lw=0.8, zorder=2)
-        except Exception:
-            for i in range(12):
-                start = i * 30
-                theta_start = np.deg2rad(start)
-                theta_end = np.deg2rad(start + 30)
-                width = abs(theta_end - theta_start)
+
+                ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)],
+                        [0.15, 1.12], color="#888888", lw=0.8, zorder=2)  # лінія на вершину дому
+
+            # ----------------- Номери домів -----------------
+            house_number_radius = central_circle_radius + 0.03        # радіус для номерів будинків (трохи далі від центру)
+            for i in range(1, 13):                                   # проходимо по 12 будинках
+                cusp1 = get_house_lon(chart, i)                       # початок дому
+                cusp2 = get_house_lon(chart, (i % 12) + 1)           # початок наступного дому
+                if cusp1 is None or cusp2 is None:                   # перевірка
+                    raise RuntimeError
+
+                start = cusp1 % 360                                   # нормалізація градусів
+                end   = cusp2 % 360
+                diff  = (end - start) % 360                           # різниця градусів
+                mid   = (start + diff / 2.0) % 360                    # середина сектору
+                th_mid = np.deg2rad(mid)                              # середина у радіанах
+
+                ax.text(
+                    th_mid, house_number_radius, str(i),             # номер дому
+                    fontsize=9, ha="center", va="center",            # вирівнювання по центру
+                    color="#6a1b2c", fontweight="bold", zorder=7     # колір, товщина, порядок відображення
+                )
+
+        except Exception:                                           # fallback для випадків відсутності даних
+            for i in range(12):                                     # рівні 30° сектори
+                th_start = np.deg2rad(i*30)                         # початок сектору
+                th_end   = np.deg2rad(i*30 + 30)                    # кінець сектору
+                width = th_end - th_start
                 ax.bar(
-                    x=(theta_start + theta_end) / 2,
-                    height=1.08, width=width, bottom=0.00,
-                    color=HOUSE_COLORS[i % 12][0], alpha=0.26,
-                    edgecolor=HOUSE_COLORS[i % 12][1], linewidth=0.6, zorder=0
+                    x=(th_start + th_end)/2, height=1.08, width=width, bottom=0.0,
+                    color=HOUSE_COLORS[i % 12][0], alpha=0.26, edgecolor=HOUSE_COLORS[i % 12][1],
+                    linewidth=0.6, zorder=0
                 )
-                ax.plot([np.deg2rad(start), np.deg2rad(start)], [0.15, 1.12], color="#888888", lw=0.8, zorder=2)
+                ax.plot([th_start, th_start], [0.15, 1.12], color="#888888", lw=0.8, zorder=2)  # лінія дому
+                th_mid = np.deg2rad(i*30 + 15)                       # середина сектору
+                ax.text(
+                    th_mid, house_number_radius, str(i+1),           # номер дому
+                    fontsize=9, ha="center", va="center",
+                    color="#6a1b2c", fontweight="bold", zorder=7
+                )
 
         # 2) Бордове кільце Зодіаку (ширше) + символи та назви по дузі
         for i, sym in enumerate(ZODIAC_SYMBOLS):
