@@ -296,19 +296,16 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 ax.text(th, 1.305, f"{deg}°", fontsize=8, ha="center", va="center", color="#aaaaaa")
                 ax.text(th, 1.325, deg_to_dms(deg), fontsize=7, ha="center", va="center", color="#888888")
 
-       # 4) Центральне коло (світлий бордовий) та ім'я всередині
-        # Малюємо його через ax.add_patch + transform=ax.transData._b,
-        # щоб воно залишалося рівним кругом навіть у полярній системі.
+        # 4) Центральне коло (світлий бордовий) та ім'я всередині
         central_circle_radius = 0.16  # Радіус центрального кола
         central_circle = plt.Circle(
             (0, 0), central_circle_radius,
-            color="#e9c7cf",           # Світлий бордовий (фон)
+            color="#e9c7cf",           # Світлий бордовий фон
             ec="#a05c6a", lw=1.1,      # Темно-бордова обводка
             alpha=0.97,                # Легка прозорість
-            zorder=12,
-            transform=ax.transData._b  # >>> ключ: зберігає правильне коло
+            zorder=12
         )
-        ax.add_patch(central_circle)
+        ax.add_patch(central_circle)   # >>> без transform, щоб не падало
 
         # Ім’я користувача в центрі
         if name_for_center:
@@ -455,8 +452,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             table_data = [[str(row.get(c, "")) for c in cols] for row in aspects_table]
             colors = [row.get("color", "#ffffff") for row in aspects_table]
 
-            # >>> трохи нижче: було -0.28, тепер -0.35
-            ax_tbl = fig.add_axes([0.03, -0.35, 0.94, 0.16])
+            # Було -0.28 → тепер ставимо -0.32 (трохи нижче, але безпечніше за -0.35)
+            ax_tbl = fig.add_axes([0.03, -0.32, 0.94, 0.16])
             ax_tbl.axis("off")
             tbl = ax_tbl.table(
                 cellText=table_data,
@@ -471,7 +468,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             for r in range(1, nrows + 1):
                 for c in range(len(cols)):
                     cell = tbl[(r, c)]
-                    cell.set_facecolor(matplotlib.colors.to_rgba(colors[r-1], 0.
+                    cell.set_facecolor(matplotlib.colors.to_rgba(colors[r-1], 0.12))
         # --- 11) Логотип у секторі Скорпіона ---
         try:
             arc_start = np.deg2rad(236)
