@@ -343,7 +343,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             except Exception:
                 continue
 
-        # 8) Класичні аспекти — ПРЯМІ ХОРДИ + кольори + таблиця
+        #  8) Класичні аспекти: хорди + таблиця -----------------
         aspect_colors = {                                   # Кольори для типів аспектів
             "conjunction": "#D62728",
             "sextile":     "#1F77B4",
@@ -351,35 +351,27 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
             "trine":       "#2CA02C",
             "opposition":  "#9467BD",
         }
-        aspects_table = []                                  # Список для даних таблиці
+        aspects_table = []                                  # Список рядків для таблиці аспектів
         legend_seen = {}                                    # Для легенди — які аспекти присутні
 
-        # Створюємо картезіанську вісь для хорд (накладка на полярну)
-        ax_chord = fig.add_axes(ax.get_position(), frameon=False)  # Порожня вісь поверх основної
-        ax_chord.set_xlim(-1.45, 1.45)                      # Межі по X
-        ax_chord.set_ylim(-1.45, 1.45)                      # Межі по Y
-        ax_chord.set_aspect("equal")                        # Квадратна шкала
-        ax_chord.axis("off")                                # Вимикаємо осі
-
+        # Використовуємо ту ж полярну вісь, що і планети (щоб збігалося)
         for asp in aspects_list:                             # Проходимо по всіх аспектах
             try:
                 p1_id = asp.get("planet1")                  # ID першої планети
                 p2_id = asp.get("planet2")                  # ID другої планети
 
-                # Використовуємо planet_positions для точного збігу
+                # Перевірка, чи є планети у planet_positions
                 if p1_id not in planet_positions or p2_id not in planet_positions:
-                    continue                                 # Пропускаємо, якщо планети немає
+                    continue
 
-                th1, r1, lon1_f = planet_positions[p1_id]  # Кут, радіус і градуси першої планети
-                th2, r2, lon2_f = planet_positions[p2_id]  # Кут, радіус і градуси другої планети
+                # Отримуємо полярні координати з planet_positions
+                th1, r1, lon1_f = planet_positions[p1_id]  # кут, радіус, градуси
+                th2, r2, lon2_f = planet_positions[p2_id]
 
-                x1, y1 = np.cos(th1) * r1, np.sin(th1) * r1 # Картезіанські координати першої планети
-                x2, y2 = np.cos(th2) * r2, np.sin(th2) * r2 # Картезіанські координати другої планети
+                col = aspect_colors.get(str(asp.get("type", "")).lower(), "#777777") # колір хорди
 
-                col = aspect_colors.get(str(asp.get("type", "")).lower(), "#777777") # Колір аспекту
-
-                # Малюємо прямий сегмент (хорду) між планетами
-                ax_chord.plot([x1, x2], [y1, y2], color=col, lw=2.2, alpha=0.95, zorder=10)
+                # Малюємо хорду **безпосередньо на полярній осі** ax, враховуючи поворот 0° = W
+                ax.plot([th1, th2], [r1, r2], color=col, lw=2.2, alpha=0.95, zorder=10)
 
                 # Функція для переведення градусів у DMS для таблиці
                 def dms_str(x):
@@ -394,15 +386,15 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                     "lon1": dms_str(lon1_f),
                     "planet2": p2_id,
                     "lon2": dms_str(lon2_f),
-                    "type": asp.get("type"),           
+                    "type": asp.get("type"),
                     "angle": asp.get("angle"),
                     "angle_dms": asp.get("angle_dms"),
-                    "color": col                                # Колір для підфарбування рядка
+                    "color": col                                # колір для підфарбування рядка
                 })
-                legend_seen[str(asp.get("type","")).lower()] = col # Зберігаємо для легенди
+                legend_seen[str(asp.get("type","")).lower()] = col
 
             except Exception:
-                continue                                       # Ігноруємо помилки окремих аспектів
+                continue  # Ігноруємо помилки окремих аспектів
 
         # Легенда під картою
         legend_order = ["conjunction", "sextile", "square", "trine", "opposition"]
@@ -411,7 +403,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         for nm in legend_order:
             if nm in legend_seen:
                 col = legend_seen[nm]
-                legend_handles.append(Line2D([0], [0], color=col, lw=4)) # Кольоровий прямокутник
+                legend_handles.append(Line2D([0], [0], color=col, lw=4))
                 legend_labels.append(nm.title())
         if legend_handles:
             ax_leg = fig.add_axes([0.05, -0.09, 0.90, 0.06])
