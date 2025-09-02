@@ -194,41 +194,52 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
         ax.set_facecolor("#4e4247")
         plt.rcParams["font.family"] = "DejaVu Sans"
 
-        # --- 2) Сектори будинків ---
+        # --- 2) Сектори будинків (Placidus) ---
         for i in range(1, 13):
             cusp1 = get_house_lon(chart, i)
             cusp2 = get_house_lon(chart, (i % 12) + 1)
-            if cusp1 is None or cusp2 is None:  # <- fallback для None
-                cusp1, cusp2 = i * 30, (i * 30 + 30)
+
+            # Якщо Flatlib не дав координати — пропускаємо
+            if cusp1 is None or cusp2 is None:
+                continue
+
             start_deg = cusp1 % 360
             end_deg = cusp2 % 360
-            if (end_deg - start_deg) <= 0: end_deg += 360
+            if (end_deg - start_deg) <= 0:
+                end_deg += 360
+
             theta_start = np.deg2rad(start_deg)
             theta_end = np.deg2rad(end_deg)
             width = abs(theta_end - theta_start)
+
             ax.bar(
                 x=(theta_start + theta_end)/2,
                 height=1.08, width=width, bottom=0.0,
                 color=HOUSE_COLORS[(i-1)%12][0], alpha=0.30,
                 edgecolor=HOUSE_COLORS[(i-1)%12][1], linewidth=0.6, zorder=0
             )
-            ax.plot([theta_start, theta_start], [0.15, 1.12], color="#888888", lw=0.8, zorder=2)
+            ax.plot([theta_start, theta_start], [0.15, 1.12],
+                    color="#888888", lw=0.8, zorder=2)
 
-        # --- 3) Номери будинків з fallback ---
+        # --- 3) Номери будинків ---
         house_number_radius = 0.19
         for i in range(1, 13):
             cusp1 = get_house_lon(chart, i)
             cusp2 = get_house_lon(chart, (i % 12) + 1)
-            start = (cusp1 if cusp1 is not None else i*30) % 360
-            end   = (cusp2 if cusp2 is not None else i*30+30) % 360
+            if cusp1 is None or cusp2 is None:
+                continue
+
+            start = cusp1 % 360
+            end   = cusp2 % 360
             diff = (end - start) % 360
             mid = (start + diff / 2.0) % 360
             th_mid = np.deg2rad(mid)
+
             ax.text(th_mid, house_number_radius, str(i),
                     fontsize=9, ha="center", va="center",
                     color="#6a1b2c", fontweight="bold", zorder=7)
 
-       # --- 4) Зодіакальне кільце та символи (верх до центру) ---
+        # --- 4) Зодіакальне кільце та символи (верх до центру) ---
         ring_radius_start = 1.10
         ring_height = 0.20
         for i, sym in enumerate(ZODIAC_SYMBOLS):
@@ -278,6 +289,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None, logo_
                 r_start = ring_radius_start + 0.01
                 r_end = ring_radius_start + 0.02 if deg_mark % 10 == 0 else ring_radius_start + 0.015
                 ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#faf6f7", lw=1, zorder=2)
+
         # --- 5) Центральне коло ---
         max_name_len = len(str(name_for_center)) if name_for_center else 0
         central_circle_radius = max(0.16, 0.08 + max_name_len*0.012)  # динамічний радіус
