@@ -1,0 +1,65 @@
+:root {
+    --bg-dark: rgb(74, 73, 73);
+    --text-dark: #ffffff;
+    --bg-light: rgb(245, 245, 245);
+    --text-light: #1a1a1a;
+
+    --accent-blue: #7ecdf1;
+    --accent-pink: #f3a6d3;
+    --accent-orange: #f9a36b;
+    --accent-green: #94d094;
+    --accent-yellow: #f9f871;
+}
+
+.ChartDark {
+    background-color: var(--bg-dark);
+    color: var(--text-dark);
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+}
+
+.ChartLight {
+    background-color: var(--bg-light);
+    color: var(--text-light);
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+}
+
+.ZodiacCircle {
+    fill: none;
+    stroke: var(--accent-blue);
+    stroke-width: 2;
+}
+
+.AspectLine {
+    stroke: var(--accent-pink);
+    stroke-width: 2;
+    transition: stroke 0.3s;
+}
+
+.AspectLine:hover {
+    stroke: var(--accent-orange);
+}
+
+.PlanetNormal {
+    fill: var(--accent-blue);
+    transition: fill 0.3s;
+}
+
+.PlanetHover {
+    fill: var(--accent-yellow);
+}
+
+.PlanetTextDark {
+    fill: var(--text-dark);
+    font-size: 12px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.PlanetTextLight {
+    fill: var(--text-light);
+    font-size: 12px;
+    font-family: 'Segoe UI', sans-serif;
+}
