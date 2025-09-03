@@ -209,6 +209,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         # Фон
         fig.patch.set_facecolor("#4e4247")
         ax.set_facecolor("#4e4247")
+        ax.set_aspect('equal', 'box')  # 🔹 Змушує коло бути ідеальним, не еліпсом
         plt.rcParams["font.family"] = "DejaVu Sans"
         
         # --- 1)Сектори будинків з градієнтом ---
@@ -219,21 +220,25 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             cusp1 = get_house_lon(chart, i)
             cusp2 = get_house_lon(chart, (i % 12) + 1)
             if cusp1 is None or cusp2 is None: continue
+
             start_deg = cusp1 % 360
             end_deg = cusp2 % 360
             if (end_deg - start_deg) <= 0: end_deg += 360
-            color_start, color_end = HOUSE_COLORS[(i-1)%12]
-            cmap = mcolors.LinearSegmentedColormap.from_list(f"house{i}", [color_start, color_end])
-            theta1 = start_deg
-            theta2 = end_deg
-            wedge = Wedge(center=(0,0), r=1.08, theta1=theta1, theta2=theta2,
-                          width=1.08-0.0, facecolor=color_start, alpha=0.4, edgecolor=color_end, lw=0.8)
-            ax.add_patch(wedge)
-            # Лінії меж будинків
-            ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)], [0.15, 1.12], color="#888888", lw=0.8, zorder=2)
 
-        # --- 2)Номери будинків ---
-        house_number_radius = 0.19
+            color_start, color_end = HOUSE_COLORS[(i-1)%12]
+
+            # 🔹 Wedge із радіусом 1
+            wedge = Wedge(center=(0,0), r=1.0, theta1=start_deg, theta2=end_deg,
+                        width=1.0*0.3,  # товщина сектора (наприклад 0.3 від радіусу)
+                        facecolor=color_start, alpha=0.4,
+                        edgecolor=color_end, lw=0.8)
+            ax.add_patch(wedge)
+
+            # 🔹 Лінії меж будинків
+            ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)], [0.3, 1.0], color="#888888", lw=0.8, zorder=2)
+
+        # --- 2) Номери будинків ---
+        house_number_radius = 0.18  # всередині кола
         for i in range(1, 13):
             cusp1 = get_house_lon(chart, i)
             cusp2 = get_house_lon(chart, (i % 12) + 1)
@@ -242,7 +247,10 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             end = cusp2 % 360
             mid = (start + ((end - start) % 360)/2) % 360
             ax.text(np.deg2rad(mid), house_number_radius, str(i),
-                    fontsize=10, ha="center", va="center", color="#6a1b2c", fontweight="bold", zorder=7)
+                    fontsize=10, ha="center", va="center",
+                    color="#6a1b2c", fontweight="bold", zorder=7)
+            
+            
 
         # --- 3)Коло зодіаку з символами та логотипом ---
         ring_radius_start = 1.10
@@ -335,7 +343,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             except Exception: continue
 
         # --- 6)Планети ---
-        r_planet = 0.80
+        r_planet = 0.88
         planet_positions = {}
         chart_obj_map = {getattr(obj, "id", ""): obj for obj in chart.objects if getattr(obj, "id", None)}
 
@@ -348,7 +356,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             th = np.deg2rad(lon)
             col = PLANET_COLORS.get(pid, "#ffffff")
             ax.plot(th, r_planet, marker='o', markersize=7, color=col, zorder=12)
-            ax.text(th, r_planet + 0.07, sym, fontsize=18,
+            ax.text(th, r_planet + 0.05, sym, fontsize=18,
                     ha="center", va="center", color=col, zorder=11)
             ax.text(th, r_planet, f"{deg_to_dms(lon)}", fontsize=8,
                     ha="center", va="center", color=col, zorder=11)
