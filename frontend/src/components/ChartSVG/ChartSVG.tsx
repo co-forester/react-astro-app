@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useAppSelector } from '../../hooks/reduxHook';
-import css from './ChartSVG.module.css';
 
 type Planet = {
     name: string;
     symbol: string;
-    angle: number; // градуси
+    angle: number;
 };
 
 type Aspect = {
@@ -18,12 +17,13 @@ type Props = {
     planets: Planet[];
     aspects: Aspect[];
     onHoverPlanet?: (name: string | null) => void;
-    onHoverAspect?: (from: string, to: string) => void;
+    onHoverAspect?: (asp: Aspect | null) => void;
 };
 
 const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAspect }) => {
-    const theme = useAppSelector(state => state.theme.theme); // <-- тепер беремо тут
+    const theme = useAppSelector(state => state.theme.theme);
     const [hoveredPlanet, setHoveredPlanet] = useState<string | null>(null);
+    const [hoveredAspect, setHoveredAspect] = useState<Aspect | null>(null);
 
     const radius = 200;
     const center = { x: 250, y: 250 };
@@ -37,10 +37,17 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAsp
     };
 
     return (
-        <div className={theme ? css.ChartLight : css.ChartDark}>
+        <div style={{ background: theme ? '#f5f5f5' : '#4a4949', padding: 10 }}>
             <svg width={500} height={500}>
                 {/* Коло зодіаку */}
-                <circle cx={center.x} cy={center.y} r={radius} className={css.ZodiacCircle} />
+                <circle
+                    cx={center.x}
+                    cy={center.y}
+                    r={radius}
+                    stroke="blue"
+                    strokeWidth={2}
+                    fill="none"
+                />
 
                 {/* Аспекти */}
                 {aspects.map((asp, idx) => {
@@ -51,6 +58,9 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAsp
                     const fromCoords = getCoords(fromPlanet.angle);
                     const toCoords = getCoords(toPlanet.angle);
 
+                    const isHovered =
+                        hoveredAspect?.from === asp.from && hoveredAspect?.to === asp.to;
+
                     return (
                         <line
                             key={idx}
@@ -58,9 +68,16 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAsp
                             y1={fromCoords.y}
                             x2={toCoords.x}
                             y2={toCoords.y}
-                            className={css.AspectLine}
-                            onMouseEnter={() => onHoverAspect && onHoverAspect(fromPlanet.name, toPlanet.name)}
-                            onMouseLeave={() => onHoverAspect && onHoverAspect('', '')}
+                            stroke={isHovered ? "orange" : "pink"}
+                            strokeWidth={2}
+                            onMouseEnter={() => {
+                                setHoveredAspect(asp);
+                                onHoverAspect && onHoverAspect(asp);
+                            }}
+                            onMouseLeave={() => {
+                                setHoveredAspect(null);
+                                onHoverAspect && onHoverAspect(null);
+                            }}
                         />
                     );
                 })}
@@ -68,10 +85,10 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAsp
                 {/* Планети */}
                 {planets.map((pl, idx) => {
                     const coords = getCoords(pl.angle);
+                    const isHovered = hoveredPlanet === pl.name;
                     return (
                         <g
                             key={idx}
-                            className={css.Planet}
                             onMouseEnter={() => {
                                 setHoveredPlanet(pl.name);
                                 onHoverPlanet && onHoverPlanet(pl.name);
@@ -85,14 +102,15 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAsp
                                 cx={coords.x}
                                 cy={coords.y}
                                 r={12}
-                                fill={hoveredPlanet === pl.name ? 'var(--accent-orange)' : 'var(--accent-blue)'}
+                                fill={isHovered ? "yellow" : "blue"}
                             />
                             <text
                                 x={coords.x}
                                 y={coords.y + 4}
                                 textAnchor="middle"
-                                fill={theme ? 'black' : 'white'}
-                                fontSize="12"
+                                fill={theme ? "#1a1a1a" : "#ffffff"}
+                                fontSize={12}
+                                fontFamily="Segoe UI, sans-serif"
                             >
                                 {pl.symbol}
                             </text>

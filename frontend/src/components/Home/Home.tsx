@@ -46,7 +46,7 @@ const Home: FC = () => {
           </div>
 
           <GenerateChartForm />
-          <ChartSVG planets={[]} aspects={[]} />
+          {/* <ChartSVG planets={[]} aspects={[]} /> */}
           <NatalChartAnalysis />
           <ChildHoroscope />
         </main>

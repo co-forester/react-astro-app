@@ -39,6 +39,11 @@
     transition: stroke 0.3s;
 }
 
+.AspectLineHover {
+    stroke: var(--accent-orange);
+    stroke-width: 3;
+}
+
 .AspectLine:hover {
     stroke: var(--accent-orange);
 }
