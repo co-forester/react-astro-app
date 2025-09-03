@@ -419,23 +419,47 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     fontweight="bold", zorder=15, clip_on=False)
 
         # --- 6) ASC/MC/DSC/IC з маркерами та стрілками (safe_get використовується) ---
-        r_marker = 1.38
+        r_marker = 1.45
         arrow_len = 0.07
-        for label in ["ASC", "MC", "DSC", "IC"]:
-            try:
-                obj = safe_get(chart, label)
-                if obj is None:
-                    continue
-                lon = float(getattr(obj, "lon", 0.0)) % 360.0
-                th = to_theta(lon)
-                ax.plot([th], [r_marker], marker='o', markersize=9, color="#FFD700", zorder=12)
-                ax.annotate("", xy=(th, r_marker - arrow_len), xytext=(th, r_marker),
-                            arrowprops=dict(facecolor="#FFD700", shrink=0.05, width=2, headwidth=8), zorder=12)
-                label_text = f"{label} {deg_in_sign_dms(lon)}"
-                ax.text(th, r_marker + 0.05, label_text, ha='center', va='center',
-                        fontsize=10, color="#FFD700", fontweight="bold", zorder=12, rotation=0)
-            except Exception:
-                continue
+
+        # базові точки
+        try:
+            asc = float(getattr(chart.get("ASC"), "lon", 0))
+            mc = float(getattr(chart.get("MC"), "lon", 0))
+        except Exception:
+            asc, mc = 0, 0
+
+        points = {
+            "ASC": asc % 360,
+            "DSC": (asc + 180) % 360,
+            "MC": mc % 360,
+            "IC": (mc + 180) % 360
+        }
+
+        for label, lon in points.items():
+            th = to_theta(lon)
+
+            # маркер
+            ax.plot([th], [r_marker], marker="o", markersize=9,
+                    color="#FFD700", zorder=12)
+
+            # стрілка вниз
+            ax.annotate("",
+                xy=(th, r_marker - arrow_len), xytext=(th, r_marker),
+                arrowprops=dict(facecolor="#FFD700", shrink=0.05, width=2, headwidth=8),
+                zorder=12
+            )
+
+            # підпис (назва + DMS)
+            deg_i = int(lon)
+            min_i = int((lon - deg_i) * 60)
+            sec_i = int((((lon - deg_i) * 60) - min_i) * 60)
+            label_text = f"{label} {deg_i}°{min_i}'{sec_i}''"
+
+            ax.text(th, r_marker + 0.05, label_text,
+                    ha="center", va="center",
+                    fontsize=10, color="#FFD700",
+                    fontweight="bold", zorder=12)
 
         # --- 7) Планети (використовуємо to_theta для всіх) ---
         r_planet = 0.85
