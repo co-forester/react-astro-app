@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppSelector } from '../../hooks/reduxHook';
-import './ChartSVG.css';
+import css from './ChartSVG.module.css';
 
 type Planet = {
     name: string;
@@ -38,14 +38,14 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAsp
     };
 
     return (
-        <div className={theme ? "ChartLight" : "ChartDark"}>
+        <div className={theme ? css.ChartLight : css.ChartDark}>
             <svg width={500} height={500}>
                 {/* Коло зодіаку */}
                 <circle
                     cx={center.x}
                     cy={center.y}
                     r={radius}
-                    className="ZodiacCircle"
+                    className={css.ZodiacCircle}
                 />
 
                 {/* Аспекти */}
@@ -67,7 +67,7 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAsp
                             y1={fromCoords.y}
                             x2={toCoords.x}
                             y2={toCoords.y}
-                            className={`AspectLine ${isHovered ? "AspectLineHover" : ""}`}
+                            className={`AspectLine ${isHovered ? css.AspectLineHover : ""}`}
                             onMouseEnter={() => {
                                 setHoveredAspect(asp);
                                 onHoverAspect && onHoverAspect(asp);
@@ -100,13 +100,13 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAsp
                                 cx={coords.x}
                                 cy={coords.y}
                                 r={12}
-                                className={isHovered ? "PlanetHover" : "PlanetNormal"}
+                                className={isHovered ? css.PlanetHover : css.PlanetNormal}
                             />
                             <text
                                 x={coords.x}
                                 y={coords.y + 4}
                                 textAnchor="middle"
-                                className={theme ? "PlanetTextLight" : "PlanetTextDark"}
+                                className={theme ? css.PlanetTextLight : css.PlanetTextDark}
                             >
                                 {pl.symbol}
                             </text>
