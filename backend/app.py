@@ -300,7 +300,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     ha="center", va="center", fontsize=fontsize,
                     fontweight="bold", zorder=15, clip_on=False)
 
-        # --- 5) ASC/MC/DSC/IC з маркерами та стрілками ---
+        # --- 5)ASC/MC/DSC/IC з маркерами та стрілками ---
         r_marker = 1.45
         arrow_len = 0.07
         for label in ["ASC","MC","DSC","IC"]:
@@ -321,7 +321,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                         fontsize=10, color="#FFD700", fontweight="bold", zorder=12, rotation=0)
             except Exception: continue
 
-        # --- 6) Планети ---
+        # --- 6)Планети ---
         r_planet = 0.80
         planet_positions = {}
         chart_obj_map = {getattr(obj, "id", ""): obj for obj in chart.objects if getattr(obj, "id", None)}
@@ -341,7 +341,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     ha="center", va="center", color=col, zorder=11)
             planet_positions[pid] = (th, r_planet, lon)
 
-        # --- 7) Аспекти з товщиною по орбі ---
+        # --- 7)Аспекти з товщиною по орбі ---
         for asp in aspects_list:
             try:
                 p1_id = asp.get("planet1")
@@ -357,7 +357,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 ax.plot([th1,th2],[r1,r2],color=col,lw=width,alpha=0.9,zorder=10)
             except Exception: continue
 
-        # --- 8) Легенда ---
+        # --- 8)Легенда ---
         legend_elements = []
         for pid,sym in PLANET_SYMBOLS.items():
             if pid in PLANET_COLORS:
@@ -451,6 +451,23 @@ def generate():
             with open(json_path, "w", encoding="utf-8") as f:
                 json.dump(out, f, ensure_ascii=False, indent=2)
             return jsonify(out), 200
+        
+        # ----------------- Додаємо planets -----------------
+        PLANET_SYMBOLS = {
+            "Sun": "☉", "Moon": "☽", "Mercury": "☿", "Venus": "♀",
+            "Mars": "♂", "Jupiter": "♃", "Saturn": "♄",
+            "Uranus": "♅", "Neptune": "♆", "Pluto": "♇",
+        }
+
+        planets_list = []
+        for obj in chart.objects:
+            pid = getattr(obj, "id", None)
+            if pid in PLANET_SYMBOLS:
+                planets_list.append({
+                    "name": pid,
+                    "symbol": PLANET_SYMBOLS[pid],
+                    "angle": float(getattr(obj, "lon", 0)) % 360
+                })
 
         aspects_table = []
         for asp in aspects_json:
@@ -468,6 +485,7 @@ def generate():
             "place": place, "timezone": tz_str,
             "aspects_json": aspects_json,
             "aspects_table": aspects_table,
+            "planets": planets_list,  # <-- сюди додано
             "chart_url": f"{request.host_url.rstrip('/')}/cache/{key}.png"
         }
         with open(json_path, "w", encoding="utf-8") as f:

@@ -8,7 +8,11 @@ interface FormData {
   place: string;
 }
 
-const GenerateChartForm: React.FC = () => {
+type GenerateChartFormProps = {
+  onDataReady?: (data: { planets: any[]; aspects: any[] }) => void;
+};
+
+const GenerateChartForm: React.FC<GenerateChartFormProps> = ({ onDataReady }) => {
   const [formData, setFormData] = useState<FormData>({
     name: "",
     date: "",
@@ -43,6 +47,14 @@ const GenerateChartForm: React.FC = () => {
 
       setChartUrl(data.chart_url);
       setAspectsJson(data.aspects_json);
+
+      // ⚡ передаємо наверх
+      if (onDataReady) {
+        onDataReady({
+          planets: data.planets || [],
+          aspects: data.aspects_json || [],
+        });
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {

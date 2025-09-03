@@ -1,4 +1,3 @@
-// Home.tsx
 import React, { FC, useEffect, useState } from 'react';
 import css from './home.module.css';
 import { useAppSelector } from '../../hooks/reduxHook';
@@ -17,6 +16,14 @@ interface RootState {
 
 const Home: FC = () => {
   const theme = useAppSelector((state: RootState) => state.theme.theme);
+
+  const [planets, setPlanets] = useState<any[]>([]);
+  const [aspects, setAspects] = useState<any[]>([]);
+
+  const handleChartData = (data: { planets: any[]; aspects: any[] }) => {
+    setPlanets(data.planets);
+    setAspects(data.aspects);
+  };
 
   // Для анімації появи
   const [loaded, setLoaded] = useState(false);
@@ -45,8 +52,8 @@ const Home: FC = () => {
             </p>
           </div>
 
-          <GenerateChartForm />
-          {/* <ChartSVG planets={[]} aspects={[]} /> */}
+          <GenerateChartForm onDataReady={handleChartData} />
+          <ChartSVG planets={planets} aspects={aspects} />
           <NatalChartAnalysis />
           <ChildHoroscope />
         </main>
