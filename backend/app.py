@@ -162,6 +162,23 @@ def get_house_lon(chart, i):
         pass
     return None
 
+ZODIAC_SIGNS = ["\u2648","\u2649","\u264A","\u264B","\u264C","\u264D",
+                "\u264E","\u264F","\u2650","\u2651","\u2652","\u2653"]  # ♈..♓
+
+def deg_in_sign_dms(lon_float):
+    lon = float(lon_float) % 360.0
+    sign_idx = int(lon // 30)
+    within = lon % 30
+    d = int(within)
+    m_f = (within - d) * 60
+    m = int(m_f)
+    s = int(round((m_f - m) * 60))
+    if s == 60:
+        s = 0; m += 1
+    if m == 60:
+        m = 0; d = (d + 1) % 30
+    return f"{ZODIAC_SIGNS[sign_idx]} {d}°{m}'{s}\""
+
 
 # ----------------- Аспекти -----------------
 def compute_aspects_manual(objects):
@@ -194,66 +211,62 @@ def compute_aspects_manual(objects):
 def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                      logo_text="Albireo Daria", logo_sign="Скорпіон"):
     try:
-       # --- Фон (оновлений) ---
-        fig = plt.figure(figsize=(10, 10))
+       # --- Фон + орієнтація ---
+        fig = plt.figure(figsize=(12, 12))
         ax = plt.subplot(111, polar=True)
-        ax.set_theta_zero_location("E")
+
+        # 1) ASC зліва: нульовий напрямок = захід (W), кути зростають за годинниковою
+        ax.set_theta_zero_location("W")
         ax.set_theta_direction(-1)
 
-        # 🔹 Встановлюємо радіус кола 1 для ідеального кола
-        ax.set_ylim(0, 1.5)  # радіус до 1.5 для розміщення елементів поза колом
+        # 2) Радіальні межі колеса
+        ax.set_ylim(0, 1.5)
 
-        # 🔹 Забезпечуємо рівні осі
-        ax.set_aspect('equal')  # на полярних осях matplotlib зазвичай автоматично, але можна залишити
-
-        # 🔹 Вимикаємо підписи
-        ax.set_xticks([]) 
-        ax.set_yticks([])
-
-        # Фон
+        # 3) Чисте тло
+        ax.set_xticks([]); ax.set_yticks([])
         fig.patch.set_facecolor("#4e4247")
         ax.set_facecolor("#4e4247")
-        ax.set_aspect('equal', 'box')  # 🔹 Змушує коло бути ідеальним, не еліпсом
         plt.rcParams["font.family"] = "DejaVu Sans"
+
+        # 4) Жорстко фіксуємо пропорції (круг не спотворюється)
+        ax.set_aspect('equal', 'box')
+
+        # 5) Невелика внутрішня відступ-зсув, щоб нічого не «обрізало»
+        ax.set_rorigin(-0.02)
+
+        # 6) Визначаємо ASC і функцію перерахунку довготи -> θ (із ротацією на ASC)
+        asc_obj = chart.get("ASC") or chart.get("Asc")
+        asc_lon = float(getattr(asc_obj, "lon", 0.0)) % 360.0
+
+        def to_theta(lon):
+            """Переводить екл. довготу (0..360) у радіани з поворотом на ASC, щоб ASC був зліва."""
+            return np.deg2rad((float(lon) - asc_lon) % 360.0)
         
-        # --- 1)Сектори будинків з градієнтом ---
-       
+        # --- 2)Роздільники домів ---
+        r_inner = 0.15
+        r_outer = 1.05
         for i in range(1, 13):
-            cusp1 = get_house_lon(chart, i)
-            cusp2 = get_house_lon(chart, (i % 12) + 1)
-            if cusp1 is None or cusp2 is None: continue
+            cusp = get_house_lon(chart, i)
+            if cusp is None: 
+                continue
+            th = to_theta(cusp % 360)
+            ax.plot([th, th], [r_inner, r_outer], color="#888888", lw=0.9, zorder=2)
 
-            start_deg = cusp1 % 360
-            end_deg = cusp2 % 360
-            if (end_deg - start_deg) <= 0: end_deg += 360
-
-            color_start, color_end = HOUSE_COLORS[(i-1)%12]
-
-            # 🔹 Wedge із радіусом 1
-            wedge = Wedge(center=(0,0), r=1.0, theta1=start_deg, theta2=end_deg,
-                        width=1.0*0.3,  # товщина сектора (наприклад 0.3 від радіусу)
-                        facecolor=color_start, alpha=0.4,
-                        edgecolor=color_end, lw=0.8)
-            ax.add_patch(wedge)
-
-            # 🔹 Лінії меж будинків
-            ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)], [0, 1.05], color="#888888", lw=0.8, zorder=2)
-
-        # --- 2) Номери будинків ---
-        house_number_radius = 0.18  # всередині кола
+        # --- 3) Номери домів ---
+        house_number_radius = 0.19
         for i in range(1, 13):
-            cusp1 = get_house_lon(chart, i)
-            cusp2 = get_house_lon(chart, (i % 12) + 1)
-            if cusp1 is None or cusp2 is None: continue
-            start = cusp1 % 360
-            end = cusp2 % 360
-            mid = (start + ((end - start) % 360)/2) % 360
-            ax.text(np.deg2rad(mid), house_number_radius, str(i),
+            c1 = get_house_lon(chart, i)
+            c2 = get_house_lon(chart, (i % 12) + 1)
+            if c1 is None or c2 is None:
+                continue
+            start = c1 % 360
+            end = c2 % 360
+            span = (end - start) % 360
+            mid = (start + span / 2.0) % 360
+            ax.text(to_theta(mid), house_number_radius, str(i),
                     fontsize=10, ha="center", va="center",
                     color="#6a1b2c", fontweight="bold", zorder=7)
             
-            
-
         # --- 3)Коло зодіаку з символами та логотипом ---
         ring_radius_start = 1.10
         ring_height = 0.20
@@ -308,18 +321,20 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 r_end   = ring_radius_start + 0.02 if deg_mark % 10 == 0 else ring_radius_start + 0.015
                 ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#faf6f7", lw=1, zorder=2)
 
-        # --- 4)Центральне коло і ім’я (оновлений) ---
+        # --- 4)Центральне коло і ім’я (полярно-коректно) ---
         max_name_len = len(str(name_for_center)) if name_for_center else 0
         central_circle_radius = max(0.16, 0.08 + max_name_len*0.012)
 
-        # 🔹 Центруємо коло по (0,0) та додаємо на осі з радіусом 1
-        central_circle = plt.Circle((0,0), central_circle_radius,
-                                    color="#e9c7cf", ec="#a05c6a", lw=1.2, alpha=0.97, zorder=10)
-        ax.add_patch(central_circle)
+        # Заповнюємо диск від r=0 до r=central_circle_radius по всіх кутах 0..2π
+        theta_full = np.linspace(0, 2*np.pi, 361)
+        ax.fill_between(theta_full, 0, central_circle_radius, color="#e9c7cf", alpha=0.97, zorder=9)
+        # Обвідка диска
+        ax.plot(theta_full, [central_circle_radius]*len(theta_full), color="#a05c6a", lw=1.2, zorder=10)
 
+        # Текст у центрі
         if name_for_center:
             fontsize = min(14, int(central_circle_radius*130))
-            ax.text(0,0,name_for_center, color="#800000",
+            ax.text(0, 0, name_for_center, color="#800000",
                     ha="center", va="center", fontsize=fontsize,
                     fontweight="bold", zorder=15, clip_on=False)
 
