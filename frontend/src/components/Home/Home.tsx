@@ -45,17 +45,21 @@ const Home: FC = () => {
           <div className={css.intro}>
             <h2>Услуги</h2>
             <p>
-              Предлагаю <span className="highlight">натальные карты</span>, гороскоп ребенка, аналіз натальної карти, индивидуальные прогнозы и астрологическое сопровождение.
+              Предлагаю <span className="highlight">натальные карты</span>, гороскоп ребенка, аналіз натальної карты, индивидуальные прогнозы и астрологическое сопровождение.
             </p>
             <p>
               Обращайтесь для глубокого понимания себя, выбора жизненного пути и решения важных вопросов.
             </p>
           </div>
 
+          {/* Форма генерації карти */}
           <GenerateChartForm onDataReady={handleChartData} />
+
+          {/* Натальная карта тільки якщо дані прийшли */}
           {planets.length > 0 && aspects.length > 0 && (
             <ChartSVG planets={planets} aspects={aspects} />
           )}
+
           <NatalChartAnalysis />
           <ChildHoroscope />
         </main>
