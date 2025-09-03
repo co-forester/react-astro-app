@@ -7,6 +7,10 @@ import hashlib  # генерація ключів для кешу
 import traceback  # для відлову помилок
 from datetime import datetime as dt, timedelta  # для роботи з датами
 
+from matplotlib.patches import Wedge
+import matplotlib.colors as mcolors
+
+
 from flask import Flask, request, jsonify, send_from_directory  # веб-сервер, API
 from flask_cors import CORS  # для доступу з фронтенду
 
@@ -197,13 +201,13 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         ax.set_theta_direction(-1)
 
         # 🔹 Встановлюємо радіус кола 1 для ідеального кола
-        ax.set_ylim(0, 1)
+        ax.set_ylim(0, 1.5)  # радіус до 1.5 для розміщення елементів поза колом
 
         # 🔹 Забезпечуємо рівні осі
         ax.set_aspect('equal')  # на полярних осях matplotlib зазвичай автоматично, але можна залишити
 
         # 🔹 Вимикаємо підписи
-        ax.set_xticks([])
+        ax.set_xticks([]) 
         ax.set_yticks([])
 
         # Фон
@@ -213,9 +217,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         plt.rcParams["font.family"] = "DejaVu Sans"
         
         # --- 1)Сектори будинків з градієнтом ---
-        from matplotlib.patches import Wedge
-        import matplotlib.colors as mcolors
-
+       
         for i in range(1, 13):
             cusp1 = get_house_lon(chart, i)
             cusp2 = get_house_lon(chart, (i % 12) + 1)
@@ -235,7 +237,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             ax.add_patch(wedge)
 
             # 🔹 Лінії меж будинків
-            ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)], [0.3, 1.0], color="#888888", lw=0.8, zorder=2)
+            ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)], [0, 1.05], color="#888888", lw=0.8, zorder=2)
 
         # --- 2) Номери будинків ---
         house_number_radius = 0.18  # всередині кола
@@ -343,7 +345,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             except Exception: continue
 
         # --- 6)Планети ---
-        r_planet = 0.88
+        r_planet = 0.85
         planet_positions = {}
         chart_obj_map = {getattr(obj, "id", ""): obj for obj in chart.objects if getattr(obj, "id", None)}
 
