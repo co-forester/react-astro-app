@@ -131,7 +131,7 @@ const GenerateChartForm: React.FC<GenerateChartFormProps> = ({ onDataReady }) =>
                   <td>{asp.planet1}</td>
                   <td>{asp.planet2}</td>
                   <td>{asp.type}</td>
-                  <td>{asp.angle}</td>
+                  <td>{asp.angle_dms}</td>
                 </tr>
               ))}
             </tbody>

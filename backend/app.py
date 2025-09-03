@@ -469,14 +469,21 @@ def generate():
                     "angle": float(getattr(obj, "lon", 0)) % 360
                 })
 
+        def float_to_dms(angle: float):
+            deg = int(angle)
+            minutes_float = (angle - deg) * 60
+            minutes = int(minutes_float)
+            seconds = round((minutes_float - minutes) * 60, 1)
+            return f"{deg}° {minutes}' {seconds}\""
+
         aspects_table = []
         for asp in aspects_json:
             aspects_table.append({
                 "planet1": asp["planet1"],
                 "planet2": asp["planet2"],
                 "type": asp["type"],
-                "angle": asp["angle"],
-                "angle_dms": asp["angle_dms"],
+                "angle": asp["angle"],  # градуси у float
+                "angle_dms": float_to_dms(asp["angle"]),  # тепер у DMS
                 "color": ASPECTS_DEF.get(asp["type"], {}).get("color", "#777777")
             })
 
