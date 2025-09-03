@@ -208,5 +208,17 @@ def generate():
         return jsonify({'error':'Chart generation failed'}), 500
     return jsonify(result)
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+# ----------------- Статика кешу -----------------
+@app.route("/cache/<path:filename>")
+def cached_file(filename):
+    return send_from_directory(CACHE_DIR, filename)
+
+# ----------------- Health -----------------
+@app.route("/health")
+def health():
+    return "OK", 200
+
+# ----------------- Run -----------------
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=True)
