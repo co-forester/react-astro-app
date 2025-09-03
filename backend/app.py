@@ -190,18 +190,26 @@ def compute_aspects_manual(objects):
 def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                      logo_text="Albireo Daria", logo_sign="Скорпіон"):
     try:
-        # --- Фон ---
-        fig = plt.figure(figsize=(12, 12))
+       # --- Фон ---
+        fig = plt.figure(figsize=(10, 10))
         ax = plt.subplot(111, polar=True)
         ax.set_theta_zero_location("E")
         ax.set_theta_direction(-1)
-        ax.set_ylim(0, 1.5)
-        ax.set_xticks([]); ax.set_yticks([])
+
+        # 🔹 Зробити коло правильним
+        ax.set_ylim(0, 1)  # радіус 1 замість 1.5
+        ax.set_aspect('equal')  # для полярних діаграм в деяких випадках
+
+        # 🔹 Вимкнути підписи
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+        # Фон
         fig.patch.set_facecolor("#4e4247")
         ax.set_facecolor("#4e4247")
         plt.rcParams["font.family"] = "DejaVu Sans"
 
-        # --- 1) Сектори будинків з градієнтом ---
+        # --- 1)Сектори будинків з градієнтом ---
         from matplotlib.patches import Wedge
         import matplotlib.colors as mcolors
 
@@ -222,7 +230,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             # Лінії меж будинків
             ax.plot([np.deg2rad(start_deg), np.deg2rad(start_deg)], [0.15, 1.12], color="#888888", lw=0.8, zorder=2)
 
-        # --- 2) Номери будинків ---
+        # --- 2)Номери будинків ---
         house_number_radius = 0.19
         for i in range(1, 13):
             cusp1 = get_house_lon(chart, i)
@@ -234,7 +242,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             ax.text(np.deg2rad(mid), house_number_radius, str(i),
                     fontsize=10, ha="center", va="center", color="#6a1b2c", fontweight="bold", zorder=7)
 
-        # --- 3) Коло зодіаку з символами та логотипом ---
+        # --- 3)Коло зодіаку з символами та логотипом ---
         ring_radius_start = 1.10
         ring_height = 0.20
         for i, sym in enumerate(ZODIAC_SYMBOLS):
@@ -288,7 +296,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 r_end   = ring_radius_start + 0.02 if deg_mark % 10 == 0 else ring_radius_start + 0.015
                 ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#faf6f7", lw=1, zorder=2)
 
-        # --- 4) Центральне коло і ім’я ---
+        # --- 4)Центральне коло і ім’я ---
         max_name_len = len(str(name_for_center)) if name_for_center else 0
         central_circle_radius = max(0.16, 0.08 + max_name_len*0.012)
         central_circle = plt.Circle((0,0), central_circle_radius,
