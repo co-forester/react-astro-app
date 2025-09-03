@@ -125,6 +125,10 @@ def deg_to_dms(angle_float):
         m = 0; d = (d + 1) % 360
     return f"{d}°{m}'{s}\""
 
+def to_theta(degree):
+    """Перетворює астрологічні довготи у полярний кут для matplotlib"""
+    return np.deg2rad(90 - degree)
+
 
 def geocode_place(place, retries=2, timeout=8):
    
@@ -181,6 +185,15 @@ def deg_in_sign_dms(lon_float):
 
 
 # ----------------- Аспекти -----------------
+def pol2cart(theta, r):
+    # у системі matplotlib-поляр: x = r*cos(θ), y = r*sin(θ)
+    return r * np.cos(theta), r * np.sin(theta)
+
+def cart2pol(x, y):
+    theta = np.arctan2(y, x)
+    r = np.hypot(x, y)
+    return theta, r
+
 def compute_aspects_manual(objects):
     
     results = []
@@ -450,13 +463,14 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     ha="center", va="center", color=col, zorder=11)
             planet_positions[pid] = (th, r_planet, lon)
 
-        # --- 8) Аспекти (хорди між planet_positions) ---
+       # --- 8) Аспекти (хорди між planet_positions) ---
         for asp in aspects_list:
             try:
                 p1_id = asp.get("planet1")
                 p2_id = asp.get("planet2")
                 if p1_id not in planet_positions or p2_id not in planet_positions:
                     continue
+
                 th1, r1, _ = planet_positions[p1_id]
                 th2, r2, _ = planet_positions[p2_id]
                 cfg = ASPECTS_DEF.get(asp.get("type", "").lower(), {"color": "#777777", "orb": 5})
@@ -464,7 +478,16 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 orb = cfg.get("orb", 5)
                 diff = asp.get("angle", 0)
                 width = max(1.5, 4 - abs(diff - cfg["angle"]) / orb)
-                ax.plot([th1, th2], [r1, r2], color=col, lw=width, alpha=0.95, zorder=10)
+
+                # трохи всередину, щоб лінія не перекривала символи планет
+                r_used = min(r1, r2) * 0.82
+                x1, y1 = pol2cart(th1, r_used)
+                x2, y2 = pol2cart(th2, r_used)
+
+                # малюємо хорду у XY
+                ax.plot([x1, x2], [y1, y2],
+                        color=col, lw=width, alpha=0.95, zorder=10,
+                        transform=ax.transData._b)  # 👈 ключ: малюємо у декартових координатах
             except Exception:
                 continue
 
