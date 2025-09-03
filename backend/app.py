@@ -190,17 +190,19 @@ def compute_aspects_manual(objects):
 def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                      logo_text="Albireo Daria", logo_sign="Скорпіон"):
     try:
-       # --- Фон ---
+       # --- Фон (оновлений) ---
         fig = plt.figure(figsize=(10, 10))
         ax = plt.subplot(111, polar=True)
         ax.set_theta_zero_location("E")
         ax.set_theta_direction(-1)
 
-        # 🔹 Зробити коло правильним
-        ax.set_ylim(0, 1)  # радіус 1 замість 1.5
-        ax.set_aspect('equal')  # для полярних діаграм в деяких випадках
+        # 🔹 Встановлюємо радіус кола 1 для ідеального кола
+        ax.set_ylim(0, 1)
 
-        # 🔹 Вимкнути підписи
+        # 🔹 Забезпечуємо рівні осі
+        ax.set_aspect('equal')  # на полярних осях matplotlib зазвичай автоматично, але можна залишити
+
+        # 🔹 Вимикаємо підписи
         ax.set_xticks([])
         ax.set_yticks([])
 
@@ -208,7 +210,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         fig.patch.set_facecolor("#4e4247")
         ax.set_facecolor("#4e4247")
         plt.rcParams["font.family"] = "DejaVu Sans"
-
+        
         # --- 1)Сектори будинків з градієнтом ---
         from matplotlib.patches import Wedge
         import matplotlib.colors as mcolors
@@ -296,12 +298,15 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 r_end   = ring_radius_start + 0.02 if deg_mark % 10 == 0 else ring_radius_start + 0.015
                 ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#faf6f7", lw=1, zorder=2)
 
-        # --- 4)Центральне коло і ім’я ---
+        # --- 4)Центральне коло і ім’я (оновлений) ---
         max_name_len = len(str(name_for_center)) if name_for_center else 0
         central_circle_radius = max(0.16, 0.08 + max_name_len*0.012)
+
+        # 🔹 Центруємо коло по (0,0) та додаємо на осі з радіусом 1
         central_circle = plt.Circle((0,0), central_circle_radius,
                                     color="#e9c7cf", ec="#a05c6a", lw=1.2, alpha=0.97, zorder=10)
         ax.add_patch(central_circle)
+
         if name_for_center:
             fontsize = min(14, int(central_circle_radius*130))
             ax.text(0,0,name_for_center, color="#800000",
