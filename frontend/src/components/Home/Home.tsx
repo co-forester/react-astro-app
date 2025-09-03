@@ -53,7 +53,9 @@ const Home: FC = () => {
           </div>
 
           <GenerateChartForm onDataReady={handleChartData} />
-          <ChartSVG planets={planets} aspects={aspects} />
+          {planets.length > 0 && aspects.length > 0 && (
+            <ChartSVG planets={planets} aspects={aspects} />
+          )}
           <NatalChartAnalysis />
           <ChildHoroscope />
         </main>

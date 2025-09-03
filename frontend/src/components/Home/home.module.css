@@ -10,13 +10,25 @@
 }
 
 @keyframes fadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeInUp {
-  0% { opacity: 0; transform: translateY(20px); }
-  100% { opacity: 1; transform: translateY(0); }
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Hover ефекти для блоків */
@@ -26,4 +38,48 @@
   transform: translateY(-3px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
+}
+
+.gridContainer {
+  display: grid;
+  grid-template-columns: 1fr 3fr 1fr;
+  gap: 20px;
+}
+
+.leftBlock {
+  grid-column: 1;
+}
+
+.content {
+  grid-column: 2;
+}
+
+.sidebar {
+  grid-column: 3;
+}
+
+/* 📱 Планшети */
+@media (max-width: 1024px) {
+  .gridContainer {
+    grid-template-columns: 1fr 2fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+}
+
+/* 📱 Смартфони */
+@media (max-width: 768px) {
+  .gridContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .leftBlock {
+    order: 2;
+  }
+
+  .content {
+    order: 1;
+  }
 }

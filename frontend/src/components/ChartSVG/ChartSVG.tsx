@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAppSelector } from '../../hooks/reduxHook';
+import './ChartSVG.css';
 
 type Planet = {
     name: string;
@@ -37,16 +38,14 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAsp
     };
 
     return (
-        <div style={{ background: theme ? '#f5f5f5' : '#4a4949', padding: 10 }}>
+        <div className={theme ? "ChartLight" : "ChartDark"}>
             <svg width={500} height={500}>
                 {/* Коло зодіаку */}
                 <circle
                     cx={center.x}
                     cy={center.y}
                     r={radius}
-                    stroke="blue"
-                    strokeWidth={2}
-                    fill="none"
+                    className="ZodiacCircle"
                 />
 
                 {/* Аспекти */}
@@ -68,8 +67,7 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAsp
                             y1={fromCoords.y}
                             x2={toCoords.x}
                             y2={toCoords.y}
-                            stroke={isHovered ? "orange" : "pink"}
-                            strokeWidth={2}
+                            className={`AspectLine ${isHovered ? "AspectLineHover" : ""}`}
                             onMouseEnter={() => {
                                 setHoveredAspect(asp);
                                 onHoverAspect && onHoverAspect(asp);
@@ -102,15 +100,13 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, onHoverPlanet, onHoverAsp
                                 cx={coords.x}
                                 cy={coords.y}
                                 r={12}
-                                fill={isHovered ? "yellow" : "blue"}
+                                className={isHovered ? "PlanetHover" : "PlanetNormal"}
                             />
                             <text
                                 x={coords.x}
                                 y={coords.y + 4}
                                 textAnchor="middle"
-                                fill={theme ? "#1a1a1a" : "#ffffff"}
-                                fontSize={12}
-                                fontFamily="Segoe UI, sans-serif"
+                                className={theme ? "PlanetTextLight" : "PlanetTextDark"}
                             >
                                 {pl.symbol}
                             </text>
