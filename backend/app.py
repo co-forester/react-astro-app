@@ -122,6 +122,13 @@ def deg_to_dms(angle_float):
 def deg_to_dms_str(angle_float):
     return deg_to_dms(angle_float)
 
+def zodiac_position(lon):
+    """Повертає (знак, градус у знаку) для довготи"""
+    lon = lon % 360.0
+    sign_index = int(lon // 30)   # 0=Овен, 1=Телець, ..., 11=Риби
+    deg_in_sign = lon % 30.0
+    return sign_index, deg_in_sign
+
 def to_theta_global_raw(degree):
     # legacy helper — не використовуєм без asc; надалі використовуємо локальний to_theta
     return np.deg2rad(90.0 - float(degree))
@@ -370,7 +377,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     fontsize=10, ha="center", va="center",
                     color="#6a1b2c", fontweight="bold", zorder=7)
 
-        # --- 4) Кільце зодіаку (вирівняне щодо ASC, послідовність CCW) ---
+        # --- 4) Кільце зодіаку з градусними мітками 0-30° в межах кожного знаку ---
         ring_radius_start = 1.10
         ring_height = 0.20
 
@@ -382,6 +389,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             center = to_theta_global(mid)
             width = np.deg2rad(span)
 
+            # сектор знаку
             ax.bar(
                 x=center,
                 height=ring_height,
@@ -399,6 +407,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     [ring_radius_start, ring_radius_start + ring_height + 0.01],
                     color="white", lw=1.2, zorder=4)
 
+            # підписи
             symbol_r = ring_radius_start + ring_height - 0.02
             label_r = ring_radius_start + 0.05
             if ZODIAC_NAMES[i] == logo_sign:
@@ -416,14 +425,19 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                         color="#ffffff", rotation=(mid + 90) % 360,
                         rotation_mode="anchor", zorder=5)
 
-            # градусні мітки у знаку
+            # градусні мітки всередині знаку 0-30° кожні 5°, підписуємо тільки 10° та 20°
             for deg_mark in range(0, 31, 5):
                 theta_deg = to_theta_global(start + deg_mark)
                 r_start = ring_radius_start + 0.01
                 r_end = ring_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
-                ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#faf6f7", lw=1, zorder=2)
+                ax.plot([theta_deg, theta_deg], [r_start, r_end],
+                        color="#faf6f7", lw=1, zorder=2)
+                if deg_mark in [10, 20]:
+                    r_text = ring_radius_start + ring_height + 0.03
+                    ax.text(theta_deg, r_text, str(deg_mark), color='white', fontsize=8,
+                            ha='center', va='center', zorder=5)
 
-        # --- 5) Зовнішні сектори домів (кільце) ---
+        # --- 5) Сектора Домів ---
         house_radius_start = 1.35
         house_ring_height = 0.25
 
@@ -439,6 +453,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             center = to_theta_global(mid)
             width = np.deg2rad(span)
 
+            # сектор дому
             ax.bar(
                 x=center,
                 height=house_ring_height,
@@ -451,21 +466,28 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 align='center'
             )
 
+            # межа дому
             ax.plot([to_theta_global(start), to_theta_global(start)],
                     [house_radius_start, house_radius_start + house_ring_height + 0.01],
                     color="white", lw=1.2, zorder=4)
 
+            # підписи дому
             label_r = house_radius_start + house_ring_height / 2.0
             ax.text(center, label_r, f"I{i}",
                     fontsize=10, ha="center", va="center",
                     color="#ffffff", fontweight="bold",
                     rotation=(mid + 90) % 360, rotation_mode="anchor", zorder=5)
 
-            for deg_mark in range(0, 31, 5):
+            # градусні мітки кожні 5° від ASC, маленькі числа кожні 30°
+            for deg_mark in range(0, int(span)+1, 5):
                 theta_deg = to_theta_global(start + deg_mark)
                 r_start = house_radius_start + 0.01
                 r_end = house_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
-                ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#e0e0e0", lw=1, zorder=2)
+                ax.plot([theta_deg, theta_deg], [r_start, r_end],
+                        color="#e0e0e0", lw=1, zorder=2)
+                if deg_mark % 30 == 0:
+                    ax.text(theta_deg, house_radius_start - 0.02, str(deg_mark),
+                            fontsize=7, ha="center", va="center", color="#ffffff", zorder=6)
 
         # --- 6) ASC/MC/DSC/IC (маркер + DMS) ---
         r_marker = 1.62
