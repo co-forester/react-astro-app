@@ -279,15 +279,22 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         for i in range(1, 13):
             cusp1 = get_house_lon(chart, i)
             cusp2 = get_house_lon(chart, (i % 12) + 1)
-            if cusp1 is None or cusp2 is None:
-                continue
+
+            # fallback: якщо cusp відсутній, розраховуємо приблизно через ASC
+            if cusp1 is None:
+                cusp1 = (asc_lon + (i - 1) * 30.0) % 360.0
+            if cusp2 is None:
+                cusp2 = (asc_lon + i * 30.0) % 360.0
+
             start_deg = float(cusp1) % 360.0
             end_deg = float(cusp2) % 360.0
             span = (end_deg - start_deg) % 360.0
             if span <= 0:
                 span += 360.0
+
             color_start, color_end = HOUSE_COLORS[(i - 1) % len(HOUSE_COLORS)]
             cmap = mcolors.LinearSegmentedColormap.from_list(f"house{i}_cmap", [color_start, color_end])
+
             for step in range(grad_steps):
                 frac1 = step / grad_steps
                 frac2 = (step + 1) / grad_steps
@@ -312,8 +319,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         for i in range(1, 13):
             cusp = get_house_lon(chart, i)
             if cusp is None:
-                continue
-            th = to_theta(cusp % 360.0)
+                cusp = (asc_lon + (i - 1) * 30.0) % 360.0
+            th = to_theta(cusp)
             ax.plot([th, th], [r_inner, r_outer], color="#888888", lw=0.9, zorder=2)
 
         # --- 3) Номери домів ---
@@ -321,12 +328,16 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         for i in range(1, 13):
             c1 = get_house_lon(chart, i)
             c2 = get_house_lon(chart, (i % 12) + 1)
-            if c1 is None or c2 is None:
-                continue
+            if c1 is None:
+                c1 = (asc_lon + (i - 1) * 30.0) % 360.0
+            if c2 is None:
+                c2 = (asc_lon + i * 30.0) % 360.0
+
             start = float(c1) % 360.0
             end = float(c2) % 360.0
             span = (end - start) % 360.0
             mid = (start + span / 2.0) % 360.0
+
             ax.text(to_theta(mid), house_number_radius, str(i),
                     fontsize=10, ha="center", va="center",
                     color="#6a1b2c", fontweight="bold", zorder=7)
