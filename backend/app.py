@@ -386,17 +386,50 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 r_end = ring_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
                 ax.plot([theta_deg, theta_deg], [r_start, r_end],
                         color="#faf6f7", lw=1, zorder=2)
-        # --- 5) Центральне коло і ім’я ---
-        max_name_len = len(str(name_for_center)) if name_for_center else 0
-        central_circle_radius = max(0.16, 0.08 + max_name_len * 0.012)
-        theta_full = np.linspace(0, 2 * np.pi, 361)
-        ax.fill_between(theta_full, 0, central_circle_radius, color="#e9c7cf", alpha=0.97, zorder=9)
-        ax.plot(theta_full, [central_circle_radius] * len(theta_full), color="#a05c6a", lw=1.2, zorder=10)
-        if name_for_center:
-            fontsize = min(14, int(central_circle_radius * 130))
-            ax.text(0, 0, name_for_center, color="#800000",
-                    ha="center", va="center", fontsize=fontsize,
-                    fontweight="bold", zorder=15, clip_on=False)
+       # --- 5) Сектора Домів ---
+        house_radius_start = 1.35
+        house_ring_height = 0.25
+
+        for i, deg in enumerate(HOUSE_DEGREES):
+            start = deg % 360.0
+            end = (deg + 30.0) % 360.0
+            span = (end - start) % 360.0
+            mid = (start + span/2.0) % 360.0
+            center = to_theta_global(mid)   # Глобальна система
+            width = np.deg2rad(span)
+
+            # сектор дому
+            ax.bar(
+                x=center,
+                height=house_ring_height,
+                width=width,
+                bottom=house_radius_start,
+                color=HOUSE_COLORS[i % 12][0],
+                edgecolor=HOUSE_COLORS[i % 12][1],
+                linewidth=1.2,
+                zorder=3,
+                align='center'
+            )
+
+            # межа дому
+            ax.plot([to_theta_global(start), to_theta_global(start)],
+                    [house_radius_start, house_radius_start + house_ring_height + 0.01],
+                    color="white", lw=1.2, zorder=4)
+
+            # підписи дому
+            label_r = house_radius_start + house_ring_height / 2.0
+            ax.text(center, label_r, f"I{i+1}",
+                    fontsize=10, ha="center", va="center",
+                    color="#ffffff", fontweight="bold",
+                    rotation=(mid + 90) % 360, rotation_mode="anchor", zorder=5)
+
+            # градусні мітки кожних 5°
+            for deg_mark in range(0, 31, 5):
+                theta_deg = to_theta_global(start + deg_mark)
+                r_start = house_radius_start + 0.01
+                r_end = house_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
+                ax.plot([theta_deg, theta_deg], [r_start, r_end],
+                        color="#e0e0e0", lw=1, zorder=2)
 
         # --- 6) ASC/MC/DSC/IC (маркер + DMS) ---
         r_marker = 1.45
