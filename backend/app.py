@@ -120,10 +120,10 @@ def deg_to_dms(angle_float):
     return f"{d}°{m}'{s}\""
 
 def deg_to_dms_str(angle_float):
-    # коротка сумісна функція, повертає DMS як рядок — використовують блоки у коді
     return deg_to_dms(angle_float)
 
-def to_theta_global(degree):
+def to_theta_global_raw(degree):
+    # legacy helper — не використовуєм без asc; надалі використовуємо локальний to_theta
     return np.deg2rad(90.0 - float(degree))
 
 def geocode_place(place, retries=2, timeout=8):
@@ -145,6 +145,7 @@ def geocode_place(place, retries=2, timeout=8):
     return None, None
 
 def get_house_lon(chart, i):
+    # існуюча функція — повертає lon або None
     try:
         return chart.houses[i-1].lon
     except Exception:
@@ -158,6 +159,33 @@ def get_house_lon(chart, i):
     except Exception:
         pass
     return None
+
+def safe_house_lon(chart, i, asc_fallback=0.0):
+    """
+    Безпечне читання кута дому i. Якщо немає cusp у chart, повертає asc_fallback + (i-1)*30.
+    Повертає float градуси (0..360).
+    """
+    try:
+        v = get_house_lon(chart, i)
+        if v is not None:
+            return float(v) % 360.0
+    except Exception:
+        pass
+    # спробуємо взяти ASC з chart, інакше використовуємо asc_fallback
+    try:
+        asc_obj = None
+        try:
+            asc_obj = chart.get("ASC")
+        except Exception:
+            asc_obj = None
+        if asc_obj is not None:
+            asc_val = getattr(asc_obj, "lon", None)
+            if asc_val is not None:
+                asc_fallback = float(asc_val) % 360.0
+    except Exception:
+        pass
+    # поділ по 30 градусів від ASC
+    return (float(asc_fallback) + (i - 1) * 30.0) % 360.0
 
 ZODIAC_SIGNS = ["\u2648","\u2649","\u264A","\u264B","\u264C","\u264D",
                 "\u264E","\u264F","\u2650","\u2651","\u2652","\u2653"]
@@ -187,12 +215,13 @@ def cart2pol(x, y):
 
 def compute_aspects_manual(objects):
     results = []
-    objs = [o for o in objects if getattr(o, "id", None) in PLANET_SYMBOLS]
+    # беремо об'єкти, які мають lon і id (розширена фільтрація)
+    objs = [o for o in objects if getattr(o, "id", None) and getattr(o, "lon", None) is not None]
     for i in range(len(objs)):
         for j in range(i + 1, len(objs)):
             p1, p2 = objs[i], objs[j]
-            a1 = getattr(p1, "lon", 0) % 360
-            a2 = getattr(p2, "lon", 0) % 360
+            a1 = float(getattr(p1, "lon", 0.0)) % 360
+            a2 = float(getattr(p2, "lon", 0.0)) % 360
             diff = abs(a1 - a2)
             if diff > 180:
                 diff = 360 - diff
@@ -218,11 +247,11 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         fig = plt.figure(figsize=(12, 12))
         ax = plt.subplot(111, polar=True)
 
-        # Орієнтація: 0 = West, напрямок: проти годинникової.
+        # Орієнтація: 0 = West (ліворуч), напрямок: ПРОТИ годинникової (1) — щоб зодіак ішов CCW.
         ax.set_theta_zero_location("W")
-        ax.set_theta_direction(-1)
+        ax.set_theta_direction(1)
 
-        ax.set_ylim(0, 1.5)
+        ax.set_ylim(0, 1.6)
         ax.set_xticks([]); ax.set_yticks([])
         fig.patch.set_facecolor("#4e4247")
         ax.set_facecolor("#4e4247")
@@ -230,24 +259,65 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         ax.set_aspect('equal', 'box')
         ax.set_rorigin(-0.02)
 
-        # --- Підготовка ---
-        house_sector_inner = 0.15
-        house_sector_width = 0.25
-        grad_steps = 24
-        house_number_radius = 0.19
+        # safe_get — взяти об'єкт (ASC/MC) з chart (робимо м'які спроби)
+        def safe_get(obj_chart, key):
+            variants = []
+            if isinstance(key, str):
+                variants.extend([key, key.upper(), key.capitalize()])
+            try:
+                const_val = getattr(const, key.upper())
+                if const_val:
+                    variants.append(const_val)
+            except Exception:
+                pass
+            for k in variants:
+                try:
+                    if k is None:
+                        continue
+                    res = obj_chart.get(k)
+                    if res is not None:
+                        return res
+                except Exception:
+                    continue
+            return None
 
-        # ASC = 1-й будинок
-        asc_lon = safe_house_lon(chart, 1)
+        # ASC — надійно (fallback на houses[0] або на 0.0)
+        asc_obj = safe_get(chart, "ASC") or safe_get(chart, "Asc") or safe_get(chart, "asc")
+        asc_lon = None
+        try:
+            if asc_obj is not None and getattr(asc_obj, "lon", None) is not None:
+                asc_lon = float(getattr(asc_obj, "lon"))
+        except Exception:
+            asc_lon = None
+        if asc_lon is None:
+            # спробуємо будинок 1
+            try:
+                cusp1 = get_house_lon(chart, 1)
+                if cusp1 is not None:
+                    asc_lon = float(cusp1)
+            except Exception:
+                asc_lon = None
+        if asc_lon is None:
+            asc_lon = 0.0  # останній запасний варіант
 
+        # Локальна функція перетворення — ВІДНОСНО ASC, в градусах CCW, повертає радіани
         def to_theta(lon):
-            """Перетворює довготу в радіани відносно ASC, проти годинникової."""
             ang = (float(lon) - float(asc_lon)) % 360.0
             return np.deg2rad(ang)
 
-        # --- 1) Сектори будинків (градієнт) ---
+        # to_theta_global — перетворення глобальної довготи (наприклад mid знаку)
+        def to_theta_global(degree):
+            # реалізовано через to_theta, щоб кільце зодіаку вирівнювалося відносно ASC
+            return to_theta(degree)
+
+        # --- 1) Сектори будинків (градієнт, ближче до центру) ---
+        house_sector_inner = 0.15
+        house_sector_width = 0.25
+        grad_steps = 24
+
         for i in range(1, 13):
-            cusp1 = safe_house_lon(chart, i)
-            cusp2 = safe_house_lon(chart, (i % 12) + 1)
+            cusp1 = safe_house_lon(chart, i, asc_fallback=asc_lon)
+            cusp2 = safe_house_lon(chart, (i % 12) + 1, asc_fallback=asc_lon)
             if cusp1 is None or cusp2 is None:
                 continue
             start_deg = float(cusp1) % 360.0
@@ -275,20 +345,21 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     zorder=1
                 )
 
-        # --- 2) Радіальні лінії (купи) ---
+        # --- 2) Радіальні лінії (межі домів) ---
         r_inner = 0.15
         r_outer = 1.05
         for i in range(1, 13):
-            cusp = safe_house_lon(chart, i)
+            cusp = safe_house_lon(chart, i, asc_fallback=asc_lon)
             if cusp is None:
                 continue
             th = to_theta(cusp)
             ax.plot([th, th], [r_inner, r_outer], color="#888888", lw=0.9, zorder=2)
 
-        # --- 3) Номери будинків ---
+        # --- 3) Номери домів (біля центру) ---
+        house_number_radius = 0.19
         for i in range(1, 13):
-            c1 = safe_house_lon(chart, i)
-            c2 = safe_house_lon(chart, (i % 12) + 1)
+            c1 = safe_house_lon(chart, i, asc_fallback=asc_lon)
+            c2 = safe_house_lon(chart, (i % 12) + 1, asc_fallback=asc_lon)
             if c1 is None or c2 is None:
                 continue
             start = float(c1) % 360.0
@@ -299,7 +370,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     fontsize=10, ha="center", va="center",
                     color="#6a1b2c", fontweight="bold", zorder=7)
 
-        # --- 4) Кільце зодіаку ---
+        # --- 4) Кільце зодіаку (вирівняне щодо ASC, послідовність CCW) ---
         ring_radius_start = 1.10
         ring_height = 0.20
 
@@ -308,10 +379,9 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             end = start + 30.0
             span = (end - start) % 360.0
             mid = (start + span/2.0) % 360.0
-            center = to_theta_global(mid)   # Глобальна система (0° Овна на сході)
+            center = to_theta_global(mid)
             width = np.deg2rad(span)
 
-            # сектор знаку
             ax.bar(
                 x=center,
                 height=ring_height,
@@ -329,7 +399,6 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     [ring_radius_start, ring_radius_start + ring_height + 0.01],
                     color="white", lw=1.2, zorder=4)
 
-            # підписи
             symbol_r = ring_radius_start + ring_height - 0.02
             label_r = ring_radius_start + 0.05
             if ZODIAC_NAMES[i] == logo_sign:
@@ -347,30 +416,29 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                         color="#ffffff", rotation=(mid + 90) % 360,
                         rotation_mode="anchor", zorder=5)
 
-            # градусні мітки
+            # градусні мітки у знаку
             for deg_mark in range(0, 31, 5):
                 theta_deg = to_theta_global(start + deg_mark)
                 r_start = ring_radius_start + 0.01
                 r_end = ring_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
-                ax.plot([theta_deg, theta_deg], [r_start, r_end],
-                        color="#faf6f7", lw=1, zorder=2)
-       # --- 5) Сектора Домів ---
+                ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#faf6f7", lw=1, zorder=2)
+
+        # --- 5) Зовнішні сектори домів (кільце) ---
         house_radius_start = 1.35
         house_ring_height = 0.25
 
         for i in range(1, 13):
-            cusp1 = get_house_lon(chart, i)
-            cusp2 = get_house_lon(chart, (i % 12) + 1)
+            cusp1 = safe_house_lon(chart, i, asc_fallback=asc_lon)
+            cusp2 = safe_house_lon(chart, (i % 12) + 1, asc_fallback=asc_lon)
             if cusp1 is None or cusp2 is None:
                 continue
             start = float(cusp1) % 360.0
             end = float(cusp2) % 360.0
             span = (end - start) % 360.0
             mid = (start + span/2.0) % 360.0
-            center = to_theta_global(mid)   # Глобальна система
+            center = to_theta_global(mid)
             width = np.deg2rad(span)
 
-            # сектор дому
             ax.bar(
                 x=center,
                 height=house_ring_height,
@@ -383,32 +451,29 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 align='center'
             )
 
-            # межа дому
             ax.plot([to_theta_global(start), to_theta_global(start)],
                     [house_radius_start, house_radius_start + house_ring_height + 0.01],
                     color="white", lw=1.2, zorder=4)
 
-            # підписи дому
             label_r = house_radius_start + house_ring_height / 2.0
             ax.text(center, label_r, f"I{i}",
                     fontsize=10, ha="center", va="center",
                     color="#ffffff", fontweight="bold",
                     rotation=(mid + 90) % 360, rotation_mode="anchor", zorder=5)
 
-            # градусні мітки кожних 5°
             for deg_mark in range(0, 31, 5):
                 theta_deg = to_theta_global(start + deg_mark)
                 r_start = house_radius_start + 0.01
                 r_end = house_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
-                ax.plot([theta_deg, theta_deg], [r_start, r_end],
-                        color="#e0e0e0", lw=1, zorder=2)
+                ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#e0e0e0", lw=1, zorder=2)
+
         # --- 6) ASC/MC/DSC/IC (маркер + DMS) ---
-        r_marker = 1.45
+        r_marker = 1.62
         arrow_len = 0.07
         try:
-            asc = float(getattr(chart.get("ASC"), "lon", 0)) % 360
+            asc = float(getattr(chart.get("ASC"), "lon", asc_lon)) % 360
         except Exception:
-            asc = 0.0
+            asc = float(asc_lon) % 360
         try:
             mc = float(getattr(chart.get("MC"), "lon", 0)) % 360
         except Exception:
@@ -424,11 +489,9 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         for label, (lon, col) in points.items():
             th = to_theta(lon)
             ax.plot([th], [r_marker], marker="o", markersize=9, color=col, zorder=12)
-            ax.annotate("",
-                xy=(th, r_marker - arrow_len), xytext=(th, r_marker),
-                arrowprops=dict(facecolor=col, shrink=0.05, width=2, headwidth=8),
-                zorder=12
-            )
+            ax.annotate("", xy=(th, r_marker - arrow_len), xytext=(th, r_marker),
+                        arrowprops=dict(facecolor=col, shrink=0.05, width=2, headwidth=8),
+                        zorder=12)
             deg_i = int(lon)
             min_i = int((lon - deg_i) * 60)
             sec_i = int((((lon - deg_i) * 60) - min_i) * 60)
@@ -457,7 +520,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             ax.text(th, r_planet, deg_in_sign_dms(lon), fontsize=8, ha="center", va="center", color=col, zorder=11)
             planet_positions[pid] = (th, r_planet, lon)
 
-        # --- 8) Аспекти — прямі хорди (у Cartesian) ---
+        # --- 8) Аспекти — хорди в Cartesian (не затирають символи) ---
         for asp in aspects_list:
             try:
                 p1_id = asp.get("planet1")
@@ -472,14 +535,10 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 diff = asp.get("angle", 0)
                 width = max(1.2, 3 - abs(diff - cfg["angle"]) / orb)
 
-                # беремо трохи внутрішній радіус, щоб не перекривати символи
                 r_used = r_planet * 0.92
                 x1, y1 = pol2cart(th1, r_used)
                 x2, y2 = pol2cart(th2, r_used)
 
-                # малюємо у Cartesian (пряма хорда)
-                # transform=ax.transData._b використовується, щоб обійти полярний трансформ;
-                # це працює стабільно тут (як в робочих блоках).
                 ax.plot([x1, x2], [y1, y2], color=col, lw=width, alpha=0.95, zorder=10, transform=ax.transData._b)
             except Exception:
                 continue
@@ -492,8 +551,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                                               markerfacecolor=PLANET_COLORS[pid],
                                               label=f"{sym} {pid}", markersize=10))
         for asp_name, cfg in ASPECTS_DEF.items():
-            legend_elements.append(Line2D([0], [0], color=cfg["color"], lw=2.5,
-                                          label=asp_name.capitalize()))
+            legend_elements.append(Line2D([0], [0], color=cfg["color"], lw=2.5, label=asp_name.capitalize()))
         ax.legend(handles=legend_elements, loc="upper center", bbox_to_anchor=(0.5, -0.18),
                   fontsize=12, ncol=3, frameon=False)
 
@@ -522,7 +580,7 @@ def generate():
         json_path = os.path.join(CACHE_DIR, f"{key}.json")
         png_path  = os.path.join(CACHE_DIR, f"{key}.png")
 
-        # перевірка кеша
+        # кеш
         if os.path.exists(json_path) and os.path.exists(png_path):
             try:
                 mtime = dt.fromtimestamp(os.path.getmtime(json_path))
@@ -551,7 +609,6 @@ def generate():
             local_dt = tz.localize(naive)
             offset_hours = (local_dt.utcoffset().total_seconds() / 3600.0) if local_dt.utcoffset() else 0.0
         except Exception as e:
-            # повертаємо помилку у форматі, схожому на твою робочу версію
             return jsonify({"error": "Exception", "message": str(e)}), 400
 
         fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), offset_hours)
@@ -561,10 +618,8 @@ def generate():
         except Exception:
             chart = Chart(fdate, pos)
 
-        # аспекти (зручний JSON список)
         aspects_json = compute_aspects_manual(chart.objects)
 
-        # малюємо картку (в draw використовуємо aspects_json)
         try:
             draw_natal_chart(chart, aspects_json, png_path, name_for_center=name, logo_text="Albireo Daria")
         except Exception as e:
