@@ -390,9 +390,13 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         house_radius_start = 1.35
         house_ring_height = 0.25
 
-        for i, deg in enumerate(HOUSE_DEGREES):
-            start = deg % 360.0
-            end = (deg + 30.0) % 360.0
+        for i in range(1, 13):
+            cusp1 = get_house_lon(chart, i)
+            cusp2 = get_house_lon(chart, (i % 12) + 1)
+            if cusp1 is None or cusp2 is None:
+                continue
+            start = float(cusp1) % 360.0
+            end = float(cusp2) % 360.0
             span = (end - start) % 360.0
             mid = (start + span/2.0) % 360.0
             center = to_theta_global(mid)   # Глобальна система
@@ -404,8 +408,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 height=house_ring_height,
                 width=width,
                 bottom=house_radius_start,
-                color=HOUSE_COLORS[i % 12][0],
-                edgecolor=HOUSE_COLORS[i % 12][1],
+                color=HOUSE_COLORS[(i-1) % 12][0],
+                edgecolor=HOUSE_COLORS[(i-1) % 12][1],
                 linewidth=1.2,
                 zorder=3,
                 align='center'
@@ -418,7 +422,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
 
             # підписи дому
             label_r = house_radius_start + house_ring_height / 2.0
-            ax.text(center, label_r, f"I{i+1}",
+            ax.text(center, label_r, f"I{i}",
                     fontsize=10, ha="center", va="center",
                     color="#ffffff", fontweight="bold",
                     rotation=(mid + 90) % 360, rotation_mode="anchor", zorder=5)
@@ -430,7 +434,6 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 r_end = house_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
                 ax.plot([theta_deg, theta_deg], [r_start, r_end],
                         color="#e0e0e0", lw=1, zorder=2)
-
         # --- 6) ASC/MC/DSC/IC (маркер + DMS) ---
         r_marker = 1.45
         arrow_len = 0.07
