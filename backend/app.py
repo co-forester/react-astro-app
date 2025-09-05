@@ -333,7 +333,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
 
         # --- 4) Кільце зодіаку ---
         ring_radius_start = 1.10
-        ring_height = 0.20
+        ring_height = 0.40
 
         for i, sym in enumerate(ZODIAC_SYMBOLS):
             start = i * 30.0
