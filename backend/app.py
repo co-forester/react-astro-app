@@ -218,8 +218,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         fig = plt.figure(figsize=(12, 12))
         ax = plt.subplot(111, polar=True)
 
-        # Орієнтація: 0 = West, напрямок: clockwise (-1).
-        # Це дозволяє ASC бути ліворуч при використанні to_theta (зсув на asc_lon).
+        # Орієнтація: 0 = West, напрямок: проти годинникової.
         ax.set_theta_zero_location("W")
         ax.set_theta_direction(-1)
 
@@ -231,118 +230,75 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         ax.set_aspect('equal', 'box')
         ax.set_rorigin(-0.02)
 
-        def safe_get(obj_chart, key):
-            variants = []
-            if isinstance(key, str):
-                variants.extend([key, key.upper(), key.capitalize()])
-            try:
-                const_val = getattr(const, key.upper())
-                if const_val:
-                    variants.append(const_val)
-            except Exception:
-                pass
-            for k in variants:
-                try:
-                    if k is None:
-                        continue
-                    res = obj_chart.get(k)
-                    if res is not None:
-                        return res
-                except Exception:
-                    continue
-            return None
-
-        asc_obj = safe_get(chart, "ASC") or safe_get(chart, "Asc") or safe_get(chart, "asc")
-        if asc_obj is None:
-            try:
-                asc_lon = float(getattr(chart.houses[0], "lon", 0.0)) % 360.0
-                app.logger.warning("ASC not found; using houses[0].lon as fallback: %s", asc_lon)
-            except Exception:
-                asc_lon = 0.0
-                app.logger.warning("ASC not found and houses[0] not available; using 0.0")
-        else:
-            try:
-                asc_lon = float(getattr(asc_obj, "lon", 0.0)) % 360.0
-            except Exception:
-                asc_lon = 0.0
-
-        def to_theta(lon):
-            # перетворюємо довготу в радіани з ротацією на ASC
-            ang = (float(lon) - asc_lon) % 360.0
-            return np.deg2rad(ang)
-
-       # --- Підготовка ---
+        # --- Підготовка ---
         house_sector_inner = 0.15
         house_sector_width = 0.25
         grad_steps = 24
         house_number_radius = 0.19
 
         # ASC = 1-й будинок
-        asc_lon = get_house_lon(chart, 1)
+        asc_lon = safe_house_lon(chart, 1)
 
         def to_theta(lon):
             """Перетворює довготу в радіани відносно ASC, проти годинникової."""
             ang = (float(lon) - float(asc_lon)) % 360.0
             return np.deg2rad(ang)
 
-            # --- 1) Сектори будинків (градієнт) ---
-            for i in range(1, 13):
-                cusp1 = get_house_lon(chart, i)
-                cusp2 = get_house_lon(chart, (i % 12) + 1)
-                if cusp1 is None or cusp2 is None:
-                    continue
-                start_deg = float(cusp1) % 360.0
-                end_deg = float(cusp2) % 360.0
-                span = (end_deg - start_deg) % 360.0
-                if span <= 0:
-                    span += 360.0
-                color_start, color_end = HOUSE_COLORS[(i - 1) % len(HOUSE_COLORS)]
-                cmap = mcolors.LinearSegmentedColormap.from_list(f"house{i}_cmap", [color_start, color_end])
-                for step in range(grad_steps):
-                    frac1 = step / grad_steps
-                    frac2 = (step + 1) / grad_steps
-                    angle1 = start_deg + span * frac1
-                    angle2 = start_deg + span * frac2
-                    color = cmap(frac1)
-                    ax.bar(
-                        x=to_theta(angle1),
-                        height=house_sector_width,
-                        width=np.deg2rad((angle2 - angle1) % 360.0),
-                        bottom=house_sector_inner,
-                        color=color,
-                        alpha=0.55,
-                        edgecolor=None,
-                        align="edge",
-                        zorder=1
-                    )
+        # --- 1) Сектори будинків (градієнт) ---
+        for i in range(1, 13):
+            cusp1 = safe_house_lon(chart, i)
+            cusp2 = safe_house_lon(chart, (i % 12) + 1)
+            if cusp1 is None or cusp2 is None:
+                continue
+            start_deg = float(cusp1) % 360.0
+            end_deg = float(cusp2) % 360.0
+            span = (end_deg - start_deg) % 360.0
+            if span <= 0:
+                span += 360.0
+            color_start, color_end = HOUSE_COLORS[(i - 1) % len(HOUSE_COLORS)]
+            cmap = mcolors.LinearSegmentedColormap.from_list(f"house{i}_cmap", [color_start, color_end])
+            for step in range(grad_steps):
+                frac1 = step / grad_steps
+                frac2 = (step + 1) / grad_steps
+                angle1 = start_deg + span * frac1
+                angle2 = start_deg + span * frac2
+                color = cmap(frac1)
+                ax.bar(
+                    x=to_theta(angle1),
+                    height=house_sector_width,
+                    width=np.deg2rad((angle2 - angle1) % 360.0),
+                    bottom=house_sector_inner,
+                    color=color,
+                    alpha=0.55,
+                    edgecolor=None,
+                    align="edge",
+                    zorder=1
+                )
 
-            # --- 2) Радіальні лінії (купи) ---
-            r_inner = 0.15
-            r_outer = 1.05
-            for i in range(1, 13):
-                cusp = get_house_lon(chart, i)
-                if cusp is None:
-                    continue
-                th = to_theta(cusp)
-                ax.plot([th, th], [r_inner, r_outer], color="#888888", lw=0.9, zorder=2)
+        # --- 2) Радіальні лінії (купи) ---
+        r_inner = 0.15
+        r_outer = 1.05
+        for i in range(1, 13):
+            cusp = safe_house_lon(chart, i)
+            if cusp is None:
+                continue
+            th = to_theta(cusp)
+            ax.plot([th, th], [r_inner, r_outer], color="#888888", lw=0.9, zorder=2)
 
-            # --- 3) Номери будинків ---
-            for i in range(1, 13):
-                c1 = get_house_lon(chart, i)
-                c2 = get_house_lon(chart, (i % 12) + 1)
-                if c1 is None or c2 is None:
-                    continue
-                start = float(c1) % 360.0
-                end = float(c2) % 360.0
-                span = (end - start) % 360.0
-                mid = (start + span / 2.0) % 360.0
-                ax.text(to_theta(mid), house_number_radius, str(i),
-                        fontsize=10, ha="center", va="center",
-                        color="#6a1b2c", fontweight="bold", zorder=7)
+        # --- 3) Номери будинків ---
+        for i in range(1, 13):
+            c1 = safe_house_lon(chart, i)
+            c2 = safe_house_lon(chart, (i % 12) + 1)
+            if c1 is None or c2 is None:
+                continue
+            start = float(c1) % 360.0
+            end = float(c2) % 360.0
+            span = (end - start) % 360.0
+            mid = (start + span / 2.0) % 360.0
+            ax.text(to_theta(mid), house_number_radius, str(i),
+                    fontsize=10, ha="center", va="center",
+                    color="#6a1b2c", fontweight="bold", zorder=7)
 
-            # --- Налаштування осі ---
-            ax.set_theta_zero_location("W")   # 0° = захід
-            ax.set_theta_direction(-1)        # проти годинникової
         # --- 4) Кільце зодіаку ---
         ring_radius_start = 1.10
         ring_height = 0.20
