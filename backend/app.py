@@ -118,12 +118,6 @@ def generate():
 
     return jsonify(out)
 
-@app.route("/cache/<filename>")
-def serve_cache(filename):
-    return app.send_static_file(os.path.join(CACHE_DIR, filename))
-
-if __name__ == "__main__":
-    app.run(debug=True)
 # ----------------- Статика кешу -----------------
 @app.route("/cache/<path:filename>")
 def cached_file(filename):
@@ -133,6 +127,19 @@ def cached_file(filename):
 @app.route("/health")
 def health():
     return "OK", 200
+
+# ----------------- Error Handlers -----------------
+@app.errorhandler(500)
+def handle_500(e):
+    return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+
+@app.errorhandler(404)
+def handle_404(e):
+    return jsonify({"error": "Not Found"}), 404
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    return jsonify({"error": "Exception", "message": str(e)}), 500
 
 # ----------------- Run -----------------
 if __name__ == "__main__":
