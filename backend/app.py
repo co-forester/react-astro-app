@@ -137,8 +137,54 @@ def generate_chart_image(date, time, city, country, filename='chart.png'):
 @app.route('/generate', methods=['POST'])
 def generate():
     data = request.json
-    try:
-        filename = generate_chart_image(data['date'], data['time'], data['city'], data['country'])
-        return jsonify({'status':'ok', 'chart': filename})
-    except Exception as e:
-        return jsonify({'status':'error', 'message': str(e), 'trace': traceback.format_exc()})
+    name = data.get("name", "Unknown")
+    date_str = data.get("date")
+    time_str = data.get("time")
+    place = data.get("place", "Unknown")
+    lat = data.get("lat")
+    lon = data.get("lon")
+
+    dt_obj = Datetime(date_str, time_str)
+    pos = GeoPos(lat, lon)
+    chart = Chart(dt_obj, pos, hsys='P')
+
+    key = hashlib.md5(f"{name}{date_str}{time_str}{place}".encode()).hexdigest()
+    png_path = os.path.join(CACHE_DIR, f"{key}.png")
+    planets_list, aspect_lines = draw_chart(chart, png_path)
+
+    out = {
+        "name": name,
+        "date": date_str,
+        "time": time_str,
+        "place": place,
+        "chart_url": f"{request.host_url.rstrip('/')}/cache/{key}.png",
+        "planets": planets_list,
+        "aspects": aspect_lines
+    }
+
+    json_path = os.path.join(CACHE_DIR, f"{key}.json")
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False, indent=2)
+
+    return jsonify(out)
+
+@app.route("/cache/<filename>")
+def serve_cache(filename):
+    return app.send_static_file(os.path.join(CACHE_DIR, filename))
+
+if __name__ == "__main__":
+    app.run(debug=True)
+# ----------------- Статика кешу -----------------
+@app.route("/cache/<path:filename>")
+def cached_file(filename):
+    return send_from_directory(CACHE_DIR, filename)
+
+# ----------------- Health -----------------
+@app.route("/health")
+def health():
+    return "OK", 200
+
+# ----------------- Run -----------------
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=True)
