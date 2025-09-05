@@ -1,179 +1,209 @@
+# app.py — професійна натальна карта (Placidus), кеш PNG/JSON,
+# дугові підписи, логотип по дузі (♏), DMS, ASC/MC/IC/DSC, хорди аспектів, таблиця аспектів
+
 import os
-import math
 import json
 import hashlib
-import traceback
-from datetime import datetime as dt, timedelta
+from datetime import datetime
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
+# matplotlib — headless
 import matplotlib
 matplotlib.use("Agg")  # headless рендер
 import matplotlib.pyplot as plt
-
-from geopy.geocoders import Nominatim
-from timezonefinder import TimezoneFinder
-import pytz
 
 from flatlib.chart import Chart
 from flatlib import const
 from flatlib.datetime import Datetime
 from flatlib.geopos import GeoPos
+from flatlib import aspects
 
-# ---------- Константи ----------
-PLANET_SYMBOLS = {
-    const.SUN: "☉", const.MOON: "☽", const.MERCURY: "☿",
-    const.VENUS: "♀", const.MARS: "♂", const.JUPITER: "♃",
-    const.SATURN: "♄", const.URANUS: "♅", const.NEPTUNE: "♆",
-    const.PLUTO: "♇", const.NORTH_NODE: "☊", const.SOUTH_NODE: "☋",
-}
-
-ASPECT_COLORS = {
-    'conj': '#FF0000', 'opp': '#800080', 'trine': '#00FF00', 'sq': '#FFA500', 'sextile': '#0000FF'
-}
-
-HOUSES_COLORS = ['#FFE0B2', '#FFCC80', '#FFB74D', '#FFA726', '#FF9800', '#FB8C00',
-                 '#F57C00', '#EF6C00', '#E65100', '#FFECB3', '#FFE082', '#FFD54F']
-
-# ---------- Flask ----------
 app = Flask(__name__)
 CORS(app)
 
-# ---------- Допоміжні функції ----------
-def dms(degree):
-    d = int(degree)
-    m = int((degree - d) * 60)
-    s = int((((degree - d) * 60) - m) * 60)
-    return f"{d}°{m}'{s}\""
+CACHE_DIR = "cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
 
-def get_planet_coords(chart):
-    coords = {}
-    for p in chart.objects:
-        if p.TYPE in PLANET_SYMBOLS:
-            try:
-                lon = p.lon
-            except:
-                lon = 0.0
-            coords[p.TYPE] = lon
-    return coords
+PLANET_SYMBOLS = {
+    "Sun": "☉", "Moon": "☽", "Mercury": "☿", "Venus": "♀",
+    "Mars": "♂", "Jupiter": "♃", "Saturn": "♄",
+    "Uranus": "♅", "Neptune": "♆", "Pluto": "♇",
+    "North Node": "☊", "South Node": "☋", "Pars Fortuna": "⚶"
+}
 
-def get_house_cusps(chart):
-    cusps = {}
-    for i in range(1, 13):
-        try:
-            lon = chart.houses[i].lon
-        except:
-            lon = 0.0
-        cusps[i] = lon
-    return cusps
+ASPECT_COLORS = {
+    "conjunction": "#FF0000",
+    "opposition": "#0000FF",
+    "trine": "#00FF00",
+    "square": "#FFA500",
+    "sextile": "#1F77B4"
+}
 
-# ---------- Малювання карти ----------
-def draw_chart(chart, filename='chart.png'):
-    fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={'projection': 'polar'})
-    ax.set_theta_direction(-1)  # проти годинникової
-    ax.set_theta_offset(math.radians(math.pi/2))  # 0° вгорі
-    ax.set_xticks([])
-    ax.set_yticks([])
-    
-    # Домів сектора
-    cusps = get_house_cusps(chart)
-    for i, lon in cusps.items():
-        angle = math.radians(lon)
-        ax.bar(angle, 1.0, width=math.radians(30), bottom=0.0, color=HOUSES_COLORS[i-1], edgecolor='k', alpha=0.3)
-    
-    # Зодіак
+def draw_chart(chart, filename):
+    fig, ax = plt.subplots(figsize=(8,8))
+    ax.set_xlim(-1.2,1.2)
+    ax.set_ylim(-1.2,1.2)
+    ax.axis('off')
+
+    # Зодіак (полярність)
     for i in range(12):
-        start = math.radians(i*30)
-        ax.text(start + math.radians(15), 1.05, const.SIGN_SYMBOLS[i+1], fontsize=14,
-                ha='center', va='center')
-    
-    # ASC/MC/IC/DSC
-    for point in ['ASC','MC','IC','DSC']:
-        try:
-            obj = getattr(chart, point)
-            deg = obj.lon % 30
-            sign = const.SIGN_SYMBOLS[int(obj.sign)]
-            ax.text(math.radians(obj.lon), 1.15, f"{point} {deg:.1f}° {sign}", color='yellow', ha='center', va='center')
-        except:
-            pass
-    
+        start = 2*math.pi*(i/12)
+        end = 2*math.pi*((i+1)/12)
+        ax.plot([0, math.cos(start)], [0, math.sin(start)], color="grey", lw=1)
+
     # Планети
-    planets = get_planet_coords(chart)
-    for p, lon in planets.items():
-        angle = math.radians(lon)
-        ax.text(angle, 0.8, PLANET_SYMBOLS[p], fontsize=16, ha='center', va='center')
-    
-    # Аспекти
-    try:
-        for a in chart.aspects:
-            if a.orb < 0.5:  # fallback малий орб
-                continue
-            lon1 = chart.get(a.obj1).lon
-            lon2 = chart.get(a.obj2).lon
-            angle1 = math.radians(lon1)
-            angle2 = math.radians(lon2)
-            ax.plot([angle1, angle2], [0.0, 0.8], color=ASPECT_COLORS.get(a.type, '#000000'), lw=1)
-    except:
-        pass
-    
-    fig.savefig(filename, dpi=150, bbox_inches='tight')
+    planets_list = []
+    for p in chart.objects:
+        if p.isPlanet():
+            angle = math.radians(p.lon)
+            x, y = math.cos(angle), math.sin(angle)
+            ax.text(x*1.05, y*1.05, PLANET_SYMBOLS.get(p.id, p.id), fontsize=12, ha='center', va='center')
+            planets_list.append({
+                "name": p.id,
+                "symbol": PLANET_SYMBOLS.get(p.id, p.id),
+                "lon": p.lon
+            })
+
+    # Аспекти прямими хордами
+    aspect_lines = []
+    for asp in aspects.find(chart):
+        if asp.type in ASPECT_COLORS:
+            p1 = next(o for o in chart.objects if o.id==asp.obj1)
+            p2 = next(o for o in chart.objects if o.id==asp.obj2)
+            x1, y1 = math.cos(math.radians(p1.lon)), math.sin(math.radians(p1.lon))
+            x2, y2 = math.cos(math.radians(p2.lon)), math.sin(math.radians(p2.lon))
+            ax.plot([x1, x2], [y1, y2], color=ASPECT_COLORS[asp.type], lw=1)
+            aspect_lines.append({
+                "planet1": p1.id,
+                "planet1_symbol": PLANET_SYMBOLS.get(p1.id, p1.id),
+                "planet2": p2.id,
+                "planet2_symbol": PLANET_SYMBOLS.get(p2.id, p2.id),
+                "type": asp.type,
+                "angle_dms": f"{int(asp.angle)}°"
+            })
+
+    fig.savefig(filename, bbox_inches='tight')
     plt.close(fig)
-    return filename
+    return planets_list, aspect_lines
 
-# ---------- Генерація карти ----------
-def generate_chart_image(date, time, city, country, filename='chart.png'):
-    geolocator = Nominatim(user_agent="astro_app")
-    loc = geolocator.geocode(f"{city}, {country}")
-    tf = TimezoneFinder()
-    tzname = tf.timezone_at(lng=loc.longitude, lat=loc.latitude)
-    tz = pytz.timezone(tzname)
-    dt_obj = tz.localize(dt.strptime(f"{date} {time}", "%Y-%m-%d %H:%M"))
-    chart = Chart(Datetime(dt_obj.year, dt_obj.month, dt_obj.day, dt_obj.hour, dt_obj.minute, tzname),
-                  GeoPos(loc.latitude, loc.longitude), hsys='P')
-    return draw_chart(chart, filename)
-
-# ---------- API ----------
-@app.route('/generate', methods=['POST'])
+@app.route("/generate", methods=["POST"])
 def generate():
-    data = request.json
-    name = data.get("name", "Unknown")
-    date_str = data.get("date")
-    time_str = data.get("time")
-    place = data.get("place", "Unknown")
-    lat = data.get("lat")
-    lon = data.get("lon")
+    try:
+        cleanup_cache()
+        data = request.get_json() or {}
+        name = data.get("name") or data.get("firstName") or "Person"
+        date_str = data.get("date")
+        time_str = data.get("time")
+        place = data.get("place") or data.get("city") or data.get("location")
+        if not (date_str and time_str and place):
+            return jsonify({"error": "Надішліть date (YYYY-MM-DD), time (HH:MM) та place (рядок)"}), 400
 
-    dt_obj = Datetime(date_str, time_str)
-    pos = GeoPos(lat, lon)
-    chart = Chart(dt_obj, pos, hsys='P')
+        key = cache_key(name, date_str, time_str, place)
+        json_path = os.path.join(CACHE_DIR, f"{key}.json")
+        png_path  = os.path.join(CACHE_DIR, f"{key}.png")
 
-    key = hashlib.md5(f"{name}{date_str}{time_str}{place}".encode()).hexdigest()
-    png_path = os.path.join(CACHE_DIR, f"{key}.png")
-    planets_list, aspect_lines = draw_chart(chart, png_path)
+        # перевірка кеша
+        if os.path.exists(json_path) and os.path.exists(png_path):
+            try:
+                mtime = dt.fromtimestamp(os.path.getmtime(json_path))
+                if dt.now() - mtime <= timedelta(days=CACHE_TTL_DAYS):
+                    with open(json_path, "r", encoding="utf-8") as f:
+                        cached = json.load(f)
+                    base_url = request.host_url.rstrip("/")
+                    cached["chart_url"] = f"{base_url}/cache/{key}.png"
+                    return jsonify(cached)
+            except Exception:
+                pass
 
-    out = {
-        "name": name,
-        "date": date_str,
-        "time": time_str,
-        "place": place,
-        "chart_url": f"{request.host_url.rstrip('/')}/cache/{key}.png",
-        "planets": planets_list,
-        "aspects": aspect_lines
-    }
+        lat, lon = geocode_place(place)
+        if lat is None:
+            return jsonify({"error": "Місце не знайдено (геокодер)"}), 400
 
-    json_path = os.path.join(CACHE_DIR, f"{key}.json")
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(out, f, ensure_ascii=False, indent=2)
+        try:
+            tz_str = tf.timezone_at(lat=lat, lng=lon) or "UTC"
+            tz = pytz.timezone(tz_str)
+        except Exception:
+            tz_str = "UTC"
+            tz = pytz.timezone("UTC")
 
-    return jsonify(out)
+        try:
+            naive = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+            local_dt = tz.localize(naive)
+            offset_hours = (local_dt.utcoffset().total_seconds() / 3600.0) if local_dt.utcoffset() else 0.0
+        except Exception as e:
+            # повертаємо помилку у форматі, схожому на твою робочу версію
+            return jsonify({"error": "Exception", "message": str(e)}), 400
 
-@app.route("/cache/<filename>")
-def serve_cache(filename):
-    return app.send_static_file(os.path.join(CACHE_DIR, filename))
+        fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), offset_hours)
+        pos = GeoPos(lat, lon)
+        try:
+            chart = Chart(fdate, pos, hsys='P')
+        except Exception:
+            chart = Chart(fdate, pos)
 
-if __name__ == "__main__":
-    app.run(debug=True)
+        # аспекти (зручний JSON список)
+        aspects_json = compute_aspects_manual(chart.objects)
+
+        # малюємо картку (в draw використовуємо aspects_json)
+        try:
+            draw_natal_chart(chart, aspects_json, png_path, name_for_center=name, logo_text="Albireo Daria")
+        except Exception as e:
+            base_url = request.host_url.rstrip("/")
+            out = {
+                "name": name, "date": date_str, "time": time_str,
+                "place": place, "timezone": tz_str,
+                "aspects_json": aspects_json,
+                "aspects_table": aspects_json,
+                "chart_url": None,
+                "warning": f"Помилка при малюванні картинки: {str(e)}"
+            }
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(out, f, ensure_ascii=False, indent=2)
+            return jsonify(out), 200
+
+        # planets для JSON
+        planets_list = []
+        for obj in chart.objects:
+            pid = getattr(obj, "id", None)
+            if pid in PLANET_SYMBOLS:
+                planets_list.append({
+                    "name": pid,
+                    "symbol": PLANET_SYMBOLS[pid],
+                    "angle": float(getattr(obj, "lon", 0)) % 360
+                })
+
+        def float_to_dms(angle: float):
+            deg = int(angle)
+            minutes_float = (angle - deg) * 60
+            minutes = int(minutes_float)
+            seconds = round((minutes_float - minutes) * 60, 1)
+            return f"{deg}° {minutes}' {seconds}\""
+
+        aspects_table = []
+        for asp in aspects_json:
+            aspects_table.append({
+                "planet1": asp["planet1"],
+                "planet2": asp["planet2"],
+                "type": asp["type"],
+                "angle": asp["angle"],
+                "angle_dms": float_to_dms(asp["angle"]),
+                "color": ASPECTS_DEF.get(asp["type"], {}).get("color", "#777777")
+            })
+
+        out = {
+            "name": name, "date": date_str, "time": time_str,
+            "place": place, "timezone": tz_str,
+            "aspects_json": aspects_json,
+            "aspects_table": aspects_table,
+            "planets": planets_list,
+            "chart_url": f"{request.host_url.rstrip('/')}/cache/{key}.png"
+        }
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(out, f, ensure_ascii=False, indent=2)
+        return jsonify(out)
+
 # ----------------- Статика кешу -----------------
 @app.route("/cache/<path:filename>")
 def cached_file(filename):
