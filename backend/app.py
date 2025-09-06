@@ -576,6 +576,11 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                         ax.plot([th1, th2], [r1, r2], color=asp_def["color"], linewidth=1.2, zorder=5)
 
         # --- 9) Легенда ---
+        # --- Логотип/текст в центр карти ---
+        center_text = "Albireo Daria"
+        ax.text(0, 0, center_text, fontsize=20, ha="center", va="center", color="#ffaa33", zorder=20, fontweight="bold")
+        
+         # --- 10) Легенда ---
         legend_elements = []
         for pid, sym in PLANET_SYMBOLS.items():
             if pid in PLANET_COLORS:
