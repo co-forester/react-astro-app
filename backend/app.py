@@ -84,11 +84,16 @@ PLANETS = [
 ]
 
 ASPECTS_DEF = {
-    "conjunction": {"angle": 0,   "orb": 8, "color": "#D62728"},
-    "sextile":     {"angle": 60,  "orb": 6, "color": "#1F77B4"},
-    "square":      {"angle": 90,  "orb": 6, "color": "#FF7F0E"},
-    "trine":       {"angle": 120, "orb": 8, "color": "#2CA02C"},
-    "opposition":  {"angle": 180, "orb": 8, "color": "#9467BD"},
+    "conjunction": {"angle": 0,   "orb": 8, "color": "#D62728"},  # червоний
+    "sextile":     {"angle": 60,  "orb": 6, "color": "#1F77B4"},  # синій
+    "square":      {"angle": 90,  "orb": 6, "color": "#FF7F0E"},  # оранжевий
+    "trine":       {"angle": 120, "orb": 8, "color": "#2CA02C"},  # зелений
+    "opposition":  {"angle": 180, "orb": 8, "color": "#9467BD"},  # фіолетовий
+    "semisextile": {"angle": 30,  "orb": 2, "color": "#8C564B"},  # коричневий
+    "semisquare":  {"angle": 45,  "orb": 3, "color": "#E377C2"},  # рожевий
+    "quincunx":    {"angle": 150, "orb": 3, "color": "#7F7F7F"},  # сірий
+    "quintile":    {"angle": 72,  "orb": 2, "color": "#17BECF"},  # бірюзовий
+    "biquintile":  {"angle": 144, "orb": 2, "color": "#BCBD22"},  # оливковий
 }
 
 # ----------------- Утиліти -----------------
@@ -489,9 +494,11 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     ax.text(theta_deg, house_radius_start - 0.02, str(deg_mark),
                             fontsize=7, ha="center", va="center", color="#ffffff", zorder=6)
 
-        # --- 6) ASC/MC/DSC/IC (маркер + DMS) ---
+         # --- 6) ASC/MC/DSC/IC (маркер + градуси в знаку) ---
         r_marker = 1.62
         arrow_len = 0.07
+        SIGN_SYMBOLS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
+
         try:
             asc = float(getattr(chart.get("ASC"), "lon", asc_lon)) % 360
         except Exception:
@@ -502,68 +509,71 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             mc = 0.0
         dsc = (asc + 180.0) % 360
         ic = (mc + 180.0) % 360
+
         points = {
             "ASC": (asc, "#00FF00"),
             "DSC": (dsc, "#FF0000"),
             "MC":  (mc, "#1E90FF"),
             "IC":  (ic, "#9400D3")
         }
+
         for label, (lon, col) in points.items():
             th = to_theta(lon)
             ax.plot([th], [r_marker], marker="o", markersize=9, color=col, zorder=12)
             ax.annotate("", xy=(th, r_marker - arrow_len), xytext=(th, r_marker),
                         arrowprops=dict(facecolor=col, shrink=0.05, width=2, headwidth=8),
                         zorder=12)
-            deg_i = int(lon)
-            min_i = int((lon - deg_i) * 60)
-            sec_i = int((((lon - deg_i) * 60) - min_i) * 60)
-            label_text = f"{label} {deg_i}°{min_i}'{sec_i}''"
+            
+            # --- градуси всередині знаку + символ знаку ---
+            deg_in_sign = int(lon % 30)
+            sign_idx = int(lon // 30)
+            sign_symbol = SIGN_SYMBOLS[sign_idx]
+            label_text = f"{label} {deg_in_sign}° {sign_symbol}"
+
             ax.text(th, r_marker + 0.05, label_text, ha="center", va="center",
                     fontsize=10, color=col, fontweight="bold", zorder=12)
-
-        # --- 7) Планети ---
+        
+        # --- 7) Планети + ASC/MC/IC/DSC з градусами (повний fallback) ---
         r_planet = 0.85
         planet_positions = {}
-        planets_order = PLANETS
         chart_obj_map = {getattr(obj, "id", ""): obj for obj in chart.objects if getattr(obj, "id", None)}
-        for pid in planets_order:
-            sym = PLANET_SYMBOLS.get(pid, pid)
-            obj = chart_obj_map.get(pid, None)
+
+        def get_lon(obj_id):
+            obj = chart_obj_map.get(obj_id)
             if obj is None:
-                continue
-            lon = getattr(obj, "lon", None) or getattr(obj, "signlon", None)
-            if lon is None:
-                continue
-            lon = float(lon) % 360.0
+                return 0.0  # fallback для відсутніх планет
+            return float(getattr(obj, "lon", getattr(obj, "signlon", 0.0))) % 360.0
+
+        def deg_in_sign(lon):
+            sign = int(lon // 30)
+            deg = lon % 30
+            signs = "♈♉♊♋♌♍♎♏♐♑♒♓"
+            return f"{int(deg)}° {signs[sign]}"
+
+        # Малювання планет та точок
+        for pid in PLANETS + ["Ascendant","MC","IC","DSC"]:
+            sym = PLANET_SYMBOLS.get(pid, pid)
+            lon = get_lon(pid)
             th = to_theta(lon)
             col = PLANET_COLORS.get(pid, "#ffffff")
             ax.plot([th], [r_planet], marker='o', markersize=7, color=col, zorder=12)
             ax.text(th, r_planet + 0.05, sym, fontsize=18, ha="center", va="center", color=col, zorder=11)
-            ax.text(th, r_planet, deg_in_sign_dms(lon), fontsize=8, ha="center", va="center", color=col, zorder=11)
+            ax.text(th, r_planet - 0.03, f"{deg_in_sign(lon)}", fontsize=8, ha="center", va="center", color=col, zorder=11)
             planet_positions[pid] = (th, r_planet, lon)
 
-        # --- 8) Аспекти — хорди в Cartesian (не затирають символи) ---
-        for asp in aspects_list:
-            try:
-                p1_id = asp.get("planet1")
-                p2_id = asp.get("planet2")
-                if p1_id not in planet_positions or p2_id not in planet_positions:
-                    continue
-                th1, r1, _ = planet_positions[p1_id]
-                th2, r2, _ = planet_positions[p2_id]
-                cfg = ASPECTS_DEF.get(asp.get("type", "").lower(), {"color": "#777777", "orb": 5})
-                col = cfg["color"]
-                orb = cfg.get("orb", 5)
-                diff = asp.get("angle", 0)
-                width = max(1.2, 3 - abs(diff - cfg["angle"]) / orb)
-
-                r_used = r_planet * 0.92
-                x1, y1 = pol2cart(th1, r_used)
-                x2, y2 = pol2cart(th2, r_used)
-
-                ax.plot([x1, x2], [y1, y2], color=col, lw=width, alpha=0.95, zorder=10, transform=ax.transData._b)
-            except Exception:
-                continue
+        # --- 8) Аспекти з усіма orbs ---
+        for i, p1 in enumerate(planet_positions):
+            lon1 = planet_positions[p1][2]
+            for j, p2 in enumerate(planet_positions):
+                if j <= i: continue
+                lon2 = planet_positions[p2][2]
+                diff = abs(lon1 - lon2)
+                diff = min(diff, 360 - diff)
+                for asp_name, asp_def in ASPECTS_DEF.items():
+                    if abs(diff - asp_def["angle"]) <= asp_def["orb"]:
+                        th1, r1 = planet_positions[p1][0], planet_positions[p1][1]
+                        th2, r2 = planet_positions[p2][0], planet_positions[p2][1]
+                        ax.plot([th1, th2], [r1, r2], color=asp_def["color"], linewidth=1.2, zorder=5)
 
         # --- 9) Легенда ---
         legend_elements = []
