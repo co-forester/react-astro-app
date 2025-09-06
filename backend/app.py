@@ -533,7 +533,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
             ax.text(th, r_marker + 0.05, label_text, ha="center", va="center",
                     fontsize=10, color=col, fontweight="bold", zorder=12)
         
-        # --- 7) Планети + ASC/MC/IC/DSC з градусами (повний fallback) ---
+        # --- 7) Планети + ASC/MC/IC/DSC з градусами ---
         r_planet = 0.85
         planet_positions = {}
         chart_obj_map = {getattr(obj, "id", ""): obj for obj in chart.objects if getattr(obj, "id", None)}
@@ -541,39 +541,51 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
         def get_lon(obj_id):
             obj = chart_obj_map.get(obj_id)
             if obj is None:
-                return 0.0  # fallback для відсутніх планет
+                return 0.0
             return float(getattr(obj, "lon", getattr(obj, "signlon", 0.0))) % 360.0
+
+        SIGN_SYMBOLS = "♈♉♊♋♌♍♎♏♐♑♒♓"
 
         def deg_in_sign(lon):
             sign = int(lon // 30)
             deg = lon % 30
-            signs = "♈♉♊♋♌♍♎♏♐♑♒♓"
-            return f"{int(deg)}° {signs[sign]}"
+            return f"{int(deg)}° {SIGN_SYMBOLS[sign]}"
 
-        # Малювання планет та точок
         for pid in PLANETS + ["Ascendant","MC","IC","DSC"]:
             sym = PLANET_SYMBOLS.get(pid, pid)
             lon = get_lon(pid)
             th = to_theta(lon)
             col = PLANET_COLORS.get(pid, "#ffffff")
+
             ax.plot([th], [r_planet], marker='o', markersize=7, color=col, zorder=12)
             ax.text(th, r_planet + 0.05, sym, fontsize=18, ha="center", va="center", color=col, zorder=11)
-            ax.text(th, r_planet - 0.03, f"{deg_in_sign(lon)}", fontsize=8, ha="center", va="center", color=col, zorder=11)
+            r_label = r_planet - 0.03
+            theta_deg = np.rad2deg(th)
+            rotation = (theta_deg + 90) % 360
+            ax.text(th, r_label, deg_in_sign(lon), fontsize=8, ha="center", va="center", color=col,
+                    rotation=rotation, rotation_mode="anchor", zorder=11)
+
             planet_positions[pid] = (th, r_planet, lon)
 
-        # --- 8) Аспекти з усіма orbs ---
-        for i, p1 in enumerate(planet_positions):
+        # --- 8) Аспекти між планетами ---
+        for i, p1 in enumerate(PLANETS + ["Ascendant","MC","IC","DSC"]):
             lon1 = planet_positions[p1][2]
-            for j, p2 in enumerate(planet_positions):
-                if j <= i: continue
+            for j, p2 in enumerate(PLANETS + ["Ascendant","MC","IC","DSC"]):
+                if i >= j:
+                    continue
                 lon2 = planet_positions[p2][2]
                 diff = abs(lon1 - lon2)
-                diff = min(diff, 360 - diff)
+                diff = diff if diff <= 180 else 360 - diff
+
                 for asp_name, asp_def in ASPECTS_DEF.items():
-                    if abs(diff - asp_def["angle"]) <= asp_def["orb"]:
-                        th1, r1 = planet_positions[p1][0], planet_positions[p1][1]
-                        th2, r2 = planet_positions[p2][0], planet_positions[p2][1]
-                        ax.plot([th1, th2], [r1, r2], color=asp_def["color"], linewidth=1.2, zorder=5)
+                    angle = asp_def["angle"]
+                    orb = asp_def["orb"]
+                    color = asp_def["color"]
+                    if abs(diff - angle) <= orb:
+                        th1, r1 = planet_positions[p1][:2]
+                        th2, r2 = planet_positions[p2][:2]
+                        ax.plot([th1, th2], [r1, r2], color=color, linewidth=1.5, zorder=5)
+                        break
 
         # --- 9) Легенда ---
         # --- Логотип/текст в центр карти ---
