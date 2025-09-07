@@ -1,3 +1,4 @@
+// src/components/Home/Home.tsx
 import React, { FC, useEffect, useState } from 'react';
 import css from './home.module.css';
 import { useAppSelector } from '../../hooks/reduxHook';
@@ -8,14 +9,8 @@ import { ChildHoroscope } from '../ChildHoroscope/ChildHoroscope';
 import { NatalChartAnalysis } from '../NatalChartAnalysis/NatalChartAnalysis';
 import { ChartSVG } from '../ChartSVG';
 
-interface RootState {
-  theme: {
-    theme: boolean;
-  };
-}
-
 const Home: FC = () => {
-  const theme = useAppSelector((state: RootState) => state.theme.theme);
+  const theme = useAppSelector(state => state.theme.theme);
 
   const [planets, setPlanets] = useState<any[]>([]);
   const [aspects, setAspects] = useState<any[]>([]);
@@ -25,7 +20,6 @@ const Home: FC = () => {
     setAspects(data.aspects);
   };
 
-  // Для анімації появи
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => setLoaded(true), 100);
@@ -52,12 +46,12 @@ const Home: FC = () => {
             </p>
           </div>
 
-          {/* Форма генерації карти */}
           <GenerateChartForm onDataReady={handleChartData} />
 
-          {/* Натальная карта тільки якщо дані прийшли */}
           {planets.length > 0 && aspects.length > 0 && (
-            <ChartSVG planets={planets} aspects={aspects} />
+            <div className={css.chartWrapper}>
+              <ChartSVG planets={planets} aspects={aspects} />
+            </div>
           )}
 
           <NatalChartAnalysis />
