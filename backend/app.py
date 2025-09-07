@@ -15,7 +15,7 @@ from flask_cors import CORS
 
 # matplotlib — headless
 import matplotlib
-matplotlib.use("Agg")  # headless рендер
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 import numpy as np
