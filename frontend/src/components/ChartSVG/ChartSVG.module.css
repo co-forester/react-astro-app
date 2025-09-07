@@ -44,3 +44,47 @@
     font-weight: bold;
     text-shadow: 1px 1px 2px black;
 }
+
+.ChartLight {
+    background: #fff;
+}
+
+.ChartDark {
+    background: #111;
+}
+
+.ZodiacCircle,
+.HousesCircle {
+    fill: none;
+    stroke: #888;
+    stroke-width: 1;
+}
+
+.ZodiacLine,
+.HouseLine {
+    stroke: #555;
+    stroke-width: 0.5;
+}
+
+.PlanetNormal {
+    fill: #222;
+}
+
+.PlanetHover {
+    fill: #f39c12;
+}
+
+.PlanetTextLight {
+    fill: #000;
+}
+
+.PlanetTextDark {
+    fill: #fff;
+}
+
+@media (max-width: 768px) {
+    svg {
+        width: 100% !important;
+        height: auto !important;
+    }
+}

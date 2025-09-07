@@ -83,3 +83,31 @@
     order: 1;
   }
 }
+
+.gridContainer {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .gridContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .leftBlock,
+  .sidebar {
+    order: 2;
+  }
+
+  .content {
+    order: 1;
+  }
+}
+
+.chartWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: auto;
+}
