@@ -37,7 +37,7 @@ if not os.path.exists(EPHE_DIR):
     print(f"WARNING: Ефемериди не знайдені за шляхом {EPHE_DIR}")
 swe.set_ephe_path(EPHE_DIR)
 
-app = Flask(name)
+app = Flask(__name__)
 CORS(app)
 
 CACHE_DIR = "cache"
@@ -365,6 +365,6 @@ def cached_file(filename): return send_from_directory(CACHE_DIR, filename)
 @app.route("/health")
 def health(): return "OK", 200
 
-if name == "main":
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=True)
