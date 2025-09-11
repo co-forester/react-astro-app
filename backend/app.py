@@ -10,6 +10,7 @@ from datetime import datetime as dt, timedelta
 
 from matplotlib.patches import Wedge
 import matplotlib.colors as mcolors
+from flatlib import aspects as f_aspects
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
@@ -256,75 +257,100 @@ def compute_aspects_manual(objects):
     return results
 
 # ----------------- Малювання карти -----------------
-def draw_natal_chart(planets, aspects, asc_mc_ic_angles, filename="chart.png"):
-    """
-    Малює натальну карту з планетами, ASC/MC/DSC/IC і секторами домів.
-    - planets: список словників {name, symbol, angle, degree, sign, house}
-    - aspects: список словників {from, to, type, color, angle_dms}
-    - asc_mc_ic_angles: словник {"ASC": deg, "MC": deg, "DSC": deg, "IC": deg}
-    """
-    size = 600
-    radius = size * 0.4
-    center_x, center_y = size / 2, size / 2
+LOGO_TEXT = "NatalChart"
 
-    fig, ax = plt.subplots(figsize=(6,6))
-    ax.set_xlim(0, size)
-    ax.set_ylim(0, size)
+def draw_natal_chart(date, time, location, planets_list, filename="chart.png"):
+    fig, ax = plt.subplots(figsize=(10,10))
+    ax.set_xlim(-1.2, 1.2)
+    ax.set_ylim(-1.2, 1.2)
     ax.set_aspect('equal')
     ax.axis('off')
 
-    # --- Коло зодіаку ---
-    zodiac_circle = plt.Circle((center_x, center_y), radius, fill=False, color="white", lw=2)
-    ax.add_artist(zodiac_circle)
-
-    # --- ASC/MC/DSC/IC ---
-    for point, angle in asc_mc_ic_angles.items():
-        rad = math.radians(angle - 90)
-        x = center_x + (radius + 20) * math.cos(rad)
-        y = center_y + (radius + 20) * math.sin(rad)
-        ax.text(x, y, point, fontsize=12, fontweight="bold", color="yellow",
-                ha="center", va="center")
-
-    # --- Крок 3: сектори домів та номери ---
-    num_houses = 12
-    house_radius_inner = radius - 20
-    house_radius_outer = radius
-
-    for i in range(num_houses):
-        start_angle = i * 30
-        end_angle = (i + 1) * 30
-
-        wedge = matplotlib.patches.Wedge(
-            center=(center_x, center_y),
-            r=house_radius_outer,
-            theta1=start_angle,
-            theta2=end_angle,
-            width=house_radius_outer - house_radius_inner,
-            facecolor=plt.cm.tab20c(i),
-            edgecolor='white',
-            linewidth=1
-        )
+    # --- Крок 3: Сектори будинків ---
+    house_colors = [
+        "#FFCDD2","#F8BBD0","#E1BEE7","#D1C4E9","#C5CAE9","#BBDEFB",
+        "#B3E5FC","#B2EBF2","#B2DFDB","#C8E6C9","#DCEDC8","#F0F4C3"
+    ]
+    house_angles = [(i*30, (i+1)*30) for i in range(12)]
+    for i, (start, end) in enumerate(house_angles):
+        wedge = Wedge((0,0), 1.0, start, end, facecolor=house_colors[i], alpha=0.3)
         ax.add_patch(wedge)
+        angle_rad = math.radians((start+end)/2)
+        x = 1.05*math.cos(angle_rad)
+        y = 1.05*math.sin(angle_rad)
+        ax.text(x, y, str(i+1), fontsize=12, fontweight='bold', ha='center', va='center')
 
-        mid_angle = (start_angle + end_angle) / 2
-        rad = math.radians(mid_angle - 90)
-        text_r = house_radius_outer + 15
-        x = center_x + text_r * math.cos(rad)
-        y = center_y + text_r * math.sin(rad)
-        ax.text(x, y, str(i + 1), fontsize=12, fontweight='bold', color='yellow',
-                ha='center', va='center')
+    # --- Крок 4: Зодіак ---
+    zodiac_symbols = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓']
+    for i, sym in enumerate(zodiac_symbols):
+        angle_rad = math.radians(i*30 + 15)
+        x = 1.15*math.cos(angle_rad)
+        y = 1.15*math.sin(angle_rad)
+        ax.text(x, y, sym, fontsize=14, fontweight='bold', ha='center', va='center', color='darkblue')
 
-    # --- Планети ---
-    for pl in planets:
-        rad = math.radians(pl['angle'] - 90)
-        x = center_x + radius * math.cos(rad)
-        y = center_y + radius * math.sin(rad)
-        ax.plot(x, y, 'o', color='red', markersize=10)
-        ax.text(x, y + 10, pl['symbol'], ha='center', va='center', color='white')
+    # --- Крок 2: ASC/MC/IC/DSC (приклад) ---
+    asc_deg, mc_deg = 0, 90
+    dsc_deg = (asc_deg+180)%360
+    ic_deg = (mc_deg+180)%360
+    angles = {'ASC': asc_deg, 'MC': mc_deg, 'DSC': dsc_deg, 'IC': ic_deg}
+    for name, deg in angles.items():
+        rad = math.radians(deg)
+        x = 1.1*math.cos(rad)
+        y = 1.1*math.sin(rad)
+        ax.text(x, y, name, fontsize=10, fontweight='bold', color='gold')
+        ax.plot([0, 0.95*math.cos(rad)], [0, 0.95*math.sin(rad)], color='gold', lw=1.5)
 
-    # --- Зберігаємо PNG ---
-    plt.savefig(filename, dpi=150, bbox_inches='tight', facecolor='black')
+    # --- Крок 1: Планети ---
+    planet_positions = []
+    for p in planets_list:
+        angle_rad = math.radians(p['angle'])
+        x = 0.8*math.cos(angle_rad)
+        y = 0.8*math.sin(angle_rad)
+        ax.plot(x, y, 'o', markersize=10, label=p['name'])
+        ax.text(x*1.1, y*1.1, p['symbol'], fontsize=12, ha='center', va='center')
+        planet_positions.append({'name':p['name'], 'symbol':p['symbol'], 'angle':p['angle'], 'x':x, 'y':y})
+
+    # --- Крок 5: Аспекти по Flatlib ---
+    # Створюємо Chart (для реальних аспектів)
+    chart_data = {p['name']: {'longitude': p['angle']} for p in planets_list}
+    # Тобі можна тут підключити реальний Flatlib Chart, якщо є точна дата, час, місце
+    # Поки будемо робити хорди між усіма планетами як приклад
+    aspect_colors = {
+        'conjunction': '#D62728', 'sextile': '#1F77B4', 'square': '#E377C2',
+        'trine': '#2CA02C', 'opposition':'#9467BD', 'semisextile':'#8C564B',
+        'semisquare':'#E377C2','quincunx':'#7F7F7F','biquintile':'#BCBD22'
+    }
+    aspects_table = []
+    for i in range(len(planet_positions)):
+        for j in range(i+1, len(planet_positions)):
+            x1, y1 = planet_positions[i]['x'], planet_positions[i]['y']
+            x2, y2 = planet_positions[j]['x'], planet_positions[j]['y']
+            ax.plot([x1,x2],[y1,y2], color='gray', lw=0.8, alpha=0.5)
+            angle_diff = abs(planet_positions[i]['angle'] - planet_positions[j]['angle'])
+            if angle_diff>180: angle_diff = 360-angle_diff
+            aspects_table.append({
+                "planet1": planet_positions[i]['name'],
+                "planet2": planet_positions[j]['name'],
+                "angle": round(angle_diff,2),
+                "type": "unknown",
+                "color":"gray"
+            })
+
+    # --- Крок 6: Логотип ---
+    ax.text(0, 0, LOGO_TEXT, fontsize=16, fontweight='bold', color='purple', ha='center', va='center')
+
+    plt.savefig(filename, dpi=150)
     plt.close()
+
+    result_json = {
+        "chart_url": filename,
+        "planets": planets_list,
+        "houses":[{"number":i+1,"start":start,"end":end} for i,(start,end) in enumerate(house_angles)],
+        "zodiac_symbols":zodiac_symbols,
+        "asc_mc_dsc_ic":angles,
+        "aspects_table":aspects_table
+    }
+    return result_json
 # ----------------- /generate -----------------
 @app.route("/generate", methods=["POST"])
 def generate():
