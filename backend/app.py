@@ -257,100 +257,306 @@ def compute_aspects_manual(objects):
     return results
 
 # ----------------- Малювання карти -----------------
-LOGO_TEXT = "NatalChart"
+def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
+                     logo_text="Albireo Daria", logo_sign="Скорпіон"):
+    """
+    Малює повну натальну карту:
+      - ASC/MC/IC/DSC маркери + градуси,
+      - сектори домів (градієнт) + номери домів,
+      - кільце зодіаку з символами та градусними мітками,
+      - планети (тільки ті, що є в chart.objects, які містять id),
+      - хорди аспектів (з списку aspects_list),
+      - легенда і центральний логотип/текст.
+    """
+    try:
+        fig = plt.figure(figsize=(12, 12))
+        ax = plt.subplot(111, polar=True)
+        ax.set_theta_zero_location("W")
+        ax.set_theta_direction(1)
+        ax.set_ylim(0, 1.7)
+        ax.set_xticks([]); ax.set_yticks([])
+        fig.patch.set_facecolor("#4e4247")
+        ax.set_facecolor("#4e4247")
+        plt.rcParams["font.family"] = "DejaVu Sans"
+        ax.set_aspect('equal', 'box')
+        ax.set_rorigin(-0.02)
 
-def draw_natal_chart(date, time, location, planets_list, filename="chart.png"):
-    fig, ax = plt.subplots(figsize=(10,10))
-    ax.set_xlim(-1.2, 1.2)
-    ax.set_ylim(-1.2, 1.2)
-    ax.set_aspect('equal')
-    ax.axis('off')
+        # ---- допоміжні функції ----
+        def safe_get(obj_chart, key):
+            variants = []
+            if isinstance(key, str):
+                variants.extend([key, key.upper(), key.capitalize()])
+            try:
+                const_val = getattr(const, key.upper())
+                if const_val:
+                    variants.append(const_val)
+            except Exception:
+                pass
+            for k in variants:
+                try:
+                    if k is None:
+                        continue
+                    res = obj_chart.get(k)
+                    if res is not None:
+                        return res
+                except Exception:
+                    continue
+            return None
 
-    # --- Крок 3: Сектори будинків ---
-    house_colors = [
-        "#FFCDD2","#F8BBD0","#E1BEE7","#D1C4E9","#C5CAE9","#BBDEFB",
-        "#B3E5FC","#B2EBF2","#B2DFDB","#C8E6C9","#DCEDC8","#F0F4C3"
-    ]
-    house_angles = [(i*30, (i+1)*30) for i in range(12)]
-    for i, (start, end) in enumerate(house_angles):
-        wedge = Wedge((0,0), 1.0, start, end, facecolor=house_colors[i], alpha=0.3)
-        ax.add_patch(wedge)
-        angle_rad = math.radians((start+end)/2)
-        x = 1.05*math.cos(angle_rad)
-        y = 1.05*math.sin(angle_rad)
-        ax.text(x, y, str(i+1), fontsize=12, fontweight='bold', ha='center', va='center')
+        # ASC (fallback на будинок 1 або 0.0)
+        asc_obj = safe_get(chart, "ASC")
+        asc_lon = None
+        try:
+            if asc_obj is not None and getattr(asc_obj, "lon", None) is not None:
+                asc_lon = float(getattr(asc_obj, "lon"))
+        except Exception:
+            asc_lon = None
+        if asc_lon is None:
+            cusp1 = get_house_lon(chart, 1)
+            if cusp1 is not None:
+                asc_lon = float(cusp1)
+        if asc_lon is None:
+            asc_lon = 0.0
 
-    # --- Крок 4: Зодіак ---
-    zodiac_symbols = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓']
-    for i, sym in enumerate(zodiac_symbols):
-        angle_rad = math.radians(i*30 + 15)
-        x = 1.15*math.cos(angle_rad)
-        y = 1.15*math.sin(angle_rad)
-        ax.text(x, y, sym, fontsize=14, fontweight='bold', ha='center', va='center', color='darkblue')
+        # to_theta: приймає глобальний градус та повертає радіани відносно ASC
+        def to_theta(lon):
+            ang = (float(lon) - float(asc_lon)) % 360.0
+            return np.deg2rad(ang)
 
-    # --- Крок 2: ASC/MC/IC/DSC (приклад) ---
-    asc_deg, mc_deg = 0, 90
-    dsc_deg = (asc_deg+180)%360
-    ic_deg = (mc_deg+180)%360
-    angles = {'ASC': asc_deg, 'MC': mc_deg, 'DSC': dsc_deg, 'IC': ic_deg}
-    for name, deg in angles.items():
-        rad = math.radians(deg)
-        x = 1.1*math.cos(rad)
-        y = 1.1*math.sin(rad)
-        ax.text(x, y, name, fontsize=10, fontweight='bold', color='gold')
-        ax.plot([0, 0.95*math.cos(rad)], [0, 0.95*math.sin(rad)], color='gold', lw=1.5)
+        def to_theta_global(deg):
+            return to_theta(deg)
 
-    # --- Крок 1: Планети ---
-    planet_positions = []
-    for p in planets_list:
-        angle_rad = math.radians(p['angle'])
-        x = 0.8*math.cos(angle_rad)
-        y = 0.8*math.sin(angle_rad)
-        ax.plot(x, y, 'o', markersize=10, label=p['name'])
-        ax.text(x*1.1, y*1.1, p['symbol'], fontsize=12, ha='center', va='center')
-        planet_positions.append({'name':p['name'], 'symbol':p['symbol'], 'angle':p['angle'], 'x':x, 'y':y})
+        # DMS / degree helper
+        def deg_in_sign_str(lon):
+            lon = float(lon) % 360.0
+            sign_idx = int(lon // 30)
+            deg = int(lon % 30)
+            return f"{deg}° {ZODIAC_SYMBOLS[sign_idx]}"
 
-    # --- Крок 5: Аспекти по Flatlib ---
-    # Створюємо Chart (для реальних аспектів)
-    chart_data = {p['name']: {'longitude': p['angle']} for p in planets_list}
-    # Тобі можна тут підключити реальний Flatlib Chart, якщо є точна дата, час, місце
-    # Поки будемо робити хорди між усіма планетами як приклад
-    aspect_colors = {
-        'conjunction': '#D62728', 'sextile': '#1F77B4', 'square': '#E377C2',
-        'trine': '#2CA02C', 'opposition':'#9467BD', 'semisextile':'#8C564B',
-        'semisquare':'#E377C2','quincunx':'#7F7F7F','biquintile':'#BCBD22'
-    }
-    aspects_table = []
-    for i in range(len(planet_positions)):
-        for j in range(i+1, len(planet_positions)):
-            x1, y1 = planet_positions[i]['x'], planet_positions[i]['y']
-            x2, y2 = planet_positions[j]['x'], planet_positions[j]['y']
-            ax.plot([x1,x2],[y1,y2], color='gray', lw=0.8, alpha=0.5)
-            angle_diff = abs(planet_positions[i]['angle'] - planet_positions[j]['angle'])
-            if angle_diff>180: angle_diff = 360-angle_diff
-            aspects_table.append({
-                "planet1": planet_positions[i]['name'],
-                "planet2": planet_positions[j]['name'],
-                "angle": round(angle_diff,2),
-                "type": "unknown",
-                "color":"gray"
-            })
+        # --- 1) Сектори домів (градієнт) ---
+        house_sector_inner = 0.15
+        house_sector_width = 0.25
+        grad_steps = 18
 
-    # --- Крок 6: Логотип ---
-    ax.text(0, 0, LOGO_TEXT, fontsize=16, fontweight='bold', color='purple', ha='center', va='center')
+        for i in range(1, 13):
+            c1 = safe_house_lon(chart, i, asc_fallback=asc_lon)
+            c2 = safe_house_lon(chart, (i % 12) + 1, asc_fallback=asc_lon)
+            if c1 is None or c2 is None:
+                continue
+            start_deg = float(c1) % 360.0
+            end_deg = float(c2) % 360.0
+            span = (end_deg - start_deg) % 360.0
+            if span <= 0:
+                span += 360.0
+            color_start, color_end = HOUSE_COLORS[(i - 1) % len(HOUSE_COLORS)]
+            cmap = mcolors.LinearSegmentedColormap.from_list(f"house{i}_cmap", [color_start, color_end])
 
-    plt.savefig(filename, dpi=150)
-    plt.close()
+            # дрібні смуги для градієнта
+            for step in range(grad_steps):
+                frac1 = step / grad_steps
+                frac2 = (step + 1) / grad_steps
+                a1 = start_deg + span * frac1
+                a2 = start_deg + span * frac2
+                width = np.deg2rad((a2 - a1) % 360.0)
+                ax.bar(
+                    x=to_theta(a1),
+                    height=house_sector_width,
+                    width=width,
+                    bottom=house_sector_inner,
+                    color=cmap(frac1),
+                    alpha=0.55,
+                    edgecolor=None,
+                    align="edge",
+                    zorder=1
+                )
 
-    result_json = {
-        "chart_url": filename,
-        "planets": planets_list,
-        "houses":[{"number":i+1,"start":start,"end":end} for i,(start,end) in enumerate(house_angles)],
-        "zodiac_symbols":zodiac_symbols,
-        "asc_mc_dsc_ic":angles,
-        "aspects_table":aspects_table
-    }
-    return result_json
+        # --- 2) Радіальні межі домів ---
+        r_inner = 0.15
+        r_outer = 1.05
+        for i in range(1, 13):
+            cusp = safe_house_lon(chart, i, asc_fallback=asc_lon)
+            if cusp is None:
+                continue
+            th = to_theta(cusp)
+            ax.plot([th, th], [r_inner, r_outer], color="#888888", lw=0.9, zorder=2)
+
+        # --- 3) Номери домів (біля центру) ---
+        house_number_radius = 0.19
+        for i in range(1, 13):
+            c1 = safe_house_lon(chart, i, asc_fallback=asc_lon)
+            c2 = safe_house_lon(chart, (i % 12) + 1, asc_fallback=asc_lon)
+            if c1 is None or c2 is None:
+                continue
+            start = float(c1) % 360.0
+            end = float(c2) % 360.0
+            span = (end - start) % 360.0
+            mid = (start + span / 2.0) % 360.0
+            ax.text(to_theta(mid), house_number_radius, str(i),
+                    fontsize=10, ha="center", va="center",
+                    color="#ffffff", fontweight="bold", zorder=7)
+
+        # --- 4) Кільце зодіаку (символи та мітки) ---
+        ring_radius_start = 1.10
+        ring_height = 0.18
+        for i, sym in enumerate(ZODIAC_SYMBOLS):
+            start = i * 30.0
+            end = start + 30.0
+            span = 30.0
+            mid = (start + span / 2.0) % 360.0
+            center = to_theta_global(mid)
+            width = np.deg2rad(span)
+
+            ax.bar(
+                x=center,
+                height=ring_height,
+                width=width,
+                bottom=ring_radius_start,
+                color=HOUSE_COLORS[i % 12][0],
+                edgecolor=HOUSE_COLORS[i % 12][1],
+                linewidth=1.0,
+                zorder=3,
+                align='center'
+            )
+
+            # межі знаків
+            ax.plot([to_theta_global(start), to_theta_global(start)],
+                    [ring_radius_start, ring_radius_start + ring_height + 0.01],
+                    color="white", lw=1.0, zorder=4)
+
+            # символ та підпис знаку
+            symbol_r = ring_radius_start + ring_height - 0.02
+            label_r = ring_radius_start + 0.05
+            ax.text(center, symbol_r, sym, fontsize=18, ha="center", va="center",
+                    color="#ffffff", fontweight="bold", rotation=(mid + 90) % 360,
+                    rotation_mode="anchor", zorder=6)
+            ax.text(center, label_r, ZODIAC_NAMES[i], fontsize=9, ha="center", va="center",
+                    color="#ffffff", rotation=(mid + 90) % 360, rotation_mode="anchor", zorder=5)
+
+            # мітки 0-30° кожні 5°
+            for deg_mark in range(0, 31, 5):
+                theta_deg = to_theta_global(start + deg_mark)
+                r_start = ring_radius_start + 0.01
+                r_end = ring_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
+                ax.plot([theta_deg, theta_deg], [r_start, r_end], color="#faf6f7", lw=1, zorder=2)
+                if deg_mark in [10, 20]:
+                    r_text = ring_radius_start + ring_height + 0.03
+                    ax.text(theta_deg, r_text, str(deg_mark), color='white', fontsize=8,
+                            ha='center', va='center', zorder=5)
+
+        # --- 5) ASC/MC/DSC/IC маркери + підписи (поза колом) ---
+        r_marker = 1.62
+        arrow_len = 0.07
+        try:
+            asc = float(getattr(chart.get("ASC"), "lon", asc_lon)) % 360
+        except Exception:
+            asc = float(asc_lon) % 360
+        try:
+            mc = float(getattr(chart.get("MC"), "lon", 0)) % 360
+        except Exception:
+            mc = 0.0
+        dsc = (asc + 180.0) % 360
+        ic = (mc + 180.0) % 360
+
+        axes_points = {
+            "ASC": (asc, "#00FF00"),
+            "DSC": (dsc, "#FF0000"),
+            "MC":  (mc, "#1E90FF"),
+            "IC":  (ic, "#9400D3")
+        }
+
+        for label, (lon, col) in axes_points.items():
+            th = to_theta(lon)
+            ax.plot([th], [r_marker], marker="o", markersize=9, color=col, zorder=12)
+            ax.annotate("", xy=(th, r_marker - arrow_len), xytext=(th, r_marker),
+                        arrowprops=dict(facecolor=col, shrink=0.05, width=2, headwidth=8),
+                        zorder=12)
+            deg_in_sign = int(lon % 30)
+            sign_idx = int(lon // 30)
+            sign_symbol = ZODIAC_SYMBOLS[sign_idx]
+            label_text = f"{label} {deg_in_sign}° {sign_symbol}"
+            ax.text(th, r_marker + 0.05, label_text, ha="center", va="center",
+                    fontsize=10, color=col, fontweight="bold", zorder=12)
+
+        # --- 6) Планети (тільки основні, що в chart.objects) ---
+        r_planet = 0.85
+        planet_positions = {}
+        chart_obj_map = {getattr(obj, "id", ""): obj for obj in chart.objects if getattr(obj, "id", None)}
+
+        def get_lon(obj_id):
+            obj = chart_obj_map.get(obj_id)
+            if obj is None:
+                return None
+            return float(getattr(obj, "lon", getattr(obj, "signlon", 0.0))) % 360.0
+
+        def deg_in_sign_label(lon):
+            sign = int(lon // 30)
+            deg = int(lon % 30)
+            return f"{deg}° {ZODIAC_SYMBOLS[sign]}"
+
+        # малюємо планети лише для тих id, які є в chart.objects
+        for obj in chart.objects:
+            pid = getattr(obj, "id", None)
+            if pid is None:
+                continue
+            if pid not in PLANET_SYMBOLS and pid not in PLANETS:
+                continue
+            lon = get_lon(pid)
+            if lon is None:
+                continue
+            th = to_theta(lon)
+            col = PLANET_COLORS.get(pid, "#ffffff")
+            ax.plot([th], [r_planet], marker='o', markersize=7, color=col, zorder=12)
+            sym = PLANET_SYMBOLS.get(pid, pid)
+            ax.text(th, r_planet + 0.05, sym, fontsize=16, ha="center", va="center", color=col, zorder=11)
+            theta_deg = np.rad2deg(th)
+            rotation = (theta_deg + 90) % 360
+            ax.text(th, r_planet - 0.03, deg_in_sign_label(lon), fontsize=8, ha="center", va="center",
+                    color=col, rotation=rotation, rotation_mode="anchor", zorder=11)
+
+            planet_positions[pid] = (th, r_planet, lon)
+
+        # --- 7) Аспекти як хорди (взяти з aspects_list) ---
+        for asp in aspects_list or []:
+            p1 = asp.get("planet1")
+            p2 = asp.get("planet2")
+            if not p1 or not p2:
+                continue
+            pos1 = planet_positions.get(p1)
+            pos2 = planet_positions.get(p2)
+            if not pos1 or not pos2:
+                # можливо один з об'єктів не в planet_positions (напр. Syzygy) — пропускаємо
+                continue
+            color = asp.get("color") or ASPECTS_DEF.get(asp.get("type"), {}).get("color", "#999999")
+            th1, r1 = pos1[0], pos1[1]
+            th2, r2 = pos2[0], pos2[1]
+            ax.plot([th1, th2], [r1, r2], color=color, linewidth=1.5, alpha=0.9, zorder=5)
+
+        # --- 8) Центральний текст / логотип ---
+        center_text = name_for_center or logo_text or "Albireo"
+        ax.text(0, 0, center_text, fontsize=20, ha="center", va="center",
+                color="#ffaa33", zorder=20, fontweight="bold")
+
+        # --- 9) Легенда (планети + аспекти) ---
+        legend_elements = []
+        for pid, sym in PLANET_SYMBOLS.items():
+            if pid in PLANET_COLORS:
+                legend_elements.append(Line2D([0], [0], marker='o', color='w',
+                                              markerfacecolor=PLANET_COLORS[pid],
+                                              label=f"{sym} {pid}", markersize=8))
+        for asp_name, cfg in ASPECTS_DEF.items():
+            legend_elements.append(Line2D([0], [0], color=cfg["color"], lw=2.5, label=asp_name.capitalize()))
+        ax.legend(handles=legend_elements, loc="upper center", bbox_to_anchor=(0.5, -0.16),
+                  fontsize=10, ncol=3, frameon=False)
+
+        # save
+        os.makedirs(os.path.dirname(save_path) or ".", exist_ok=True)
+        plt.savefig(save_path, dpi=180, facecolor=fig.get_facecolor(), pad_inches=0.5)
+        plt.close(fig)
+
+    except Exception as e:
+        print("Error in draw_natal_chart:", e)
+        traceback.print_exc()
+        raise
 # ----------------- /generate -----------------
 @app.route("/generate", methods=["POST"])
 def generate():
