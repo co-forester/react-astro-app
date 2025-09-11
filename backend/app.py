@@ -3,13 +3,13 @@
 
 import os
 import json
+import math
 import hashlib
 import traceback
 from datetime import datetime as dt, timedelta
 
 from matplotlib.patches import Wedge
 import matplotlib.colors as mcolors
-
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
@@ -17,6 +17,8 @@ from flask_cors import CORS
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from math import cos, sin, radians, pi
+
 from matplotlib.lines import Line2D
 import numpy as np
 
@@ -254,64 +256,75 @@ def compute_aspects_manual(objects):
     return results
 
 # ----------------- Малювання карти -----------------
-def draw_natal_chart_step2(chart, aspects_list, save_path, name_for_center=None,
-                            logo_text="Albireo Daria"):
-    try:
-        fig = plt.figure(figsize=(12, 12))
-        ax = plt.subplot(111, polar=True)
+def draw_natal_chart(planets, aspects, asc_mc_ic_angles, filename="chart.png"):
+    """
+    Малює натальну карту з планетами, ASC/MC/DSC/IC і секторами домів.
+    - planets: список словників {name, symbol, angle, degree, sign, house}
+    - aspects: список словників {from, to, type, color, angle_dms}
+    - asc_mc_ic_angles: словник {"ASC": deg, "MC": deg, "DSC": deg, "IC": deg}
+    """
+    size = 600
+    radius = size * 0.4
+    center_x, center_y = size / 2, size / 2
 
-        ax.set_theta_zero_location("W")
-        ax.set_theta_direction(1)
-        ax.set_xticks([]); ax.set_yticks([])
-        fig.patch.set_facecolor("#4e4247")
-        ax.set_facecolor("#4e4247")
-        plt.rcParams["font.family"] = "DejaVu Sans"
+    fig, ax = plt.subplots(figsize=(6,6))
+    ax.set_xlim(0, size)
+    ax.set_ylim(0, size)
+    ax.set_aspect('equal')
+    ax.axis('off')
 
-        r_planet = 0.85
-        r_inner = 0.05
-        r_outer = 1.0
+    # --- Коло зодіаку ---
+    zodiac_circle = plt.Circle((center_x, center_y), radius, fill=False, color="white", lw=2)
+    ax.add_artist(zodiac_circle)
 
-        # ----- малюємо будинки -----
-        for i in range(12):
-            start = np.deg2rad(i * 30)
-            end = np.deg2rad((i + 1) * 30)
-            ax.bar(x=start, height=r_outer, width=np.deg2rad(30), bottom=r_inner,
-                   color=f"C{i}", alpha=0.15, edgecolor="#666666", linewidth=1)
+    # --- ASC/MC/DSC/IC ---
+    for point, angle in asc_mc_ic_angles.items():
+        rad = math.radians(angle - 90)
+        x = center_x + (radius + 20) * math.cos(rad)
+        y = center_y + (radius + 20) * math.sin(rad)
+        ax.text(x, y, point, fontsize=12, fontweight="bold", color="yellow",
+                ha="center", va="center")
 
-            # номер дому поза колом
-            mid = (start + end) / 2
-            ax.text(mid, r_outer + 0.06, str(i + 1), color="#FFFF00", fontsize=14,
-                    ha="center", va="center")
+    # --- Крок 3: сектори домів та номери ---
+    num_houses = 12
+    house_radius_inner = radius - 20
+    house_radius_outer = radius
 
-        # ----- малюємо планети -----
-        planet_positions = {}
-        chart_obj_map = {getattr(obj, "id", ""): obj for obj in chart.objects}
+    for i in range(num_houses):
+        start_angle = i * 30
+        end_angle = (i + 1) * 30
 
-        def get_lon(obj_id):
-            obj = chart_obj_map.get(obj_id)
-            if obj is None:
-                return 0.0
-            return float(getattr(obj, "lon", getattr(obj, "signlon", 0.0))) % 360.0
+        wedge = matplotlib.patches.Wedge(
+            center=(center_x, center_y),
+            r=house_radius_outer,
+            theta1=start_angle,
+            theta2=end_angle,
+            width=house_radius_outer - house_radius_inner,
+            facecolor=plt.cm.tab20c(i),
+            edgecolor='white',
+            linewidth=1
+        )
+        ax.add_patch(wedge)
 
-        for pid in PLANETS:
-            lon = get_lon(pid)
-            th = np.deg2rad(lon)
-            ax.plot([th], [r_planet], marker='o', markersize=7, color="#ffffff")
-            planet_positions[pid] = (th, r_planet, lon)
+        mid_angle = (start_angle + end_angle) / 2
+        rad = math.radians(mid_angle - 90)
+        text_r = house_radius_outer + 15
+        x = center_x + text_r * math.cos(rad)
+        y = center_y + text_r * math.sin(rad)
+        ax.text(x, y, str(i + 1), fontsize=12, fontweight='bold', color='yellow',
+                ha='center', va='center')
 
-        # ----- текст в центрі -----
-        if name_for_center:
-            ax.text(0, 0, name_for_center, color="#FFD700", fontsize=16,
-                    ha="center", va="center", weight="bold")
+    # --- Планети ---
+    for pl in planets:
+        rad = math.radians(pl['angle'] - 90)
+        x = center_x + radius * math.cos(rad)
+        y = center_y + radius * math.sin(rad)
+        ax.plot(x, y, 'o', color='red', markersize=10)
+        ax.text(x, y + 10, pl['symbol'], ha='center', va='center', color='white')
 
-        # зберігаємо картинку
-        plt.savefig(save_path, dpi=180, facecolor=fig.get_facecolor(), pad_inches=0.5)
-        plt.close(fig)
-
-    except Exception as e:
-        print("Error in draw_natal_chart_step2:", e)
-        traceback.print_exc()
-        raise
+    # --- Зберігаємо PNG ---
+    plt.savefig(filename, dpi=150, bbox_inches='tight', facecolor='black')
+    plt.close()
 # ----------------- /generate -----------------
 @app.route("/generate", methods=["POST"])
 def generate():
