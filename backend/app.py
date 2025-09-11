@@ -345,7 +345,7 @@ def generate():
                 except Exception as e:
                     print(f"Не вдалося з hsys='{hsys}': {e}")
             raise ValueError("Жодна система домів не спрацювала")
-        
+        chart = create_chart_with_fallback(fdate, pos)
         angles_for_aspects = { 
              "ASC": chart.get(const.ASC).lon, 
              "MC": chart.get(const.MC).lon
