@@ -333,7 +333,18 @@ def generate():
 
         fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), offset_hours)
         pos = GeoPos(lat, lon)
-        chart = Chart(fdate, pos, hsys='k') 
+        def create_chart_with_fallback(fdate, pos, systems=['P', 'K', 'W', 'E']):
+            for hsys in systems:
+                try:
+                    chart = Chart(fdate, pos, hsys=hsys)
+                    print(f"Chart created with hsys='{hsys}'")
+                    return chart
+                except Exception as e:
+                    print(f"Failed with hsys='{hsys}': {e}")
+            raise ValueError("Не вдалося створити карту з жодною системою домів")
+
+        # Використання:
+        chart = create_chart_with_fallback(fdate, pos)
 
         angles_for_aspects = { 
              "ASC": chart.get(const.ASC).lon, 
