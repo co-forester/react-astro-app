@@ -88,17 +88,18 @@ PLANETS = [
 ]
 
 ASPECTS_DEF = {
-    "conjunction": {"angle": 0,   "orb": 8, "color": "#D62728"},  # червоний
-    "sextile":     {"angle": 60,  "orb": 6, "color": "#1F77B4"},  # синій
-    "square":      {"angle": 90,  "orb": 6, "color": "#FF7F0E"},  # оранжевий
-    "trine":       {"angle": 120, "orb": 8, "color": "#2CA02C"},  # зелений
-    "opposition":  {"angle": 180, "orb": 8, "color": "#9467BD"},  # фіолетовий
-    "semisextile": {"angle": 30,  "orb": 2, "color": "#8C564B"},  # коричневий
-    "semisquare":  {"angle": 45,  "orb": 3, "color": "#E377C2"},  # рожевий
-    "quincunx":    {"angle": 150, "orb": 3, "color": "#7F7F7F"},  # сірий
-    "quintile":    {"angle": 72,  "orb": 2, "color": "#17BECF"},  # бірюзовий
-    "biquintile":  {"angle": 144, "orb": 2, "color": "#BCBD22"},  # оливковий
+    "conjunction": {"angle": 0,   "orb": 8, "color": "#D62728",    "symbol": "\u260C"},  # ☌
+    "sextile":     {"angle": 60,  "orb": 6, "color": "#1F77B4",    "symbol": "\u26B9"},  # ⚹
+    "square":      {"angle": 90,  "orb": 6, "color": "#FF7F0E",    "symbol": "\u25A1"},  # □
+    "trine":       {"angle": 120, "orb": 8, "color": "#2CA02C",    "symbol": "\u25B3"},  # △
+    "opposition":  {"angle": 180, "orb": 8, "color": "#9467BD",    "symbol": "\u260D"},  # ☍
+    "semisextile": {"angle": 30,  "orb": 2, "color": "#8C564B",    "symbol": "\u26BA"},  # ⚺
+    "semisquare":  {"angle": 45,  "orb": 3, "color": "#E377C2",    "symbol": "\u2220"},  # ∠
+    "quincunx":    {"angle": 150, "orb": 3, "color": "#7F7F7F",    "symbol": "\u26BB"},  # ⚻
+    "quintile":    {"angle": 72,  "orb": 2, "color": "#17BECF",    "symbol": "Q"},
+    "biquintile":  {"angle": 144, "orb": 2, "color": "#BCBD22",    "symbol": "bQ"},
 }
+
 
 # ----------------- Утиліти -----------------
 def cleanup_cache(days: int = CACHE_TTL_DAYS):
@@ -577,23 +578,57 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
 
             planet_positions[pid] = (th, r_planet, lon)
 
-        # ---------- 8) Хорди аспектів між планетами (з aspects_list) ----------
-        # aspects_list очікується як список dict із keys: planet1, planet2, type, color
-        for asp in (aspects_list or []):
-            p1 = asp.get("planet1")
-            p2 = asp.get("planet2")
-            asp_type = asp.get("type")
-            color = asp.get("color") or ASPECTS_DEF.get(asp_type, {}).get("color", "#999999")
-            # можливо назви у списку та у planet_positions трохи різняться (наприклад "Sun" vs "Sun")
-            # спробуємо знайти ключі в planet_positions
-            if p1 not in planet_positions:
-                # іноді в аспекті може бути "Syzygy" або інші, і в planet_positions їх немає — skip
-                continue
-            if p2 not in planet_positions:
-                continue
-            th1, r1, _ = planet_positions[p1]
-            th2, r2, _ = planet_positions[p2]
-            ax.plot([th1, th2], [r1, r2], color=color, linewidth=1.6, alpha=0.95, zorder=5)
+        import numpy as np
+
+# ... ваш попередній код ...
+
+# ---------- 8) Хорди аспектів між планетами (з aspects_list) ----------
+# aspects_list очікується як список dict із keys: planet1, planet2, type, color
+for asp in (aspects_list or []):
+    p1 = asp.get("planet1")
+    p2 = asp.get("planet2")
+    asp_type = asp.get("type")
+    
+    # Отримуємо визначення аспекту
+    aspect_definition = ASPECTS_DEF.get(asp_type, {})
+    color = asp.get("color") or aspect_definition.get("color", "#999999")
+    symbol = aspect_definition.get("symbol")
+    
+    # можливо назви у списку та у planet_positions трохи різняться
+    if p1 not in planet_positions or p2 not in planet_positions:
+        continue
+        
+    th1, r1, _ = planet_positions[p1]
+    th2, r2, _ = planet_positions[p2]
+    
+    # Малюємо хорду аспекту
+    ax.plot([th1, th2], [r1, r2], color=color, linewidth=1.6, alpha=0.95, zorder=5)
+
+    # Якщо для аспекту визначено символ, додаємо його
+    if symbol:
+        # 1. Конвертуємо полярні координати планет у декартові
+        x1 = r1 * np.cos(th1)
+        y1 = r1 * np.sin(th1)
+        x2 = r2 * np.cos(th2)
+        y2 = r2 * np.sin(th2)
+        
+        # 2. Обчислюємо декартову середину хорди
+        x_mid = (x1 + x2) / 2
+        y_mid = (y1 + y2) / 2
+        
+        # 3. Конвертуємо середину назад у полярні координати
+        th_mid = np.arctan2(y_mid, x_mid)
+        r_mid = np.sqrt(x_mid**2 + y_mid**2)
+        
+        # 4. Малюємо символ у центральній точці
+        ax.text(th_mid, r_mid, symbol,
+                ha='center', va='center',  # Горизонтальне і вертикальне вирівнювання
+                fontsize=10, 
+                color=color,
+                # Додаємо невеликий білий фон для кращої читабельності
+                bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='circle,pad=0.1'),
+                zorder=6) # zorder вищий, щоб символ був над лінією
+
 
         # ---------- 9) Центр-карта: логотип/текст ----------
         center_text = name_for_center or logo_text or "Albireo Daria"
