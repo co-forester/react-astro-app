@@ -336,12 +336,14 @@ def generate():
         
         HOUSE_SYSTEMS = [const.PLACIDUS, const.WHOLE_SIGN, const.EQUAL]
 
+        HOUSE_SYSTEMS = ['placidus', 'whole', 'equal']
+
         def create_chart_with_fallback(fdate, pos):
             for hsys in HOUSE_SYSTEMS:
                 try:
                     return Chart(fdate, pos, hsys=hsys)
                 except Exception as e:
-                    print(f"Не вдалося з {hsys}: {e}")
+                    print(f"Не вдалося з hsys='{hsys}': {e}")
             raise ValueError("Жодна система домів не спрацювала")
         
         angles_for_aspects = { 
