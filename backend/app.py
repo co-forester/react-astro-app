@@ -333,7 +333,7 @@ def generate():
 
         fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), offset_hours)
         pos = GeoPos(lat, lon)
-        chart = Chart(fdate, pos, hsys='P')
+        chart = Chart(fdate, pos, hsys='placidus') 
 
         angles_for_aspects = { 
              "ASC": chart.get(const.ASC).lon, 
