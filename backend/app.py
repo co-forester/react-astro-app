@@ -61,7 +61,8 @@ HOUSE_COLORS = [
 PLANET_SYMBOLS = {
     "Sun":"☉","Moon":"☽","Mercury":"☿","Venus":"♀","Mars":"♂",
     "Jupiter":"♃","Saturn":"♄","Uranus":"♅","Neptune":"♆","Pluto":"♇",
-    "North Node":"☊","South Node":"☋","Ascendant":"ASC","MC":"MC",
+    "North Node":"☊","South Node":"☋",
+    # "Ascendant":"ASC","MC":"MC",
     "Pars Fortuna":"⚶"
 }
 PLANET_SYMBOLS.update({
