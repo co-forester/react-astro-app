@@ -37,7 +37,7 @@ if not os.path.exists(EPHE_DIR):
     print(f"WARNING: Ефемериди не знайдені за шляхом {EPHE_DIR}")
 swe.set_ephe_path(EPHE_DIR)
 
-app = Flask(name)
+app = Flask(__name__)
 CORS(app)
 
 CACHE_DIR = "cache"
@@ -335,11 +335,17 @@ def generate():
         pos = GeoPos(lat, lon)
         chart = Chart(fdate, pos, hsys='P')
 
-        angles_for_aspects = { "ASC": chart.get(const.ASC).lon, "MC": chart.get(const.MC).lon }
-        try: # Додаємо точні DSC/IC, якщо можливо
+        angles_for_aspects = { 
+             "ASC": chart.get(const.ASC).lon, 
+             "MC": chart.get(const.MC).lon
+        }
+    
+        try: 
+            # Додаємо точні DSC/IC, якщо можливо
             angles_for_aspects["DSC"] = chart.get(const.DESC).lon
             angles_for_aspects["IC"] = chart.get(const.IC).lon
-        except: # Резервний варіант
+        except Exception: 
+            # Резервний варіант
             angles_for_aspects["DSC"] = (angles_for_aspects["ASC"] + 180) % 360
             angles_for_aspects["IC"] = (angles_for_aspects["MC"] + 180) % 360
 
@@ -356,15 +362,21 @@ def generate():
         with open(json_path, "w", encoding="utf-8") as f: json.dump(out, f, ensure_ascii=False, indent=2)
         return jsonify(out)
 
-    except Exception as e:
-        print("Unhandled error in /generate:", e); traceback.print_exc()
-        return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+@app.errorhandler(Exception)
+def handle_exception(e):
+    print("=== ERROR TRACE ===")
+    traceback.print_exc()
+    return jsonify({
+        "error": "Internal Server Error",
+    "message": str(e)
+}), 500
 
 @app.route("/cache/<path:filename>")
 def cached_file(filename): return send_from_directory(CACHE_DIR, filename)
+
 @app.route("/health")
 def health(): return "OK", 200
 
-if name == "main":
+if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=True)
