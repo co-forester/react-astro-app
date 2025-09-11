@@ -622,12 +622,14 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
 @app.route("/generate", methods=["POST"])
 def generate():
     try:
+
         cleanup_cache()
         data = request.get_json() or {}
         name = data.get("name") or data.get("firstName") or "Person"
         date_str = data.get("date")
         time_str = data.get("time")
         place = data.get("place") or data.get("city") or data.get("location")
+
         if not (date_str and time_str and place):
             return jsonify({"error": "Надішліть date (YYYY-MM-DD), time (HH:MM) та place (рядок)"}), 400
 
@@ -635,9 +637,9 @@ def generate():
         json_path = os.path.join(CACHE_DIR, f"{key}.json")
         png_path  = os.path.join(CACHE_DIR, f"{key}.png")
 
-        # кеш
-        if os.path.exists(json_path) and os.path.exists(png_path):
-            try:
+        # ---------- Кеш ----------
+        try:
+            if os.path.exists(json_path) and os.path.exists(png_path):
                 mtime = dt.fromtimestamp(os.path.getmtime(json_path))
                 if dt.now() - mtime <= timedelta(days=CACHE_TTL_DAYS):
                     with open(json_path, "r", encoding="utf-8") as f:
@@ -645,13 +647,18 @@ def generate():
                     base_url = request.host_url.rstrip("/")
                     cached["chart_url"] = f"{base_url}/cache/{key}.png"
                     return jsonify(cached)
-            except Exception:
-                pass
+        except Exception:
+            pass
 
-        lat, lon = geocode_place(place)
-        if lat is None:
-            return jsonify({"error": "Місце не знайдено (геокодер)"}), 400
+        # ---------- Геокодинг ----------
+        try:
+            lat, lon = geocode_place(place)
+            if lat is None or lon is None:
+                return jsonify({"error": "Місце не знайдено (геокодер)"}), 400
+        except Exception as e:
+            return jsonify({"error": f"Геокодинг помилка: {str(e)}"}), 400
 
+        # ---------- Таймзона ----------
         try:
             tz_str = tf.timezone_at(lat=lat, lng=lon) or "UTC"
             tz = pytz.timezone(tz_str)
@@ -659,77 +666,95 @@ def generate():
             tz_str = "UTC"
             tz = pytz.timezone("UTC")
 
+        # ---------- Дата та час ----------
         try:
             naive = dt.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
             local_dt = tz.localize(naive)
             offset_hours = (local_dt.utcoffset().total_seconds() / 3600.0) if local_dt.utcoffset() else 0.0
         except Exception as e:
-            return jsonify({"error": "Exception", "message": str(e)}), 400
+            return jsonify({"error": "Помилка розбору дати/часу", "message": str(e)}), 400
 
-        fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), offset_hours)
-        pos = GeoPos(lat, lon)
+        # ---------- Chart ----------
         try:
-            chart = Chart(fdate, pos, hsys='P')
+            fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), offset_hours)
+            pos = GeoPos(lat, lon)
+            try:
+                chart = Chart(fdate, pos, hsys='P')
+            except Exception:
+                chart = Chart(fdate, pos)
+        except Exception as e:
+            return jsonify({"error": "Помилка побудови chart", "message": str(e)}), 500
+
+        # ---------- Аспекти ----------
+        try:
+            aspects_json = compute_aspects_manual(chart.objects)
         except Exception:
-            chart = Chart(fdate, pos)
+            aspects_json = []
 
-        aspects_json = compute_aspects_manual(chart.objects)
-
+        # ---------- Малювання карти ----------
         try:
             draw_natal_chart(chart, aspects_json, png_path, name_for_center=name, logo_text="Albireo Daria")
+            chart_warning = None
         except Exception as e:
-            base_url = request.host_url.rstrip("/")
-            out = {
-                "name": name, "date": date_str, "time": time_str,
-                "place": place, "timezone": tz_str,
-                "aspects_json": aspects_json,
-                "aspects_table": aspects_json,
-                "chart_url": None,
-                "warning": f"Помилка при малюванні картинки: {str(e)}"
-            }
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(out, f, ensure_ascii=False, indent=2)
-            return jsonify(out), 200
+            chart_warning = str(e)
 
-        # planets для JSON
+        # ---------- Планети ----------
         planets_list = []
-        for obj in chart.objects:
-            pid = getattr(obj, "id", None)
-            if pid in PLANET_SYMBOLS:
-                planets_list.append({
-                    "name": pid,
-                    "symbol": PLANET_SYMBOLS[pid],
-                    "angle": float(getattr(obj, "lon", 0)) % 360
-                })
+        try:
+            for obj in chart.objects:
+                pid = getattr(obj, "id", None)
+                if pid in PLANET_SYMBOLS:
+                    planets_list.append({
+                        "name": pid,
+                        "symbol": PLANET_SYMBOLS[pid],
+                        "angle": float(getattr(obj, "lon", 0)) % 360
+                    })
+        except Exception:
+            planets_list = []
 
-        def float_to_dms(angle: float):
-            deg = int(angle)
-            minutes_float = (angle - deg) * 60
-            minutes = int(minutes_float)
-            seconds = round((minutes_float - minutes) * 60, 1)
-            return f"{deg}° {minutes}' {seconds}\""
-
+        # ---------- Таблиця аспектів ----------
         aspects_table = []
-        for asp in aspects_json:
-            aspects_table.append({
-                "planet1": asp["planet1"],
-                "planet2": asp["planet2"],
-                "type": asp["type"],
-                "angle": asp["angle"],
-                "angle_dms": float_to_dms(asp["angle"]),
-                "color": ASPECTS_DEF.get(asp["type"], {}).get("color", "#777777")
-            })
+        try:
+            for asp in aspects_json:
+                angle = asp.get("angle", 0)
+                deg = int(angle)
+                minutes_float = (angle - deg) * 60
+                minutes = int(minutes_float)
+                seconds = round((minutes_float - minutes) * 60, 1)
+                aspects_table.append({
+                    "planet1": asp.get("planet1"),
+                    "planet2": asp.get("planet2"),
+                    "type": asp.get("type"),
+                    "angle": angle,
+                    "angle_dms": f"{deg}° {minutes}' {seconds}\"",
+                    "color": ASPECTS_DEF.get(asp.get("type"), {}).get("color", "#777777")
+                })
+        except Exception:
+            aspects_table = []
+
+        base_url = request.host_url.rstrip("/")
+        chart_url = f"{base_url}/cache/{key}.png" if os.path.exists(png_path) else None
 
         out = {
-            "name": name, "date": date_str, "time": time_str,
-            "place": place, "timezone": tz_str,
+            "name": name,
+            "date": date_str,
+            "time": time_str,
+            "place": place,
+            "timezone": tz_str,
+            "planets": planets_list,
             "aspects_json": aspects_json,
             "aspects_table": aspects_table,
-            "planets": planets_list,
-            "chart_url": f"{request.host_url.rstrip('/')}/cache/{key}.png"
+            "chart_url": chart_url,
+            "warning": chart_warning
         }
-        with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(out, f, ensure_ascii=False, indent=2)
+
+        # ---------- Збереження JSON ----------
+        try:
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(out, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
+
         return jsonify(out)
 
     except Exception as e:
