@@ -334,9 +334,9 @@ def generate():
         fdate = Datetime(local_dt.strftime("%Y/%m/%d"), local_dt.strftime("%H:%M"), offset_hours)
         pos = GeoPos(lat, lon)
         
-        HOUSE_SYSTEMS = [const.PLACIDUS, const.WHOLE_SIGN, const.EQUAL]
-
-        HOUSE_SYSTEMS = ['placidus', 'whole', 'equal']
+        HOUSE_SYSTEMS = [const.PLACIDUS, const.WHOLE_SIGN, const.EQUAL, const.KOCH, const.REGIOMONTANUS, const.CAMPANUS, const.TOPOCENTRIC, const.ALCABITIUS, const.MORINUS]
+        
+        # HOUSE_SYSTEMS = ['placidus', 'whole', 'equal', 'koch', 'regiomontanus', 'campanus', 'topocentric', 'alcabitius', 'morinus']
 
         def create_chart_with_fallback(fdate, pos):
             for hsys in HOUSE_SYSTEMS:
