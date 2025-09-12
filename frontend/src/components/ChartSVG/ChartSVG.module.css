@@ -8,6 +8,7 @@
     transition: background 0.4s ease, box-shadow 0.3s ease;
 }
 
+/* --- Теми --- */
 .ChartLight {
     background: radial-gradient(circle at center, #fff 70%, #f5f5f5 100%);
 }
@@ -16,6 +17,7 @@
     background: radial-gradient(circle at center, #111 70%, #000 100%);
 }
 
+/* --- Кола --- */
 .CircleLight,
 .CircleDark {
     fill: none;
@@ -30,6 +32,7 @@
     stroke: #ddd;
 }
 
+/* Zodiac & Houses */
 .ZodiacCircle,
 .HousesCircle {
     fill: none;
@@ -45,6 +48,7 @@
     opacity: 0.8;
 }
 
+/* Планети */
 .PlanetNormal {
     fill: #444;
     stroke: #111;
@@ -68,7 +72,6 @@
     font-weight: 600;
     text-anchor: middle;
     dominant-baseline: middle;
-    /* замість alignment-baseline */
     pointer-events: none;
 }
 
@@ -102,7 +105,8 @@
     }
 }
 
-@media (max-width: 768px) {
+/* Адаптивність */
+@media(max-width:768px) {
     .Chart {
         max-width: 95%;
         box-shadow: none;

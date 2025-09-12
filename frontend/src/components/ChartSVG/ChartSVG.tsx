@@ -5,7 +5,7 @@ import css from './ChartSVG.module.css';
 type Planet = {
     name: string;
     symbol: string;
-    angle: number; // 0–360
+    angle: number;
     sign?: string;
     degree?: number;
     minute?: number;
@@ -22,13 +22,14 @@ type Aspect = {
 type Props = {
     planets: Planet[];
     aspects: Aspect[];
+    houses?: number[];
 };
 
-const ChartSVG: React.FC<Props> = ({ planets, aspects }) => {
+const ChartSVG: React.FC<Props> = ({ planets, aspects, houses }) => {
     const theme = useAppSelector(state => state.theme.theme);
     const [hoveredPlanet, setHoveredPlanet] = useState<string | null>(null);
 
-    const size = Math.min(window.innerWidth, 500);
+    const size = Math.min(window.innerWidth, 800);
     const radius = size * 0.4;
     const center = { x: size / 2, y: size / 2 };
 
@@ -50,170 +51,91 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects }) => {
         biquintile: "#BCBD22",
     };
 
-    // Кольори домів (приклад)
     const houseColors = [
-        "#FFE5E5", "#FFF5E5", "#FFFFE5", "#E5FFE5", "#E5FFFF", "#E5E5FF",
-        "#F5E5FF", "#FFE5F5", "#FFD9D9", "#FFF0D9", "#FFFFD9", "#D9FFD9"
+        "#FFDDC1", "#FFE4E1", "#FFFACD", "#E0FFFF", "#E6E6FA", "#F0FFF0",
+        "#F5F5DC", "#FFF0F5", "#F0F8FF", "#FAFAD2", "#F0E68C", "#FFE4B5"
     ];
-
-    const formatDMS = (deg?: number, min?: number, sec?: number) => {
-        if (deg === undefined) return "";
-        return `${deg}°${min ?? 0}'${sec ?? 0}"`;
-    };
 
     return (
         <div className={`${css.Chart} ${theme ? css.ChartLight : css.ChartDark}`}>
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-                {/* --- Дома кольорові сектори --- */}
-                {[...Array(12)].map((_, i) => {
-                    const startAngle = i * 30;
-                    const endAngle = (i + 1) * 30;
-                    const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-
-                    const start = getCoords(startAngle, radius);
-                    const end = getCoords(endAngle, radius);
-
-                    const path = `
-                        M ${center.x} ${center.y}
-                        L ${start.x} ${start.y}
-                        A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}
-                        Z
-                    `;
-
+                {/* Кольорові сектори будинків */}
+                {houses && houses.map((deg, i) => {
+                    const startAngle = deg;
+                    const endAngle = houses[(i + 1) % 12];
+                    const start = getCoords(startAngle);
+                    const end = getCoords(endAngle);
                     return (
-                        <path key={i} d={path} fill={houseColors[i]} opacity={0.2} />
-                    );
+                        <path
+                            key={`house-sector-${i}`}
+                            d={`M${center.x},${center.y} 
+                               L${start.x},${start.y} 
+                               A${radius},${radius} 0 0,1 ${end.x},${end.y} Z`}
+                            fill={houseColors[i % houseColors.length]}
+                            opacity={0.2}
+                        />
+                    )
                 })}
 
-                {/* --- Коло зодіаку --- */}
+                {/* Zodiac & Houses Circle */}
                 <circle cx={center.x} cy={center.y} r={radius} className={css.ZodiacCircle} />
-
-                {[...Array(12)].map((_, i) => {
-                    const angle = i * 30;
-                    const from = getCoords(angle, radius);
-                    return (
-                        <line
-                            key={i}
-                            x1={center.x}
-                            y1={center.y}
-                            x2={from.x}
-                            y2={from.y}
-                            className={css.ZodiacLine}
-                        />
-                    );
-                })}
-
-                {/* --- Коло домів --- */}
                 <circle cx={center.x} cy={center.y} r={radius - 20} className={css.HousesCircle} />
+
+                {/* Лінії Zodiac та Houses */}
                 {[...Array(12)].map((_, i) => {
                     const angle = i * 30;
-                    const from = getCoords(angle, radius - 20);
+                    const fromZ = getCoords(angle, radius);
+                    const fromH = getCoords(angle, radius - 20);
                     return (
-                        <line
-                            key={`house-${i}`}
-                            x1={center.x}
-                            y1={center.y}
-                            x2={from.x}
-                            y2={from.y}
-                            className={css.HouseLine}
-                        />
-                    );
+                        <g key={i}>
+                            <line x1={center.x} y1={center.y} x2={fromZ.x} y2={fromZ.y} className={css.ZodiacLine} />
+                            <line x1={center.x} y1={center.y} x2={fromH.x} y2={fromH.y} className={css.HouseLine} />
+                        </g>
+                    )
                 })}
 
-                {/* --- Аспекти --- */}
+                {/* Аспекти */}
                 {aspects.map((asp, idx) => {
-                    const fromPlanet = planets.find(p => p.name === asp.from);
-                    const toPlanet = planets.find(p => p.name === asp.to);
-                    if (!fromPlanet || !toPlanet) return null;
-
-                    const fromCoords = getCoords(fromPlanet.angle);
-                    const toCoords = getCoords(toPlanet.angle);
-                    const color = aspectColors[asp.type] || "#999";
-
-                    return (
-                        <line
-                            key={idx}
-                            x1={fromCoords.x}
-                            y1={fromCoords.y}
-                            x2={toCoords.x}
-                            y2={toCoords.y}
-                            stroke={color}
-                            strokeWidth={1.5}
-                            opacity={0.8}
-                        />
-                    );
+                    const fromP = planets.find(p => p.name === asp.from);
+                    const toP = planets.find(p => p.name === asp.to);
+                    if (!fromP || !toP) return null;
+                    const fromC = getCoords(fromP.angle, radius - 40);
+                    const toC = getCoords(toP.angle, radius - 40);
+                    return <line key={idx} x1={fromC.x} y1={fromC.y} x2={toC.x} y2={toC.y} stroke={aspectColors[asp.type] || "#999"} strokeWidth={1.5} opacity={0.7} />
                 })}
 
-                {/* --- Планети --- */}
+                {/* Планети */}
                 {planets.map((pl, idx) => {
-                    const coords = getCoords(pl.angle);
+                    const coords = getCoords(pl.angle, radius - 40);
                     const isHovered = hoveredPlanet === pl.name;
-
                     return (
-                        <g
-                            key={idx}
-                            onMouseEnter={() => setHoveredPlanet(pl.name)}
-                            onMouseLeave={() => setHoveredPlanet(null)}
-                        >
-                            <circle
-                                cx={coords.x}
-                                cy={coords.y}
-                                r={size * 0.025}
-                                className={isHovered ? css.PlanetHover : css.PlanetNormal}
-                            />
-                            <text
-                                x={coords.x}
-                                y={coords.y + 4}
-                                className={theme ? css.PlanetTextLight : css.PlanetTextDark}
-                            >
+                        <g key={idx} onMouseEnter={() => setHoveredPlanet(pl.name)} onMouseLeave={() => setHoveredPlanet(null)}>
+                            <circle cx={coords.x} cy={coords.y} r={size * 0.025} className={isHovered ? css.PlanetHover : css.PlanetNormal} />
+                            <text x={coords.x} y={coords.y + 4} className={theme ? css.PlanetTextLight : css.PlanetTextDark} fontSize={size * 0.05}>
                                 {pl.symbol}
                             </text>
-
                             {isHovered && (
                                 <g>
-                                    <rect
-                                        x={coords.x + 15}
-                                        y={coords.y - 30}
-                                        width={120}
-                                        height={30}
-                                        rx={6}
-                                        fill="black"
-                                        opacity={0.7}
-                                    />
-                                    <text
-                                        x={coords.x + 75}
-                                        y={coords.y - 12}
-                                        className={css.TooltipText}
-                                    >
-                                        {pl.name} {formatDMS(pl.degree, pl.minute, pl.second)} {pl.sign} {pl.house ? `H${pl.house}` : ""}
+                                    <rect x={coords.x + 15} y={coords.y - 30} width={120} height={32} rx={6} fill="black" opacity={0.7} />
+                                    <text x={coords.x + 75} y={coords.y - 12} textAnchor="middle" fill="white" fontSize={12}>
+                                        {pl.name} {pl.degree}° {pl.minute}' {pl.second}" {pl.sign} {pl.house ? `H${pl.house}` : ""}
                                     </text>
                                 </g>
                             )}
                         </g>
-                    );
+                    )
                 })}
 
-                {/* --- Вісь ASC/MC/DSC/IC --- */}
+                {/* ASC/MC/DSC/IC */}
                 {["ASC", "MC", "DSC", "IC"].map((point, i) => {
                     const angle = i * 90;
                     const coords = getCoords(angle, radius + 20);
-                    return (
-                        <text
-                            key={point}
-                            x={coords.x}
-                            y={coords.y}
-                            textAnchor="middle"
-                            fill="yellow"
-                            fontSize={size * 0.05}
-                            fontWeight="bold"
-                        >
-                            {point}
-                        </text>
-                    );
+                    return <text key={point} x={coords.x} y={coords.y} textAnchor="middle" fill="yellow" fontSize={size * 0.05} fontWeight="bold">{point}</text>
                 })}
+
             </svg>
         </div>
-    );
-};
+    )
+}
 
 export { ChartSVG };
