@@ -399,7 +399,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     color="#6a1b2c", fontweight="bold", zorder=7)
 
         # ---------- 4) Кільце зодіаку з символами + градусні мітки ----------
-        ring_radius_start = 1.10
+        ring_radius_start = 1.45
         ring_height = 0.30
 
         for i, sym in enumerate(ZODIAC_SYMBOLS):
@@ -457,8 +457,8 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                             ha='center', va='center', zorder=5)
 
         # ---------- 5) Велике кільце домів (з підписами I..XII) ----------
-        house_radius_start = 1.45
-        house_ring_height = 0.25
+        house_radius_start = 1.20
+        house_ring_height = 0.17
 
         for i in range(1, 13):
             cusp1 = safe_house_lon(chart, i, asc_fallback=asc_lon)
@@ -508,7 +508,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                             fontsize=7, ha="center", va="center", color="#ffffff", zorder=6)
 
         # ---------- 6) ASC / MC / DSC / IC маркери + градуси ----------
-        r_marker = 1.72
+        r_marker = 1.80
         arrow_len = 0.07
         SIGN_SYMBOLS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
 
