@@ -8,6 +8,7 @@ import hashlib
 import traceback
 from datetime import datetime as dt, timedelta
 
+import numpy as np
 from matplotlib.patches import Wedge
 import matplotlib.colors as mcolors
 from flatlib import aspects as f_aspects
@@ -21,7 +22,6 @@ import matplotlib.pyplot as plt
 from math import cos, sin, radians, pi
 
 from matplotlib.lines import Line2D
-import numpy as np
 
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
@@ -577,8 +577,6 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                     rotation=rotation, rotation_mode="anchor", zorder=11)
 
             planet_positions[pid] = (th, r_planet, lon)
-
-        import numpy as np
 
         # ---------- 8) Хорди аспектів між планетами (з aspects_list) ----------
         # aspects_list очікується як список dict із keys: planet1, planet2, type, color
