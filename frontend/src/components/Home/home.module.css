@@ -44,6 +44,12 @@
   transition: background 0.3s ease, color 0.3s ease;
 }
 
+.intro {
+  text-align: center;
+  padding: 4rem 1rem;
+  font-family: var(--font-main);
+}
+
 /* ====================== Hover ефекти ====================== */
 .leftBlock:hover,
 .content:hover,
