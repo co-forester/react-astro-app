@@ -2,15 +2,30 @@ import React, { useState } from 'react';
 import { useAppSelector } from '../../hooks/reduxHook';
 import css from './ChartSVG.module.css';
 
-type Planet = { name: string; symbol: string; angle: number; degree?: number; sign?: string; house?: number; };
-type Aspect = { from: string; to: string; type: string; };
+type Planet = {
+    name: string;
+    symbol: string;
+    angle: number; // в градусах
+    sign?: string;
+    degree?: number;
+    minute?: number;
+    second?: number;
+    house?: number;
+};
 
-type Props = { planets: Planet[]; aspects: Aspect[]; housesColors?: string[]; };
+type Aspect = {
+    from: string;
+    to: string;
+    type: string;
+};
 
-const zodiacSymbols = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"];
+type Props = {
+    planets: Planet[];
+    aspects: Aspect[];
+};
 
-const ChartSVG: React.FC<Props> = ({ planets, aspects, housesColors }) => {
-    const theme = useAppSelector(s => s.theme.theme);
+const ChartSVG: React.FC<Props> = ({ planets, aspects }) => {
+    const theme = useAppSelector(state => state.theme.theme);
     const [hoveredPlanet, setHoveredPlanet] = useState<string | null>(null);
 
     const size = Math.min(window.innerWidth, 500);
@@ -18,88 +33,92 @@ const ChartSVG: React.FC<Props> = ({ planets, aspects, housesColors }) => {
     const center = { x: size / 2, y: size / 2 };
 
     const getCoords = (angle: number, r: number = radius) => {
-        const rad = (angle - 90) * Math.PI / 180;
+        const rad = ((angle - 90) * Math.PI) / 180;
         return { x: center.x + r * Math.cos(rad), y: center.y + r * Math.sin(rad) };
     };
 
     const aspectColors: Record<string, string> = {
-        conjunction: "#D62728", sextile: "#1F77B4", square: "#FF7F0E",
-        trine: "#2CA02C", opposition: "#9467BD", semisextile: "#8C564B",
-        semisquare: "#E377C2", quincunx: "#7F7F7F", quintile: "#17BECF", biquintile: "#BCBD22"
+        conjunction: "#D62728",
+        sextile: "#1F77B4",
+        square: "#FF7F0E",
+        trine: "#2CA02C",
+        opposition: "#9467BD",
+        semisextile: "#8C564B",
+        semisquare: "#E377C2",
+        quincunx: "#7F7F7F",
+        quintile: "#17BECF",
+        biquintile: "#BCBD22",
     };
 
     return (
-        <div className={theme ? css.ChartLight : css.ChartDark}>
+        <div className={theme ? css.ChartLight : css.ChartDark + " " + css.Chart}>
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
 
-                {/* --- Зодіакальне коло --- */}
+                {/* --- Зодіак --- */}
                 <circle cx={center.x} cy={center.y} r={radius} className={css.ZodiacCircle} />
+                {[...Array(360)].map((_, i) => {
+                    const angle = i;
+                    const from = getCoords(angle, radius);
+                    const len = i % 10 === 0 ? 8 : 4;
+                    const to = getCoords(angle, radius - len);
+                    return <line key={i} x1={from.x} y1={from.y} x2={to.x} y2={to.y} stroke={css.ZodiacLine} strokeWidth={i % 10 === 0 ? 1.2 : 0.5} />;
+                })}
 
-                {/* --- Лінії секторів будинків --- */}
+                {/* --- Будинки --- */}
                 {[...Array(12)].map((_, i) => {
-                    const { x, y } = getCoords(i * 30);
-                    return <line key={i} x1={center.x} y1={center.y} x2={x} y2={y} className={css.HouseLine} />;
-                })}
-
-                {/* --- Сектори будинків кольорові --- */}
-                {housesColors && [...Array(12)].map((_, i) => {
-                    const start = i * 30 - 90;
-                    const end = (i + 1) * 30 - 90;
-                    const largeArc = end - start > 180 ? 1 : 0;
-                    const r = radius - 10;
-                    const x1 = center.x + r * Math.cos(start * Math.PI / 180);
-                    const y1 = center.y + r * Math.sin(start * Math.PI / 180);
-                    const x2 = center.x + r * Math.cos(end * Math.PI / 180);
-                    const y2 = center.y + r * Math.sin(end * Math.PI / 180);
-                    return <path key={i} d={`M${center.x},${center.y} L${x1},${y1} A${r},${r} 0 ${largeArc} 1 ${x2},${y2} Z`} fill={housesColors[i]} className={css.HouseSector} />;
-                })}
-
-                {/* --- Градуси та знаки --- */}
-                {[...Array(360)].map((_, deg) => {
-                    if (deg % 10 !== 0) return null; // крок 10°
-                    const { x, y } = getCoords(deg, radius + 15);
+                    const startAngle = i * 30;
+                    const endAngle = (i + 1) * 30;
+                    const start = getCoords(startAngle, radius);
+                    const end = getCoords(endAngle, radius);
                     return (
-                        <text key={deg} x={x} y={y} textAnchor="middle" dominantBaseline="middle"
-                            fontSize={size * 0.025} fill={theme ? "#000" : "#fff"}>
-                            {deg % 30 === 0 ? zodiacSymbols[(deg / 30) % 12] : deg}
-                        </text>
-                    )
-                })}
-
-                {/* --- Планети --- */}
-                {planets.map((pl, i) => {
-                    const { x, y } = getCoords(pl.angle);
-                    const isHover = hoveredPlanet === pl.name;
-                    return (
-                        <g key={i} onMouseEnter={() => setHoveredPlanet(pl.name)} onMouseLeave={() => setHoveredPlanet(null)}>
-                            <circle cx={x} cy={y} r={size * 0.025} className={isHover ? css.PlanetHover : css.PlanetNormal} />
-                            <text x={x} y={y} className={theme ? css.PlanetTextLight : css.PlanetTextDark}>{pl.symbol}</text>
-                            {isHover && (
-                                <>
-                                    <rect x={x + 15} y={y - 30} width={90} height={28} rx={6} fill="black" opacity={0.7} />
-                                    <text x={x + 60} y={y - 12} className={css.TooltipText}>{pl.name} {pl.degree?.toFixed(1)}° {pl.sign} {pl.house ? `H${pl.house}` : ""}</text>
-                                </>
-                            )}
+                        <g key={i}>
+                            <line x1={center.x} y1={center.y} x2={start.x} y2={start.y} className={css.HouseLine} />
+                            <path d={`M${center.x},${center.y} L${start.x},${start.y} A${radius},${radius} 0 0,1 ${end.x},${end.y} Z`} fill={`hsla(${i * 30}, 70%, 50%, 0.1)`} stroke="none" />
                         </g>
                     );
                 })}
 
                 {/* --- Аспекти --- */}
-                {aspects.map((asp, i) => {
+                {aspects.map((asp, idx) => {
                     const fromP = planets.find(p => p.name === asp.from);
                     const toP = planets.find(p => p.name === asp.to);
                     if (!fromP || !toP) return null;
-                    const { x: x1, y: y1 } = getCoords(fromP.angle);
-                    const { x: x2, y: y2 } = getCoords(toP.angle);
-                    return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke={aspectColors[asp.type] || "#999"} strokeWidth={1.5} opacity={0.8} />;
+                    const fromCoords = getCoords(fromP.angle);
+                    const toCoords = getCoords(toP.angle);
+                    const color = aspectColors[asp.type] || "#999";
+                    return <line key={idx} x1={fromCoords.x} y1={fromCoords.y} x2={toCoords.x} y2={toCoords.y} stroke={color} strokeWidth={1.5} opacity={0.8} />;
+                })}
+
+                {/* --- Планети --- */}
+                {planets.map((pl, idx) => {
+                    const coords = getCoords(pl.angle);
+                    const isHovered = hoveredPlanet === pl.name;
+                    const degText = `${pl.degree?.toFixed(0)}°${pl.minute?.toFixed(0) ?? 0}'${pl.second?.toFixed(0) ?? 0}"`;
+
+                    return (
+                        <g key={idx} onMouseEnter={() => setHoveredPlanet(pl.name)} onMouseLeave={() => setHoveredPlanet(null)}>
+                            <circle cx={coords.x} cy={coords.y} r={size * 0.025} className={isHovered ? css.PlanetHover : css.PlanetNormal} />
+                            <text x={coords.x} y={coords.y + 4} className={theme ? css.PlanetTextLight : css.PlanetTextDark} fontSize={size * 0.05}>
+                                {pl.symbol}
+                            </text>
+
+                            {isHovered && (
+                                <g>
+                                    <rect x={coords.x + 15} y={coords.y - 30} width={110} height={28} rx={6} fill="black" opacity={0.7} />
+                                    <text x={coords.x + 70} y={coords.y - 12} textAnchor="middle" fill="white" fontSize={12}>
+                                        {pl.name} {degText} {pl.sign} {pl.house ? `H${pl.house}` : ""}
+                                    </text>
+                                </g>
+                            )}
+                        </g>
+                    );
                 })}
 
                 {/* --- ASC/MC/DSC/IC --- */}
-                {["ASC", "MC", "DSC", "IC"].map((p, i) => {
-                    const { x, y } = getCoords(i * 90, radius + 20);
-                    return <text key={p} x={x} y={y} className={css.AscMcDscIc} textAnchor="middle">{p}</text>
+                {["ASC", "MC", "DSC", "IC"].map((point, i) => {
+                    const coords = getCoords(i * 90, radius + 20);
+                    return <text key={point} x={coords.x} y={coords.y} textAnchor="middle" fill="yellow" fontWeight="bold" fontSize={size * 0.05}>{point}</text>
                 })}
-
             </svg>
         </div>
     );
