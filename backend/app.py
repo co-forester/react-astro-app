@@ -580,54 +580,52 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
 
         import numpy as np
 
-# ... ваш попередній код ...
+        # ---------- 8) Хорди аспектів між планетами (з aspects_list) ----------
+        # aspects_list очікується як список dict із keys: planet1, planet2, type, color
+        for asp in (aspects_list or []):
+            p1 = asp.get("planet1")
+            p2 = asp.get("planet2")
+            asp_type = asp.get("type")
+            
+            # Отримуємо визначення аспекту
+            aspect_definition = ASPECTS_DEF.get(asp_type, {})
+            color = asp.get("color") or aspect_definition.get("color", "#999999")
+            symbol = aspect_definition.get("symbol")
+            
+            # можливо назви у списку та у planet_positions трохи різняться
+            if p1 not in planet_positions or p2 not in planet_positions:
+                continue
+                
+            th1, r1, _ = planet_positions[p1]
+            th2, r2, _ = planet_positions[p2]
+            
+            # Малюємо хорду аспекту
+            ax.plot([th1, th2], [r1, r2], color=color, linewidth=1.6, alpha=0.95, zorder=5)
 
-# ---------- 8) Хорди аспектів між планетами (з aspects_list) ----------
-# aspects_list очікується як список dict із keys: planet1, planet2, type, color
-for asp in (aspects_list or []):
-    p1 = asp.get("planet1")
-    p2 = asp.get("planet2")
-    asp_type = asp.get("type")
-    
-    # Отримуємо визначення аспекту
-    aspect_definition = ASPECTS_DEF.get(asp_type, {})
-    color = asp.get("color") or aspect_definition.get("color", "#999999")
-    symbol = aspect_definition.get("symbol")
-    
-    # можливо назви у списку та у planet_positions трохи різняться
-    if p1 not in planet_positions or p2 not in planet_positions:
-        continue
-        
-    th1, r1, _ = planet_positions[p1]
-    th2, r2, _ = planet_positions[p2]
-    
-    # Малюємо хорду аспекту
-    ax.plot([th1, th2], [r1, r2], color=color, linewidth=1.6, alpha=0.95, zorder=5)
-
-    # Якщо для аспекту визначено символ, додаємо його
-    if symbol:
-        # 1. Конвертуємо полярні координати планет у декартові
-        x1 = r1 * np.cos(th1)
-        y1 = r1 * np.sin(th1)
-        x2 = r2 * np.cos(th2)
-        y2 = r2 * np.sin(th2)
-        
-        # 2. Обчислюємо декартову середину хорди
-        x_mid = (x1 + x2) / 2
-        y_mid = (y1 + y2) / 2
-        
-        # 3. Конвертуємо середину назад у полярні координати
-        th_mid = np.arctan2(y_mid, x_mid)
-        r_mid = np.sqrt(x_mid**2 + y_mid**2)
-        
-        # 4. Малюємо символ у центральній точці
-        ax.text(th_mid, r_mid, symbol,
-                ha='center', va='center',  # Горизонтальне і вертикальне вирівнювання
-                fontsize=10, 
-                color=color,
-                # Додаємо невеликий білий фон для кращої читабельності
-                bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='circle,pad=0.1'),
-                zorder=6) # zorder вищий, щоб символ був над лінією
+            # Якщо для аспекту визначено символ, додаємо його
+            if symbol:
+                # 1. Конвертуємо полярні координати планет у декартові
+                x1 = r1 * np.cos(th1)
+                y1 = r1 * np.sin(th1)
+                x2 = r2 * np.cos(th2)
+                y2 = r2 * np.sin(th2)
+                
+                # 2. Обчислюємо декартову середину хорди
+                x_mid = (x1 + x2) / 2
+                y_mid = (y1 + y2) / 2
+                
+                # 3. Конвертуємо середину назад у полярні координати
+                th_mid = np.arctan2(y_mid, x_mid)
+                r_mid = np.sqrt(x_mid**2 + y_mid**2)
+                
+                # 4. Малюємо символ у центральній точці
+                ax.text(th_mid, r_mid, symbol,
+                        ha='center', va='center',  # Горизонтальне і вертикальне вирівнювання
+                        fontsize=10, 
+                        color=color,
+                        # Додаємо невеликий білий фон для кращої читабельності
+                        bbox=dict(facecolor='white', alpha=0.7, edgecolor='none', boxstyle='circle,pad=0.1'),
+                        zorder=6) # zorder вищий, щоб символ був над лінією
 
 
         # ---------- 9) Центр-карта: логотип/текст ----------
