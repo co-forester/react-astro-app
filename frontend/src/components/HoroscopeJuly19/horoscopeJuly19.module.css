@@ -20,10 +20,13 @@
   color: var(--text-dark);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
+
   .horoscopeBlockLight,
   .horoscopeBlockDark {
+    flex: 1 1 100%;
     max-width: 100%;
+    min-width: auto;
     margin-bottom: 1rem;
   }
-} 
+}
