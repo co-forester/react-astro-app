@@ -1,77 +1,78 @@
 .Chart {
     display: block;
     margin: auto;
+    max-width: 800px;
+    height: auto;
+    border-radius: 50%;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.3);
+    transition: background 0.4s ease, box-shadow 0.3s ease;
+}
+
+/* --- Теми --- */
+.ChartLight {
+    background: radial-gradient(circle at center, #fff 70%, #f5f5f5 100%);
+}
+
+.ChartDark {
+    background: radial-gradient(circle at center, #111 70%, #000 100%);
+}
+
+/* --- Основні кола --- */
+.CircleLight,
+.CircleDark {
+    fill: none;
+    stroke-width: 2px;
 }
 
 .CircleLight {
     stroke: #222;
-    fill: none;
-    stroke-width: 2px;
 }
 
 .CircleDark {
     stroke: #ddd;
-    fill: none;
-    stroke-width: 2px;
 }
 
-.PlanetNormal {
-    fill: #666;
-    stroke: #222;
-    stroke-width: 1px;
-}
-
-.PlanetHover {
-    fill: orange;
-    stroke: red;
-    stroke-width: 2px;
-}
-
-.PlanetTextLight {
-    fill: black;
-    font-size: 14px;
-    font-weight: bold;
-}
-
-.PlanetTextDark {
-    fill: white;
-    font-size: 14px;
-    font-weight: bold;
-}
-
-.TooltipText {
-    pointer-events: none;
-    font-weight: bold;
-    text-shadow: 1px 1px 2px black;
-}
-
-.ChartLight {
-    background: #fff;
-}
-
-.ChartDark {
-    background: #111;
-}
-
+/* --- Зодіак та дома --- */
 .ZodiacCircle,
 .HousesCircle {
     fill: none;
-    stroke: #888;
+    stroke: #aaa;
     stroke-width: 1;
+    opacity: 0.6;
 }
 
 .ZodiacLine,
 .HouseLine {
     stroke: #555;
-    stroke-width: 0.5;
+    stroke-width: 0.8;
+    opacity: 0.8;
 }
 
+/* --- Планети --- */
 .PlanetNormal {
-    fill: #222;
+    fill: #444;
+    stroke: #111;
+    stroke-width: 1.2px;
+    transition: fill 0.25s ease, transform 0.25s ease;
 }
 
 .PlanetHover {
     fill: #f39c12;
+    stroke: #e74c3c;
+    stroke-width: 2px;
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 5px rgba(243, 156, 18, 0.7));
+    cursor: pointer;
+}
+
+/* --- Тексти планет --- */
+.PlanetTextLight,
+.PlanetTextDark {
+    font-size: 14px;
+    font-weight: 600;
+    text-anchor: middle;
+    alignment-baseline: middle;
+    pointer-events: none;
 }
 
 .PlanetTextLight {
@@ -82,7 +83,41 @@
     fill: #fff;
 }
 
+/* --- Тултіп --- */
+.TooltipText {
+    pointer-events: none;
+    font-size: 13px;
+    font-weight: bold;
+    fill: #fff;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* --- Анімації --- */
+@keyframes glow {
+    0% {
+        filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.3));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.9));
+    }
+
+    100% {
+        filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.3));
+    }
+}
+
+.PlanetHover {
+    animation: glow 1.5s infinite ease-in-out;
+}
+
+/* --- Адаптивність --- */
 @media (max-width: 768px) {
+    .Chart {
+        max-width: 95%;
+        box-shadow: none;
+    }
+
     svg {
         width: 100% !important;
         height: auto !important;
