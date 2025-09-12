@@ -421,6 +421,18 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                 zorder=3,
                 align='center'
             )
+            
+            # градусні мітки 0..30 кожні 5°, підписуємо 10°/20°
+            for deg_mark in range(0, 31, 5):
+                theta_deg = to_theta_global(start + deg_mark)
+                r_start = ring_radius_start + 0.01
+                r_end = ring_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
+                ax.plot([theta_deg, theta_deg], [r_start, r_end],
+                        color="#faf6f7", lw=1, zorder=2)
+                if deg_mark in [10, 20]:
+                    r_text = ring_radius_start + ring_height + 0.03
+                    ax.text(theta_deg, r_text, str(deg_mark), color='white', fontsize=8,
+                            ha='center', va='center', zorder=5)
 
             # межа знаку
             ax.plot([to_theta_global(start), to_theta_global(start)],
@@ -443,18 +455,6 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                         fontsize=9, ha="center", va="center",
                         color="#ffffff", rotation=(mid + 90) % 360,
                         rotation_mode="anchor", zorder=5)
-
-            # градусні мітки 0..30 кожні 5°, підписуємо 10°/20°
-            for deg_mark in range(0, 31, 5):
-                theta_deg = to_theta_global(start + deg_mark)
-                r_start = ring_radius_start + 0.01
-                r_end = ring_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
-                ax.plot([theta_deg, theta_deg], [r_start, r_end],
-                        color="#faf6f7", lw=1, zorder=2)
-                if deg_mark in [10, 20]:
-                    r_text = ring_radius_start + ring_height + 0.03
-                    ax.text(theta_deg, r_text, str(deg_mark), color='white', fontsize=8,
-                            ha='center', va='center', zorder=5)
 
         # ---------- 5) Велике кільце домів (з підписами I..XII) ----------
         house_radius_start = 1.20
