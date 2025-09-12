@@ -1,4 +1,4 @@
-/* Анімація появи */
+/* --- Анімації появи --- */
 .fadeIn {
   animation: fadeIn 0.8s ease forwards;
 }
@@ -31,7 +31,7 @@
   }
 }
 
-/* Hover ефекти для блоків */
+/* --- Hover ефекти --- */
 .leftBlock:hover,
 .content:hover,
 .sidebar:hover {
@@ -40,12 +40,14 @@
   transition: all 0.3s ease;
 }
 
+/* --- Грід контейнер --- */
 .gridContainer {
   display: grid;
-  grid-template-columns: 1fr 3fr 1fr;
+  grid-template-columns: 1fr 2.5fr 1fr;
   gap: 20px;
 }
 
+/* --- Десктоп (>= 1025px) --- */
 .leftBlock {
   grid-column: 1;
 }
@@ -58,7 +60,7 @@
   grid-column: 3;
 }
 
-/* 📱 Планшети */
+/* --- Планшети (до 1024px) --- */
 @media (max-width: 1024px) {
   .gridContainer {
     grid-template-columns: 1fr 2fr;
@@ -67,9 +69,17 @@
   .sidebar {
     display: none;
   }
+
+  .leftBlock {
+    grid-column: 1;
+  }
+
+  .content {
+    grid-column: 2;
+  }
 }
 
-/* 📱 Смартфони */
+/* --- Смартфони (до 768px) --- */
 @media (max-width: 768px) {
   .gridContainer {
     grid-template-columns: 1fr;
@@ -82,32 +92,17 @@
   .content {
     order: 1;
   }
-}
 
-.gridContainer {
-  display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
-  gap: 20px;
-}
-
-@media (max-width: 1024px) {
-  .gridContainer {
-    grid-template-columns: 1fr;
-  }
-
-  .leftBlock,
   .sidebar {
-    order: 2;
-  }
-
-  .content {
-    order: 1;
+    display: none;
   }
 }
 
+/* --- Обгортка для карти --- */
 .chartWrapper {
   display: flex;
   justify-content: center;
   align-items: center;
   overflow-x: auto;
+  padding: 10px;
 }
