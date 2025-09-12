@@ -400,7 +400,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
 
         # ---------- 4) Кільце зодіаку з символами + градусні мітки ----------
         ring_radius_start = 1.10
-        ring_height = 0.20
+        ring_height = 0.30
 
         for i, sym in enumerate(ZODIAC_SYMBOLS):
             start = i * 30.0
@@ -457,7 +457,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                             ha='center', va='center', zorder=5)
 
         # ---------- 5) Велике кільце домів (з підписами I..XII) ----------
-        house_radius_start = 1.35
+        house_radius_start = 1.45
         house_ring_height = 0.25
 
         for i in range(1, 13):
