@@ -508,7 +508,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
                             fontsize=7, ha="center", va="center", color="#ffffff", zorder=6)
 
         # ---------- 6) ASC / MC / DSC / IC маркери + градуси ----------
-        r_marker = 1.62
+        r_marker = 1.72
         arrow_len = 0.07
         SIGN_SYMBOLS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
 
