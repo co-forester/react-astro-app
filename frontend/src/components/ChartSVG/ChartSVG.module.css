@@ -16,6 +16,20 @@
     background: radial-gradient(circle at center, #111 70%, #000 100%);
 }
 
+.CircleLight,
+.CircleDark {
+    fill: none;
+    stroke-width: 2px;
+}
+
+.CircleLight {
+    stroke: #222;
+}
+
+.CircleDark {
+    stroke: #ddd;
+}
+
 .ZodiacCircle,
 .HousesCircle {
     fill: none;
@@ -48,18 +62,22 @@
     animation: glow 1.5s infinite ease-in-out;
 }
 
-.PlanetTextLight {
-    fill: #000;
+.PlanetTextLight,
+.PlanetTextDark {
     font-size: 14px;
     font-weight: 600;
     text-anchor: middle;
+    dominant-baseline: middle;
+    /* замість alignment-baseline */
+    pointer-events: none;
+}
+
+.PlanetTextLight {
+    fill: #000;
 }
 
 .PlanetTextDark {
     fill: #fff;
-    font-size: 14px;
-    font-weight: 600;
-    text-anchor: middle;
 }
 
 .TooltipText {
@@ -84,7 +102,7 @@
     }
 }
 
-@media (max-width:768px) {
+@media (max-width: 768px) {
     .Chart {
         max-width: 95%;
         box-shadow: none;
