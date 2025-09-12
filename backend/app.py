@@ -491,7 +491,7 @@ def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
 
             # підпис дому
             label_r = house_radius_start + house_ring_height / 2.0
-            ax.text(center, label_r, f"I{i}",
+            ax.text(center, label_r, f"{i}",
                     fontsize=10, ha="center", va="center",
                     color="#ffffff", fontweight="bold",
                     rotation=(mid + 90) % 360, rotation_mode="anchor", zorder=5)
