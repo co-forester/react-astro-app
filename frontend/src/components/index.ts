@@ -11,6 +11,7 @@ export * from './EclipsesOverview/EclipsesOverview';
 export * from './ForecastWeek';
 export * from './GenerateChart';
 export * from './ChartSVG';
+export * from './NatalChartDisplay';
 
 // export { Footer } from './Footer/Footer';
 // export { Header } from './Header/Header';

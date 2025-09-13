@@ -1,65 +1,78 @@
 // src/components/Home/Home.tsx
-import React, { FC, useEffect, useState } from 'react';
+import React, { FC, useState } from 'react';
 import css from './home.module.css';
-import { useAppSelector } from '../../hooks/reduxHook';
-import { GenerateChartForm } from '../GenerateChart/GenerateChartForm';
+import { GenerateChartForm, FormData } from '../GenerateChart/GenerateChartForm';
+import { NatalChartDisplay } from '../NatalChartDisplay'; // Новий компонент
 import { EclipsesOverview } from '../EclipsesOverview/EclipsesOverview';
 import { HoroscopeJuly19 } from '../HoroscopeJuly19/HoroscopeJuly19';
-import { ChildHoroscope } from '../ChildHoroscope/ChildHoroscope';
-import { NatalChartAnalysis } from '../NatalChartAnalysis/NatalChartAnalysis';
-import { ChartSVG } from '../ChartSVG';
+
+// Тип для даних, які ми очікуємо від API
+interface ChartData {
+  chart_url: string;
+  aspects_table: any[];
+  ai_interpretation: string;
+}
 
 const Home: FC = () => {
-  const theme = useAppSelector(state => state.theme.theme);
+  // Весь стан, пов'язаний з картою, тепер живе тут
+  const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [planets, setPlanets] = useState<any[]>([]);
-  const [aspects, setAspects] = useState<any[]>([]);
+  // Функція для запиту даних, яку ми передамо у форму
+  const handleGenerateChart = async (formData: FormData) => {
+    setLoading(true);
+    setError(null);
+    setChartData(null);
 
-  const handleChartData = (data: { planets: any[]; aspects: any[] }) => {
-    setPlanets(data.planets);
-    setAspects(data.aspects);
+    try {
+      const response = await fetch("https://albireo-daria-96.fly.dev/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Помилка генерації карти");
+      }
+
+      setChartData(data); // Зберігаємо всі дані в одному місці
+
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setLoaded(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
-
   return (
-    <div className={`${theme ? css.mainLight : css.mainDark} ${loaded ? css.fadeIn : ''}`}>
+    <div className={css.mainDark}> {/* Або ваш css.mainLight */}
       <div className={css.gridContainer}>
-        {/* Лівий блок */}
-        <aside className={`${css.leftBlock} ${loaded ? css.fadeInUp : ''}`}>
+        <aside className={css.leftBlock}>
           <EclipsesOverview />
         </aside>
 
-        {/* Основний контент */}
-        <main className={`${css.content} ${loaded ? css.fadeInUp : ''}`}>
+        <main className={css.content}>
           <div className={css.intro}>
             <h2>Услуги</h2>
             <p>
               Предлагаю <span className="highlight">натальные карты</span>, гороскоп ребенка, аналіз натальної карты, индивидуальные прогнозы и астрологическое сопровождение.
             </p>
-            <p>
-              Обращайтесь для глубокого понимания себя, выбора жизненного пути и решения важных вопросов.
-            </p>
           </div>
 
-          <GenerateChartForm onDataReady={handleChartData} />
+          {/* Передаємо в форму лише функцію для сабміту та стан завантаження */}
+          <GenerateChartForm onSubmit={handleGenerateChart} loading={loading} />
 
-          {planets.length > 0 && aspects.length > 0 && (
-            <div className={css.chartWrapper}>
-              <ChartSVG planets={planets} aspects={aspects} />
-            </div>
-          )}
+          {/* Відображаємо помилку, якщо вона є */}
+          {error && <p style={{ color: "red", marginTop: "1rem" }}>{error}</p>}
 
-          <NatalChartAnalysis />
-          <ChildHoroscope />
+          {/* Відображаємо результати, коли вони завантажені */}
+          {chartData && <NatalChartDisplay data={chartData} />}
+
         </main>
 
-        {/* Бокова панель */}
-        <aside className={`${css.sidebar} ${loaded ? css.fadeInUp : ''}`}>
+        <aside className={css.sidebar}>
           <HoroscopeJuly19 />
         </aside>
       </div>
