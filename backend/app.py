@@ -1,4 +1,536 @@
-# app.py — професійна натальна карта (Placidus), кеш PNG/JSON,
+# app.py
+
+import os
+import json
+import math
+import hashlib
+import traceback
+from datetime import datetime as dt, timedelta
+
+import numpy as np
+from matplotlib.patches import Wedge
+import matplotlib.colors as mcolors
+from flatlib import aspects as f_aspects
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+
+# matplotlib — headless
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from math import cos, sin, radians, pi
+
+from matplotlib.lines import Line2D
+
+from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut
+from timezonefinder import TimezoneFinder
+import pytz
+
+import swisseph as swe
+from flatlib.chart import Chart
+from flatlib import const
+from flatlib.datetime import Datetime
+from flatlib.geopos import GeoPos
+
+# --- НОВИЙ КОД: Імпорти для ШІ та .env ---
+import google.generativeai as genai
+from dotenv import load_dotenv
+# --- КІНЕЦЬ НОВОГО КОДУ ---
+
+# ----------------- Ініціалізація -----------------
+EPHE_DIR = os.environ.get("EPHE_DIR", "/ephe")
+if not os.path.exists(EPHE_DIR):
+    print(f"WARNING: Ефемериди не знайдені за шляхом {EPHE_DIR}")
+swe.set_ephe_path(EPHE_DIR)
+
+app = Flask(__name__)
+CORS(app)
+
+CACHE_DIR = "cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
+CACHE_TTL_DAYS = 0.01
+
+geolocator = Nominatim(user_agent="albireo_astro_app")
+tf = TimezoneFinder()
+
+# --- НОВИЙ КОД: Завантаження .env та конфігурація ШІ ---
+load_dotenv()
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+if GOOGLE_API_KEY:
+    genai.configure(api_key=GOOGLE_API_KEY)
+else:
+    print("WARNING: GOOGLE_API_KEY не знайдено. Інтерпретація ШІ буде вимкнена.")
+# --- КІНЕЦЬ НОВОГО КОДУ ---
+
+
+# ... (ВЕСЬ ВАШ ІСНУЮЧИЙ КОД КОНФІГУРАЦІЇ ДО /generate) ...
+# (ZODIAC_SYMBOLS, PLANET_SYMBOLS, ASPECTS_DEF, і всі функції-утиліти залишаються без змін)
+
+# ----------------- Конфіг -----------------
+ZODIAC_SYMBOLS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
+ZODIAC_NAMES   = ["Овен","Телець","Близнюки","Рак","Лев","Діва","Терези","Скорпіон",
+                  "Стрілець","Козеріг","Водолій","Риби"]
+
+HOUSE_COLORS = [
+    ("#f9b9b7", "#f28c8c"), ("#f48fb1", "#f06292"), ("#ce93d8", "#ab47bc"), ("#b39ddb", "#7e57c2"),
+    ("#9fa8da", "#5c6bc0"), ("#90caf9", "#42a5f5"), ("#81d4fa", "#29b6f6"), ("#80deea", "#26c6da"),
+    ("#80cbc4", "#26a69a"), ("#a5d6a7", "#66bb6a"), ("#c5e1a5", "#9ccc65"), ("#e6ee9c", "#d4e157")
+]
+
+PLANET_SYMBOLS = {
+    "Sun":"☉","Moon":"☽","Mercury":"☿","Venus":"♀","Mars":"♂",
+    "Jupiter":"♃","Saturn":"♄","Uranus":"♅","Neptune":"♆","Pluto":"♇",
+    "North Node":"☊","South Node":"☋",
+    "Ascendant":"ASC","MC":"MC",
+    "Pars Fortuna":"⚶"
+}
+PLANET_SYMBOLS.update({
+    "Chiron":"⚷", "Lilith":"⚸", "Ceres":"⚳", "Pallas":"⚴", "Juno":"⚵", "Vesta":"⚶"
+})
+PLANET_COLORS = {
+    "Sun":"#f6c90e","Moon":"#c0c0c0","Mercury":"#7d7d7d","Venus":"#e88fb4","Mars":"#e55d5d",
+    "Jupiter":"#f3a33c","Saturn":"#b78b68","Uranus":"#69d2e7","Neptune":"#6a9bd1","Pluto":"#3d3d3d",
+    "Ascendant":"#2ecc71","MC":"#8e44ad"
+}
+PLANET_COLORS.update({
+    "Chiron":"#ff66cc", "Lilith":"#993399", "Ceres":"#66ff66", "Pallas":"#6699ff",
+    "Juno":"#ffcc33", "Vesta":"#ff9966"
+})
+
+PLANETS = [
+    "Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn",
+    "Uranus","Neptune","Pluto","Chiron","Lilith","Ceres","Pallas",
+    "Juno","Vesta","North Node","South Node"
+]
+
+ASPECTS_DEF = {
+    "conjunction": {"angle": 0,   "orb": 8, "color": "#D62728",    "symbol": "\u260C"},  # ☌
+    "sextile":     {"angle": 60,  "orb": 6, "color": "#1F77B4",    "symbol": "\u26B9"},  # ⚹
+    "square":      {"angle": 90,  "orb": 6, "color": "#FF7F0E",    "symbol": "\u25A1"},  # □
+    "trine":       {"angle": 120, "orb": 8, "color": "#2CA02C",    "symbol": "\u25B3"},  # △
+    "opposition":  {"angle": 180, "orb": 8, "color": "#9467BD",    "symbol": "\u260D"},  # ☍
+    "semisextile": {"angle": 30,  "orb": 2, "color": "#8C564B",    "symbol": "\u26BA"},  # ⚺
+    "semisquare":  {"angle": 45,  "orb": 3, "color": "#E377C2",    "symbol": "\u2220"},  # ∠
+    "quincunx":    {"angle": 150, "orb": 3, "color": "#7F7F7F",    "symbol": "\u26BB"},  # ⚻
+    "quintile":    {"angle": 72,  "orb": 2, "color": "#17BECF",    "symbol": "Q"},
+    "biquintile":  {"angle": 144, "orb": 2, "color": "#BCBD22",    "symbol": "bQ"},
+}
+
+
+# ----------------- Утиліти -----------------
+def cleanup_cache(days: int = CACHE_TTL_DAYS):
+    now_ts = dt.now().timestamp()
+    for fname in os.listdir(CACHE_DIR):
+        fpath = os.path.join(CACHE_DIR, fname)
+        try:
+            if os.path.isfile(fpath):
+                if now_ts - os.path.getmtime(fpath) > days * 24 * 3600:
+                    os.remove(fpath)
+        except Exception:
+            pass
+
+def cache_key(name, date_str, time_str, place):
+    raw = f"{name}_{date_str}_{time_str}_{place}"
+    return hashlib.md5(raw.encode("utf-8")).hexdigest()
+
+def deg_to_dms(angle_float):
+    angle = float(angle_float) % 360.0
+    d = int(angle)
+    m_f = (angle - d) * 60
+    m = int(m_f)
+    s = int(round((m_f - m) * 60))
+    if s == 60:
+        s = 0; m += 1
+    if m == 60:
+        m = 0; d = (d + 1) % 360
+    return f"{d}°{m}'{s}\""
+
+def deg_to_dms_str(angle_float):
+    return deg_to_dms(angle_float)
+
+def zodiac_position(lon):
+    """Повертає (знак, градус у знаку) для довготи"""
+    lon = lon % 360.0
+    sign_index = int(lon // 30)   # 0=Овен, 1=Телець, ..., 11=Риби
+    deg_in_sign = lon % 30.0
+    return sign_index, deg_in_sign
+
+def to_theta_global_raw(degree):
+    # legacy helper — не використовуєм без asc; надалі використовуємо локальний to_theta
+    return np.deg2rad(90.0 - float(degree))
+
+def geocode_place(place, retries=2, timeout=8):
+    for attempt in range(retries + 1):
+        try:
+            loc = geolocator.geocode(place, timeout=timeout)
+            if loc:
+                return float(loc.latitude), float(loc.longitude)
+            if "," not in place and attempt == 0:
+                try_place = f"{place}, Ukraine"
+                loc2 = geolocator.geocode(try_place, timeout=timeout)
+                if loc2:
+                    return float(loc2.latitude), float(loc2.longitude)
+            return None, None
+        except GeocoderTimedOut:
+            continue
+        except Exception:
+            break
+    return None, None
+
+def get_house_lon(chart, i):
+    # існуюча функція — повертає lon або None
+    try:
+        return chart.houses[i-1].lon
+    except Exception:
+        pass
+    try:
+        return chart.houses[i].lon
+    except Exception:
+        pass
+    try:
+        return chart.houses.get(i).lon
+    except Exception:
+        pass
+    return None
+
+def safe_house_lon(chart, i, asc_fallback=0.0):
+    """
+    Безпечне читання кута дому i. Якщо немає cusp у chart, повертає asc_fallback + (i-1)*30.
+    Повертає float градуси (0..360).
+    """
+    try:
+        v = get_house_lon(chart, i)
+        if v is not None:
+            return float(v) % 360.0
+    except Exception:
+        pass
+    # спробуємо взяти ASC з chart, інакше використовуємо asc_fallback
+    try:
+        asc_obj = None
+        try:
+            asc_obj = chart.get("ASC")
+        except Exception:
+            asc_obj = None
+        if asc_obj is not None:
+            asc_val = getattr(asc_obj, "lon", None)
+            if asc_val is not None:
+                asc_fallback = float(asc_val) % 360.0
+    except Exception:
+        pass
+    # поділ по 30 градусів від ASC
+    return (float(asc_fallback) + (i - 1) * 30.0) % 360.0
+
+ZODIAC_SIGNS = ["\u2648","\u2649","\u264A","\u264B","\u264C","\u264D",
+                "\u264E","\u264F","\u2650","\u2651","\u2652","\u2653"]
+
+def deg_in_sign_dms(lon_float):
+    lon = float(lon_float) % 360.0
+    sign_idx = int(lon // 30)
+    within = lon % 30
+    d = int(within)
+    m_f = (within - d) * 60
+    m = int(m_f)
+    s = int(round((m_f - m) * 60))
+    if s == 60:
+        s = 0; m += 1
+    if m == 60:
+        m = 0; d = (d + 1) % 30
+    return f"{ZODIAC_SIGNS[sign_idx]} {d}°{m}'{s}\""
+
+# ------------ координати/перетворення --------------
+def pol2cart(theta, r):
+    return r * np.cos(theta), r * np.sin(theta)
+
+def cart2pol(x, y):
+    theta = np.arctan2(y, x)
+    r = np.hypot(x, y)
+    return theta, r
+
+def compute_aspects_manual(objects):
+    results = []
+    # беремо об'єкти, які мають lon і id (розширена фільтрація)
+    objs = [o for o in objects if getattr(o, "id", None) and getattr(o, "lon", None) is not None]
+    for i in range(len(objs)):
+        for j in range(i + 1, len(objs)):
+            p1, p2 = objs[i], objs[j]
+            a1 = float(getattr(p1, "lon", 0.0)) % 360
+            a2 = float(getattr(p2, "lon", 0.0)) % 360
+            diff = abs(a1 - a2)
+            if diff > 180:
+                diff = 360 - diff
+            for name, cfg in ASPECTS_DEF.items():
+                if abs(diff - cfg["angle"]) <= cfg["orb"]:
+                    results.append({
+                        "planet1": getattr(p1, "id", str(p1)),
+                        "planet1_symbol": PLANET_SYMBOLS.get(getattr(p1, "id", ""), ""),
+                        "planet2": getattr(p2, "id", str(p2)),
+                        "planet2_symbol": PLANET_SYMBOLS.get(getattr(p2, "id", ""), ""),
+                        "type": name,
+                        "angle": round(diff, 2),
+                        "angle_dms": deg_to_dms(diff),
+                        "color": cfg["color"]
+                    })
+                    break
+    return results
+
+# ----------------- Малювання карти -----------------
+def draw_natal_chart(chart, aspects_list, save_path, name_for_center=None,
+                     logo_text="Albireo Daria", logo_sign="Скорпіон"):
+    """
+    Малює натальну карту:
+      - сектори домів + номери
+      - кільце зодіаку з підписами (символи + назви)
+      - ASC/MC/DSC/IC маркери з градусами
+      - планети (символи + градуси)
+      - хорди аспектів (кольори з ASPECTS_DEF)
+      - легенда, центр-логотип
+    Вхід:
+      chart - flatlib.chart.Chart
+      aspects_list - список словників із keys: planet1, planet2, type, color, angle, angle_dms
+      save_path - куди зберегти PNG
+    """
+    try:
+        fig = plt.figure(figsize=(12, 12))
+        ax = plt.subplot(111, polar=True)
+
+        # орієнтація: 0 = West (ліва сторона), CCW (щоб зодіак йшов CCW від ASC)
+        ax.set_theta_zero_location("W")
+        ax.set_theta_direction(1)
+
+        ax.set_ylim(0, 1.75)
+        ax.set_xticks([]); ax.set_yticks([])
+        fig.patch.set_facecolor("#4e4247")
+        ax.set_facecolor("#4e4247")
+        plt.rcParams["font.family"] = "DejaVu Sans"
+        ax.set_aspect('equal', 'box')
+        ax.set_rorigin(-0.02)
+
+        # -- helper: безпечне отримання об'єкта з chart --
+        def safe_get(obj_chart, key):
+            variants = []
+            if isinstance(key, str):
+                variants.extend([key, key.upper(), key.capitalize()])
+            try:
+                const_val = getattr(const, key.upper())
+                if const_val:
+                    variants.append(const_val)
+            except Exception:
+                pass
+            for k in variants:
+                try:
+                    if k is None:
+                        continue
+                    res = obj_chart.get(k)
+                    if res is not None:
+                        return res
+                except Exception:
+                    continue
+            return None
+
+        # ASC (fallback на будинок 1 або 0.0)
+        asc_obj = safe_get(chart, "ASC") or safe_get(chart, "Asc") or safe_get(chart, "asc")
+        asc_lon = None
+        try:
+            if asc_obj is not None and getattr(asc_obj, "lon", None) is not None:
+                asc_lon = float(getattr(asc_obj, "lon"))
+        except Exception:
+            asc_lon = None
+        if asc_lon is None:
+            try:
+                cusp1 = get_house_lon(chart, 1)
+                if cusp1 is not None:
+                    asc_lon = float(cusp1)
+            except Exception:
+                asc_lon = None
+        if asc_lon is None:
+            asc_lon = 0.0
+
+        # локальна конвертація довготи -> радіани від ASC (0..360 -> rad)
+        def to_theta_from_asc(lon):
+            ang = (float(lon) - float(asc_lon)) % 360.0
+            return np.deg2rad(ang)
+
+        # глобальна (для знаків/кілець) — також від ASC, але приймає degree
+        def to_theta_global(deg):
+            return to_theta_from_asc(deg)
+
+        # ---------- 1) Сектори будинків (градієнт ближче до центру) ----------
+        house_sector_inner = 0.15
+        house_sector_width = 0.25
+        grad_steps = 24
+
+        for i in range(1, 13):
+            cusp1 = safe_house_lon(chart, i, asc_fallback=asc_lon)
+            cusp2 = safe_house_lon(chart, (i % 12) + 1, asc_fallback=asc_lon)
+            if cusp1 is None or cusp2 is None:
+                continue
+            start_deg = float(cusp1) % 360.0
+            end_deg = float(cusp2) % 360.0
+            span = (end_deg - start_deg) % 360.0
+            if span <= 0:
+                span += 360.0
+            color_start, color_end = HOUSE_COLORS[(i - 1) % len(HOUSE_COLORS)]
+            cmap = mcolors.LinearSegmentedColormap.from_list(f"house{i}_cmap", [color_start, color_end])
+            for step in range(grad_steps):
+                frac1 = step / grad_steps
+                frac2 = (step + 1) / grad_steps
+                angle1 = start_deg + span * frac1
+                angle2 = start_deg + span * frac2
+                color = cmap(frac1)
+                ax.bar(
+                    x=to_theta_global(angle1),
+                    height=house_sector_width,
+                    width=np.deg2rad((angle2 - angle1) % 360.0),
+                    bottom=house_sector_inner,
+                    color=color,
+                    alpha=0.55,
+                    edgecolor=None,
+                    align="edge",
+                    zorder=1
+                )
+
+        # ---------- 2) Радіальні межі домів ----------
+        r_inner = 0.15
+        r_outer = 1.05
+        for i in range(1, 13):
+            cusp = safe_house_lon(chart, i, asc_fallback=asc_lon)
+            if cusp is None:
+                continue
+            th = to_theta_global(cusp)
+            ax.plot([th, th], [r_inner, r_outer], color="#888888", lw=0.9, zorder=2)
+
+        # ---------- 3) Номери домів (біля центру) ----------
+        house_number_radius = 0.19
+        for i in range(1, 13):
+            c1 = safe_house_lon(chart, i, asc_fallback=asc_lon)
+            c2 = safe_house_lon(chart, (i % 12) + 1, asc_fallback=asc_lon)
+            if c1 is None or c2 is None:
+                continue
+            start = float(c1) % 360.0
+            end = float(c2) % 360.0
+            span = (end - start) % 360.0
+            mid = (start + span / 2.0) % 360.0
+            ax.text(to_theta_global(mid), house_number_radius, str(i),
+                    fontsize=10, ha="center", va="center",
+                    color="#6a1b2c", fontweight="bold", zorder=7)
+
+        # ---------- 4) Кільце зодіаку з символами + градусні мітки ----------
+        ring_radius_start = 1.45
+        ring_height = 0.30
+
+        for i, sym in enumerate(ZODIAC_SYMBOLS):
+            start = i * 30.0
+            end = start + 30.0
+            span = 30.0
+            mid = (start + span/2.0) % 360.0
+            center = to_theta_global(mid)
+            width = np.deg2rad(span)
+
+            ax.bar(
+                x=center,
+                height=ring_height,
+                width=width,
+                bottom=ring_radius_start,
+                color=HOUSE_COLORS[i % 12][0],
+                edgecolor=HOUSE_COLORS[i % 12][1],
+                linewidth=1.2,
+                zorder=3,
+                align='center'
+            )
+            
+            # градусні мітки 0..30 кожні 5°, підписуємо 10°/20°
+            for deg_mark in range(0, 31, 5):
+                theta_deg = to_theta_global(start + deg_mark)
+                r_start = ring_radius_start + 0.01
+                r_end = ring_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
+                ax.plot([theta_deg, theta_deg], [r_start, r_end],
+                        color="#faf6f7", lw=1, zorder=2)
+                if deg_mark in [10, 20]:
+                    r_text = ring_radius_start + ring_height + 0.03
+                    ax.text(theta_deg, r_text, str(deg_mark), color='white', fontsize=8,
+                            ha='center', va='center', zorder=5)
+
+            # межа знаку
+            ax.plot([to_theta_global(start), to_theta_global(start)],
+                    [ring_radius_start, ring_radius_start + ring_height + 0.01],
+                    color="white", lw=1.2, zorder=4)
+
+            symbol_r = ring_radius_start + ring_height - 0.02
+            label_r = ring_radius_start + 0.05
+            if ZODIAC_NAMES[i] == logo_sign:
+                ax.text(center, label_r, logo_text,
+                        fontsize=12, ha="center", va="center",
+                        color="#FFD700", fontweight="bold",
+                        rotation=(mid + 90) % 360, rotation_mode="anchor", zorder=6)
+            else:
+                ax.text(center, symbol_r, sym,
+                        fontsize=18, ha="center", va="center",
+                        color="#ffffff", fontweight="bold",
+                        rotation=(mid + 90) % 360, rotation_mode="anchor", zorder=6)
+                ax.text(center, label_r, ZODIAC_NAMES[i],
+                        fontsize=9, ha="center", va="center",
+                        color="#ffffff", rotation=(mid + 90) % 360,
+                        rotation_mode="anchor", zorder=5)
+
+        # ---------- 5) Велике кільце домів (з підписами I..XII) ----------
+        house_radius_start = 1.20
+        house_ring_height = 0.17
+
+        for i in range(1, 13):
+            cusp1 = safe_house_lon(chart, i, asc_fallback=asc_lon)
+            cusp2 = safe_house_lon(chart, (i % 12) + 1, asc_fallback=asc_lon)
+            if cusp1 is None or cusp2 is None:
+                continue
+            start = float(cusp1) % 360.0
+            end = float(cusp2) % 360.0
+            span = (end - start) % 360.0
+            mid = (start + span/2.0) % 360.0
+            center = to_theta_global(mid)
+            width = np.deg2rad(span)
+
+            ax.bar(
+                x=center,
+                height=house_ring_height,
+                width=width,
+                bottom=house_radius_start,
+                color=HOUSE_COLORS[(i-1) % 12][0],
+                edgecolor=HOUSE_COLORS[(i-1) % 12][1],
+                linewidth=1.2,
+                zorder=3,
+                align='center'
+            )
+
+            # межа
+            ax.plot([to_theta_global(start), to_theta_global(start)],
+                    [house_radius_start, house_radius_start + house_ring_height + 0.01],
+                    color="white", lw=1.2, zorder=4)
+
+            # підпис дому
+            label_r = house_radius_start + house_ring_height / 2.0
+            ax.text(center, label_r, f"{i}",
+                    fontsize=10, ha="center", va="center",
+                    color="#ffffff", fontweight="bold",
+                    rotation=(mid + 90) % 360, rotation_mode="anchor", zorder=5)
+
+            # мітки кожні 5° від cusp
+            for deg_mark in range(0, int(span)+1, 5):
+                theta_deg = to_theta_global(start + deg_mark)
+                r_start = house_radius_start + 0.01
+                r_end = house_radius_start + (0.02 if deg_mark % 10 == 0 else 0.015)
+                ax.plot([theta_deg, theta_deg], [r_start, r_end],
+                        color="#e0e0e0", lw=1, zorder=2)
+                if deg_mark % 30 == 0:
+                    ax.text(theta_deg, house_radius_start - 0.02, str(deg_mark),
+                            fontsize=7, ha="center", va="center", color="#ffffff", zorder=6)
+
+        # ---------- 6) ASC / MC / DSC / IC маркери + градуси ----------
+        r_marker = 1.80
+        arrow_len = 0.07
+        SIGN_SYMBOLS = ["♈","♉","♊","♋","♌","♍","♎","♏","♐","♑","♒","♓"]
+
+        try:
+            asc = float(getattr(chart.get("ASC"), "lon", asc_lon))# app.py — професійна натальна карта (Placidus), кеш PNG/JSON,
 # дугові підписи, логотип по дузі (♏), DMS, ASC/MC/IC/DSC, хорди аспектів, таблиця аспектів
 
 import os
