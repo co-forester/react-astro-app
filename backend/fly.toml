@@ -32,7 +32,7 @@ soft_limit = 20
 [[services.http_checks]]
 interval = "15s"
 timeout = "10s"      # трохи більше часу на відповідь
-grace_period = "30s" # більше часу на старт
+grace_period = "60s" # більше часу на старт
 method = "get"
 path = "/health"
 
