@@ -1,6 +1,7 @@
 # app.py
 
 import os
+GOOGLE_API_KEY="AIzaSyAD3b0ipvTF6MSbxX_Ycwk6-cDW21puMwA"
 import json
 import math
 import hashlib
