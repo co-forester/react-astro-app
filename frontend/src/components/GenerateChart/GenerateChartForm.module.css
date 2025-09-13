@@ -112,3 +112,29 @@
     padding: 0.3rem;
   }
 }
+/* Додайте це в кінець файлу GenerateChartForm.module.css */
+
+.aiInterpretationContainer {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  text-align: left;
+}
+
+.aiInterpretationContainer h3 {
+  color: #ffaa33; /* Колір як у логотипу */
+  margin-top: 0;
+  border-bottom: 1px solid #ffaa33;
+  padding-bottom: 0.5rem;
+}
+
+.aiText {
+  white-space: pre-wrap; /* Обов'язково для переносів рядків */
+  word-wrap: break-word; /* Для переносу довгих слів */
+  font-family: 'Georgia', serif; /* Кращий шрифт для читання */
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: #f0f0f0;
+}
