@@ -5,42 +5,42 @@ kill_timeout = 5
 
 # ====================== Build ======================
 [build]
-  dockerfile = "Dockerfile"
+dockerfile = "Dockerfile"
 
 # ====================== Том для ефемерид ======================
 [mounts]
-  source = "ephe_data"
-  destination = "/ephe"
+source = "ephe_data"
+destination = "/ephe"
 
 # ====================== Сервіси ======================
 [[services]]
-  internal_port = 8080
-  protocol = "tcp"
+internal_port = 8080
+protocol = "tcp"
 
-  [[services.ports]]
-    port = 80
-    handlers = ["http"]
+[[services.ports]]
+port = 80
+handlers = ["http"]
 
-  [[services.ports]]
-    port = 443
-    handlers = ["tls", "http"]
+[[services.ports]]
+port = 443
+handlers = ["tls", "http"]
 
-  [services.concurrency]
-    hard_limit = 25
-    soft_limit = 20
+[services.concurrency]
+hard_limit = 25
+soft_limit = 20
 
-  [[services.http_checks]]
-    interval = "15s"
-    timeout = "5s"        # трохи більше часу на відповідь
-    grace_period = "30s"  # більше часу на старт
-    method = "get"
-    path = "/health"
+[[services.http_checks]]
+interval = "15s"
+timeout = "10s"      # трохи більше часу на відповідь
+grace_period = "30s" # більше часу на старт
+method = "get"
+path = "/health"
 
 # ====================== Змінні оточення ======================
 [env]
-  PORT = "8080"
+PORT = "8080"
 
 # ====================== Експериментальні (акуратно) ======================
 [experimental]
-  auto_stop_machines = true
-  auto_start_machines = true
+auto_stop_machines = true
+auto_start_machines = true
